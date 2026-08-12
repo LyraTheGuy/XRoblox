@@ -277,12 +277,12 @@ return function(config)
     statsPadding.PaddingRight = UDim.new(0, 8)
     statsPadding.Parent = statsFrame
 
-    local function makeStatCard(labelText, order)
+    local function makeStatCard(labelText, order, parent)
         local card = Instance.new("Frame")
         card.BackgroundColor3 = theme.panel2 or Color3.fromRGB(34, 34, 44)
         card.BorderSizePixel = 0
         card.LayoutOrder = order
-        card.Parent = statsFrame
+        card.Parent = parent or statsFrame
         Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
 
         local label = Instance.new("TextLabel")
@@ -314,6 +314,56 @@ return function(config)
     local pingValue = makeStatCard("PING", 2)
     local playerCountValue = makeStatCard("PLAYER COUNT", 3)
     local totalHiveValue = makeStatCard("TOTAL HIVE", 4)
+
+    -- Action counters section (fed by ctx.counts via core.lua updateStats)
+    local actionTitle = Instance.new("TextLabel")
+    actionTitle.Size = UDim2.new(1, -24, 0, 14)
+    actionTitle.Position = UDim2.new(0, 12, 0, 210)
+    actionTitle.BackgroundTransparency = 1
+    actionTitle.Text = "ACTIONS PERFORMED"
+    actionTitle.TextColor3 = theme.dim or Color3.fromRGB(130, 130, 145)
+    actionTitle.Font = Enum.Font.GothamBold
+    actionTitle.TextSize = 9
+    actionTitle.TextXAlignment = Enum.TextXAlignment.Left
+    actionTitle.Parent = overviewTab
+
+    local resetCountersBtn = Instance.new("TextButton")
+    resetCountersBtn.Text = "Reset"
+    resetCountersBtn.Size = UDim2.new(0, 56, 0, 18)
+    resetCountersBtn.Position = UDim2.new(1, -68, 0, 210)
+    resetCountersBtn.BackgroundColor3 = theme.panel2 or Color3.fromRGB(40, 40, 52)
+    resetCountersBtn.TextColor3 = theme.dim or Color3.fromRGB(130, 130, 145)
+    resetCountersBtn.Font = Enum.Font.GothamBold
+    resetCountersBtn.TextSize = 9
+    resetCountersBtn.BorderSizePixel = 0
+    resetCountersBtn.Parent = overviewTab
+    Instance.new("UICorner", resetCountersBtn).CornerRadius = UDim.new(0, 6)
+
+    local actionStatsFrame = Instance.new("Frame")
+    actionStatsFrame.Size = UDim2.new(0, 300, 0, 118)
+    actionStatsFrame.Position = UDim2.new(0, 12, 0, 228)
+    actionStatsFrame.BackgroundColor3 = theme.panel or Color3.fromRGB(24, 24, 32)
+    actionStatsFrame.BorderSizePixel = 0
+    actionStatsFrame.Parent = overviewTab
+    Instance.new("UICorner", actionStatsFrame).CornerRadius = UDim.new(0, 10)
+
+    local actionStatsGrid = Instance.new("UIGridLayout")
+    actionStatsGrid.CellPadding = UDim2.new(0, 8, 0, 8)
+    actionStatsGrid.CellSize = UDim2.new(0.5, -4, 0.5, -4)
+    actionStatsGrid.SortOrder = Enum.SortOrder.LayoutOrder
+    actionStatsGrid.Parent = actionStatsFrame
+
+    local actionStatsPadding = Instance.new("UIPadding")
+    actionStatsPadding.PaddingTop = UDim.new(0, 8)
+    actionStatsPadding.PaddingBottom = UDim.new(0, 8)
+    actionStatsPadding.PaddingLeft = UDim.new(0, 8)
+    actionStatsPadding.PaddingRight = UDim.new(0, 8)
+    actionStatsPadding.Parent = actionStatsFrame
+
+    local collectVal = makeStatCard("COLLECTED", 1, actionStatsFrame)
+    local sellVal = makeStatCard("SOLD", 2, actionStatsFrame)
+    local auroraVal = makeStatCard("AURORA", 3, actionStatsFrame)
+    local buySeedVal = makeStatCard("SEEDS BOUGHT", 4, actionStatsFrame)
 
     local actionHeader = Instance.new("TextLabel")
     actionHeader.Size = UDim2.new(1, -24, 0, 24)
@@ -609,7 +659,7 @@ return function(config)
 
     local mini = Instance.new("Frame")
     mini.Name = "MinimizedPanel"
-    mini.Size = UDim2.new(0, 240, 0, 62)
+    mini.Size = UDim2.new(0, 240, 0, 96)
     mini.Position = UDim2.new(0, 20, 0, 20)
     mini.BackgroundColor3 = theme.bg or Color3.fromRGB(18, 18, 24)
     mini.BorderSizePixel = 0
@@ -664,13 +714,13 @@ return function(config)
     miniLayout.SortOrder = Enum.SortOrder.LayoutOrder
     miniLayout.Parent = miniCards
 
-    local function makeMiniCard(labelText, order)
+    local function makeMiniCard(labelText, order, parent)
         local card = Instance.new("Frame")
         card.Size = UDim2.new(0, 53, 1, 0)
         card.BackgroundColor3 = theme.panel2 or Color3.fromRGB(34, 34, 44)
         card.BorderSizePixel = 0
         card.LayoutOrder = order
-        card.Parent = miniCards
+        card.Parent = parent or miniCards
         Instance.new("UICorner", card).CornerRadius = UDim.new(0, 6)
 
         local label = Instance.new("TextLabel")
@@ -702,6 +752,24 @@ return function(config)
     local miniPing = makeMiniCard("PING", 2)
     local miniPlayers = makeMiniCard("PLAYERS", 3)
     local miniHive = makeMiniCard("HIVE", 4)
+
+    -- Second row: action counters (fed by ctx.counts via core.lua updateStats)
+    local miniActionCards = Instance.new("Frame")
+    miniActionCards.Size = UDim2.new(1, -16, 0, 34)
+    miniActionCards.Position = UDim2.new(0, 8, 0, 60)
+    miniActionCards.BackgroundTransparency = 1
+    miniActionCards.Parent = mini
+
+    local miniActionLayout = Instance.new("UIListLayout")
+    miniActionLayout.FillDirection = Enum.FillDirection.Horizontal
+    miniActionLayout.Padding = UDim.new(0, 4)
+    miniActionLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    miniActionLayout.Parent = miniActionCards
+
+    local miniCollectVal = makeMiniCard("COLL", 1, miniActionCards)
+    local miniSellVal = makeMiniCard("SELL", 2, miniActionCards)
+    local miniAuroraVal = makeMiniCard("AURA", 3, miniActionCards)
+    local miniBuySeedVal = makeMiniCard("SEED", 4, miniActionCards)
 
     local function setTab(tabName)
         applyTab(tabName)
@@ -750,6 +818,13 @@ return function(config)
             PlayerCountVal = playerCountValue,
             TotalHiveVal = totalHiveValue,
         },
+        ActionStats = {
+            CollectVal = collectVal,
+            SellVal = sellVal,
+            AuroraVal = auroraVal,
+            BuySeedVal = buySeedVal,
+        },
+        ResetCountersBtn = resetCountersBtn,
         CollectButton = collectButton,
         SellButton = sellButton,
         DepositAuroraButton = depositAuroraButton,
@@ -768,6 +843,12 @@ return function(config)
             PingVal = miniPing,
             PlayerCountVal = miniPlayers,
             TotalHiveVal = miniHive,
+        },
+        MiniActionStats = {
+            CollectVal = miniCollectVal,
+            SellVal = miniSellVal,
+            AuroraVal = miniAuroraVal,
+            BuySeedVal = miniBuySeedVal,
         },
     }
 end

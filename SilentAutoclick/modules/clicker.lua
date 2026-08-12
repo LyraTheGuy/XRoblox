@@ -79,7 +79,9 @@ return function(ctx)
             ctx.clickCPS = math.max(1, math.floor(ratio * 100))
             ctx.clickDelay = 1 / ctx.clickCPS
             gui.SliderFill.Size = UDim2.new(ratio, 0, 1, 0)
-            gui.SliderKnob.Position = UDim2.new(ratio, -8, 0.5, -8)
+            -- Knob is anchored at (0, 0.5): X offset -8 centers its 16px width,
+            -- Y offset must stay 0 or the knob floats above the track.
+            gui.SliderKnob.Position = UDim2.new(ratio, -8, 0.5, 0)
             gui.CPSLbl.Text = "CPS: " .. ctx.clickCPS
         end
     end)

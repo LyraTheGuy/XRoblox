@@ -15,29 +15,9 @@ return function(ctx)
 	ctx.updateStatus()
 
 	local lastRun = os.clock()
-	ctx.FLOWER_LIST = ctx.FLOWER_LIST
-		or {
-			"Lavender",
-			"Daisy",
-			"Clover",
-			"Sunflower",
-			"Dahlia",
-			"Bamboo",
-			"Tulip",
-			"AloeFlower",
-			"VenusFlyTrap",
-			"MorningGlory",
-			"Gourd",
-			"FireBlossom",
-			"Bluebell",
-			"Lily",
-			"Rose",
-			"Cactus",
-			"KniphofiaUvaria",
-			"AquilegiaCoerulea",
-			"MartagonLily",
-		}
 
+	-- FLOWER_LIST + selectedFlowers come from ctx (core.lua always defines them
+	-- before this module runs), so no fallback copy is needed here.
 	ctx.selectedFlowers = ctx.selectedFlowers or { Bamboo = true }
 
 	ctx.gui.BuySeedButton.MouseButton1Click:Connect(function()
@@ -192,7 +172,10 @@ return function(ctx)
 
 	task.spawn(function()
 		while task.wait(0.25) do
-			if ctx.Destroyed or not ctx.AutoBuySeed then
+			if ctx.Destroyed then
+				break
+			end
+			if not ctx.AutoBuySeed then
 				lastRun = os.clock()
 				continue
 			end

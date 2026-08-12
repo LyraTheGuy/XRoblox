@@ -307,6 +307,16 @@ return function(ctx)
             -- POST-END DELAY
             afSetStage("Resetting...")
             task.wait(AF_POST_END_DELAY)
+
+            -- Break system: every 60 min, pause 5 min (mirrors the mining
+            -- engine) to avoid being flagged for continuous long sessions.
+            if (tick() - fishSessionStart) >= FISH_BREAK_INTERVAL then
+                afSetStage("Taking break (5 min)...")
+                log("AutoFish: 60 min reached, pausing 5 min", THEME.warn)
+                task.wait(FISH_BREAK_DURATION)
+                fishSessionStart = tick()
+                log("AutoFish: Break over, resuming", THEME.success)
+            end
         end
 
         afSetStage("Idle")

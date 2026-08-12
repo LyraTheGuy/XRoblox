@@ -915,8 +915,10 @@ return function(gui, config)
         for _, list in pairs(ctx.playerConnections) do disconnectList(list) end
         -- Cleanup mine ESP
         pcall(function()
-            for stone in pairs(ctx.mineESPObjects) do
-                ctx.removeMineESP(stone)
+            if ctx.removeMineESP then
+                for stone in pairs(ctx.mineESPObjects) do
+                    ctx.removeMineESP(stone)
+                end
             end
         end)
         playCloseAnimation()
@@ -1073,12 +1075,17 @@ return function(gui, config)
         task.wait(0.3)
 
         local result
+        local sold = false
         local success, err = pcall(function()
-            if ctx.SellRemote:IsA("RemoteFunction") then
-                result = ctx.SellRemote:InvokeServer(ctx.AUTO_SELL_RARITIES)
-            elseif ctx.SellRemote:IsA("RemoteEvent") then
-                ctx.SellRemote:FireServer(ctx.AUTO_SELL_RARITIES)
-                result = "Fired RemoteEvent Payload"
+            if ctx.SellRemote then
+                if ctx.SellRemote:IsA("RemoteFunction") then
+                    result = ctx.SellRemote:InvokeServer(ctx.AUTO_SELL_RARITIES)
+                    sold = true
+                elseif ctx.SellRemote:IsA("RemoteEvent") then
+                    ctx.SellRemote:FireServer(ctx.AUTO_SELL_RARITIES)
+                    result = "Fired RemoteEvent Payload"
+                    sold = true
+                end
             end
         end)
 
@@ -1088,11 +1095,18 @@ return function(gui, config)
         end
         ctx.autoTPEnabled = wasAutoTP
 
-        if success then
-            ctx.perfTotalSellValue = ctx.perfTotalSellValue + 1
+        if not success then
+            return false, result or err
+        end
+        if not sold then
+            -- Nothing was actually sold (remote nil or unexpected class) —
+            -- don't report a false SUCCESS.
+            return false, "Sell remote not available"
         end
 
-        return success, result or err
+        ctx.perfTotalSellValue = ctx.perfTotalSellValue + 1
+
+        return true, result
     end
     ctx.performSell = performSell
 
@@ -1117,7 +1131,9 @@ return function(gui, config)
                 while ctx.autoSellEnabled and not ctx.destroyed do
                     if ctx.SellRemote then
                         local ok, msg = performSell()
-                        log("Auto Sell executed: " .. tostring(msg), ok and THEME.success or THEME.danger)
+                        -- msg can be nil when the server returns no result (e.g.
+                        -- nothing to sell) — log a friendly value instead of "nil".
+                        log("Auto Sell executed: " .. tostring(msg or "ok"), ok and THEME.success or THEME.danger)
                     end
                     task.wait(ctx.AUTO_SELL_INTERVAL)
                 end
@@ -1137,7 +1153,7 @@ return function(gui, config)
         end
         local success, msg = performSell()
         if success then
-            log("Sell Now: SUCCESS - " .. tostring(msg), THEME.success)
+            log("Sell Now: SUCCESS - " .. tostring(msg or "done"), THEME.success)
         else
             log("Sell Now: FAILED - " .. tostring(msg), THEME.danger)
         end
@@ -1254,14 +1270,19 @@ return function(gui, config)
     end
     ctx.attemptReconnect = attemptReconnect
 
-    -- Listen for kick/disconnect
+    -- Listen for kick/disconnect. Tracked in ctx.connections so destroyAll
+    -- disconnects it on unload.
     task.spawn(function()
-        lp.OnTeleport:Connect(function(state)
+        local conn = ctx.bind(lp.OnTeleport, function(state)
             if state == Enum.TeleportState.Failed and ctx.autoReconnectEnabled then
                 task.wait(5)
                 attemptReconnect()
             end
         end)
+        -- If the script was already unloaded before this spawn ran, undo it.
+        if ctx.destroyed then
+            pcall(function() conn:Disconnect() end)
+        end
     end)
 
 
@@ -1321,7 +1342,9 @@ return function(gui, config)
     ctx.sendWebhook = sendWebhook
 
     local function webhookFishCaught(fishName, rarity, weight, price)
-        if not shouldLogRarity(rarity) then return end
+        -- Use ctx.shouldLogRarity (not the local captured at definition time) so
+        -- the Settings webhook rarity toggles apply to fishing notifications too.
+        if not ctx.shouldLogRarity(rarity) then return end
         local priceStr = price and ("Rp." .. tostring(math.floor(tonumber(price) or 0))) or "?"
         local weightStr = weight and (tostring(weight) .. " Kg") or "?"
         local colors = {ancient = 16711680, mythic = 16753920, legend = 16766720, epic = 10494192, secret = 10040115, rare = 3447003}

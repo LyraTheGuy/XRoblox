@@ -15,9 +15,13 @@ Automation toolkit for Build A Beehive on Roblox. It uses the same modular `ctx`
 ### Auto Deposit Aurora
 - Fires the aurora deposit remote on demand and on a loop while enabled
 
+### Auto Buy Seed
+- Buys every checked flower from a checkbox list on an interval (default every 2 minutes)
+- Select All / Clear All buttons; the selected list lives in `ctx.selectedFlowers`
+
 ### UI
 - Small draggable window
-- Separate toggles for Collect, Extract, Sell, and Aurora deposit
+- Separate toggles for Collect, Sell, Aurora deposit, and Buy Seed
 - Reusable theme fields from `config.lua`
 
 ## File Structure
@@ -30,10 +34,11 @@ BuildABeehive/
 ├── gui.lua              # Honey automation UI
 ├── core.lua             # Shared remotes, state, helpers, and cleanup
 ├── modules/
-│   ├── auto_collect.lua       # Auto Collect feature
-│   ├── auto_sell.lua          # Auto Sell feature
-│   └── auto_deposit_aurora.lua # Auto Deposit Aurora feature
-└── README.md            # This file
+│   ├── auto_collect.lua        # Auto Collect feature
+│   ├── auto_sell.lua           # Auto Sell feature
+│   ├── auto_deposit_aurora.lua # Auto Deposit Aurora feature
+│   └── auto_buy_seed.lua       # Auto Buy Seed feature
+└── README.md             # This file
 ```
 
 ## Architecture
@@ -53,3 +58,4 @@ Run `bootstrap.lua` with your executor. The GUI appears immediately and each mod
 
 - The plot lookup is based on the local player's `Owner` value, so it does not depend on a fixed plot index.
 - The modules are split so each automation path can be maintained independently.
+- Action counters persist across reloads via `BuildABeehive_Counters.json` (saved with a 1s throttle as actions happen, plus on close and when Reset is pressed). Use the **Reset** button on the Overview tab to zero them.

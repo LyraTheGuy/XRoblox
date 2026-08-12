@@ -118,7 +118,7 @@ return function(ctx)
     local function updateClickerSliderUI()
         local ratio = math.clamp(ctx.clickCPS / 100, 0, 1)
         gui.Clicker.SliderFill.Size = UDim2.new(ratio, 0, 1, 0)
-        gui.Clicker.SliderKnob.Position = UDim2.new(ratio, -8, 0.5, -8)
+        gui.Clicker.SliderKnob.Position = UDim2.new(ratio, -7, 0.5, -7)
         gui.Clicker.CPSLbl.Text = "CPS: " .. ctx.clickCPS
     end
     ctx.updateClickerSliderUI = updateClickerSliderUI
@@ -165,7 +165,7 @@ return function(ctx)
             ctx.clickCPS = math.max(1, math.floor(ratio * 100))
             ctx.clickDelay = 1 / ctx.clickCPS
             gui.Clicker.SliderFill.Size = UDim2.new(ratio, 0, 1, 0)
-            gui.Clicker.SliderKnob.Position = UDim2.new(ratio, -8, 0.5, -8)
+            gui.Clicker.SliderKnob.Position = UDim2.new(ratio, -7, 0.5, -7)
             gui.Clicker.CPSLbl.Text = "CPS: " .. ctx.clickCPS
         end
     end)

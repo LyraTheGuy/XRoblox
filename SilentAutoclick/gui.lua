@@ -264,7 +264,7 @@ return function(config)
     SliderKnob.Text = ""
     SliderKnob.Size = UDim2.new(0, 16, 0, 16)
     SliderKnob.AnchorPoint = Vector2.new(0, 0.5)
-    SliderKnob.Position = UDim2.new(0.2, -8, 0.5, -8)
+    SliderKnob.Position = UDim2.new(0.2, -8, 0.5, 0)
     SliderKnob.BackgroundColor3 = Color3.new(1, 1, 1)
     SliderKnob.BorderSizePixel = 0
     SliderKnob.Parent = SliderTrack

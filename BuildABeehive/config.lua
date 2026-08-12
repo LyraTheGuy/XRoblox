@@ -1,4 +1,4 @@
--- SilentAutoclick/config.lua
+-- BuildABeehive/config.lua
 -- Config table only (NOT a function wrapper)
 
 return {

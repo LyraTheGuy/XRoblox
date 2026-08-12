@@ -15,7 +15,10 @@ return function(ctx)
 
     task.spawn(function()
         while task.wait(0.25) do
-            if ctx.Destroyed or not ctx.AutoCollect then
+            if ctx.Destroyed then
+                break
+            end
+            if not ctx.AutoCollect then
                 lastRun = os.clock()
                 continue
             end

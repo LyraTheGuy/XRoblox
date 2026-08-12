@@ -123,7 +123,53 @@ return function(gui, config)
 	end
 	ctx.syncIntervals = syncIntervals
 
-	ctx.addCount = function() end
+	-- Per-category action counters (incremented by the feature modules).
+	ctx.counts = {}
+
+	-- Persist counters to a settings file so they survive script reloads.
+	-- Uses the executor file API (writefile/readfile/isfile) guarded with pcall,
+	-- same pattern as IndoVoice's LyraHub_Settings.json.
+	local COUNTERS_FILE = "BuildABeehive_Counters.json"
+	local COUNTERS_SAVE_INTERVAL = 1 -- throttle: at most one write per second
+	local lastCountersSave = tick()
+
+	local function saveCounters()
+		pcall(function()
+			local HttpService = game:GetService("HttpService")
+			writefile(COUNTERS_FILE, HttpService:JSONEncode(ctx.counts))
+		end)
+	end
+	ctx.saveCounters = saveCounters
+
+	local function loadCounters()
+		pcall(function()
+			if isfile and isfile(COUNTERS_FILE) then
+				local HttpService = game:GetService("HttpService")
+				local loaded = HttpService:JSONDecode(readfile(COUNTERS_FILE))
+				if type(loaded) == "table" then
+					for key, value in pairs(loaded) do
+						if type(value) == "number" then
+							ctx.counts[key] = value
+						end
+					end
+				end
+			end
+		end)
+	end
+	loadCounters()
+
+	ctx.addCount = function(category, amount)
+		local key = tostring(category or "unknown")
+		ctx.counts[key] = (ctx.counts[key] or 0) + (amount or 1)
+
+		-- Persist with a 1s throttle: bursts of actions (e.g. per-hive collect
+		-- ticks) don't spam the disk, and a hard kill loses at most ~1s.
+		local now = tick()
+		if now - lastCountersSave >= COUNTERS_SAVE_INTERVAL then
+			lastCountersSave = now
+			saveCounters()
+		end
+	end
 
 	local function setMinimized(minimized)
 		ctx.minimized = minimized
@@ -135,6 +181,20 @@ return function(gui, config)
 		end
 	end
 	ctx.setMinimized = setMinimized
+
+	-- Compact number formatting for large action counters (1.2k / 3.4M / 1.1B)
+	local function formatCount(n)
+		n = tonumber(n) or 0
+		if n >= 1e9 then
+			return string.format("%.1fB", n / 1e9)
+		elseif n >= 1e6 then
+			return string.format("%.1fM", n / 1e6)
+		elseif n >= 1e3 then
+			return string.format("%.1fK", n / 1e3)
+		end
+		return tostring(math.floor(n))
+	end
+	ctx.formatCount = formatCount
 
 	local function updateStats()
 		local hives = ctx.getMyHives()
@@ -163,6 +223,19 @@ return function(gui, config)
 			gui.MiniStats.PingVal.Text = tostring(ctx.ping)
 			gui.MiniStats.PlayerCountVal.Text = tostring(ctx.playerCount)
 			gui.MiniStats.TotalHiveVal.Text = tostring(ctx.totalHive)
+		end
+
+		if gui.ActionStats then
+			gui.ActionStats.CollectVal.Text = formatCount(ctx.counts.collect)
+			gui.ActionStats.SellVal.Text = formatCount(ctx.counts.sell)
+			gui.ActionStats.AuroraVal.Text = formatCount(ctx.counts.aurora)
+			gui.ActionStats.BuySeedVal.Text = formatCount(ctx.counts["buy_seed"])
+		end
+		if gui.MiniActionStats then
+			gui.MiniActionStats.CollectVal.Text = formatCount(ctx.counts.collect)
+			gui.MiniActionStats.SellVal.Text = formatCount(ctx.counts.sell)
+			gui.MiniActionStats.AuroraVal.Text = formatCount(ctx.counts.aurora)
+			gui.MiniActionStats.BuySeedVal.Text = formatCount(ctx.counts["buy_seed"])
 		end
 
 		if gui.CollectButton then
@@ -277,7 +350,10 @@ return function(gui, config)
 	end
 	ctx.endDrag = endDrag
 
-	bind(gui.TopBar.InputBegan, function(input)
+	-- NOTE: the top bar is covered by a full-width transparent DragHit button,
+	-- so InputBegan on the TopBar frame itself almost never fires. Bind the
+	-- DragHit button (returned by gui.lua) instead, or dragging breaks.
+	bind(gui.DragHit.InputBegan, function(input)
 		if
 			input.UserInputType == Enum.UserInputType.MouseButton1
 			or input.UserInputType == Enum.UserInputType.Touch
@@ -352,8 +428,18 @@ return function(gui, config)
 		end)
 	end
 
+	-- Reset action counters (fresh session stats without reloading)
+	if gui.ResetCountersBtn then
+		bind(gui.ResetCountersBtn.MouseButton1Click, function()
+			table.clear(ctx.counts)
+			saveCounters() -- zero the persisted file too, so a reload starts fresh
+			updateStats()
+		end)
+	end
+
 	local function destroyAll()
 		ctx.Destroyed = true
+		saveCounters()
 		for _, connection in ipairs(ctx.connections) do
 			pcall(function()
 				connection:Disconnect()
