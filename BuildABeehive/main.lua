@@ -77,7 +77,9 @@ local config = configChunk()
 assert(type(config) == "table", "config.lua must return a table")
 
 -- LyraHub UI kit (shared primitives + component factories)
-local shared = compile(fetch(LYRAHUB_URL .. "views/components/shared.lua", "shared.lua"), "shared.lua")(config)
+-- shared.lua returns function(theme): call the chunk to get the factory,
+-- then call the factory with config to get the shared helper table.
+local shared = compile(fetch(LYRAHUB_URL .. "views/components/shared.lua", "shared.lua"), "shared.lua")()(config)
 local components = { shared = shared }
 for _, name in ipairs({ "button", "textinput" }) do
     local factory = compile(fetch(LYRAHUB_URL .. "views/components/" .. name .. ".lua", name), name)()

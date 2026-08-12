@@ -73,10 +73,14 @@ local config = compile(fetch(BASE_URL .. "config.lua", "config.lua"), "config.lu
 assert(type(config) == "table", "config.lua must return a table")
 
 -- 2. Model (observable store)
-local model = compile(fetch(BASE_URL .. "models/state.lua", "state.lua"), "state.lua")()
+-- state.lua returns a factory function; call the chunk to get the factory,
+-- then call the factory (no args) to get the model table.
+local model = compile(fetch(BASE_URL .. "models/state.lua", "state.lua"), "state.lua")()()
 
 -- 3. View primitives
-local shared = compile(fetch(BASE_URL .. "views/components/shared.lua", "shared.lua"), "shared.lua")(config)
+-- shared.lua returns function(theme); call the chunk to get the factory,
+-- then call the factory with config to get the shared helper table.
+local shared = compile(fetch(BASE_URL .. "views/components/shared.lua", "shared.lua"), "shared.lua")()(config)
 
 local components = { shared = shared }
 for _, name in ipairs({ "button", "toggle", "dropdown", "slider", "keybind", "textinput", "colorpicker" }) do
