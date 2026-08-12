@@ -83,9 +83,9 @@ local function showErrorGui(msg)
     task.delay(15, function() pcall(function() errGui:Destroy() end) end)
 end
 
--- Small status hint shown when the LyraHub UI kit can't be fetched from the
--- raw GitHub link (e.g. the kit folder wasn't pushed yet). Auto-fades, or
--- click to dismiss.
+-- Pre-kit fallback status hint: only used when the LyraHub kit itself failed
+-- to load (you can't show the kit toast when the kit link is down). At
+-- runtime, notifications go through the kit toast component (gui.Toast).
 local function showKitToast(msg)
     local Players = game:GetService("Players")
     local lp = Players.LocalPlayer
@@ -150,6 +150,10 @@ local kitOk, kitErr = pcall(function()
     assert(type(buttonFactory) == "function", "button.lua must return a function")
     components.shared = shared
     components.button = buttonFactory(config, shared)
+    for _, name in ipairs({ "toast", "updatecheck" }) do
+        local chunk = compile(fetch(LYRAHUB_URL .. "views/components/" .. name .. ".lua", name), name)
+        components[name] = chunk()(config, shared)
+    end
 end)
 if not kitOk then
     warn("[LyraHub] Kit load failed: " .. tostring(kitErr))
@@ -199,4 +203,9 @@ for _, name in ipairs(modules) do
     if not ok then
         showErrorGui("Module '" .. name .. "' failed:\n" .. tostring(err))
     end
+end
+
+-- Update check: compare the running build against the live raw config
+if components.updatecheck and components.updatecheck.Check and config.Build then
+    components.updatecheck.Check({ LocalBuild = config.Build, ConfigURL = BASE_URL .. "config.lua" })
 end

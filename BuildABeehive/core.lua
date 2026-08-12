@@ -91,8 +91,17 @@ return function(gui, config)
 	end
 
 	-- Resolve now; if the framework isn't present yet, retry once a second for
-	-- up to 30s (game structure often populates after the client connects).
+	-- up to 30s (game structure often populates after the client connects). If
+	-- the remotes never resolve, surface a toast so the user knows why the
+	-- automation features are inert.
 	if not resolveRemotes() then
+		if gui.Toast and gui.Toast.show then
+			gui.Toast.show({
+				Text = "Honey remotes not found — automation features are inactive.\nThe game's framework may have changed; re-run after joining a server.",
+				Variant = "warn",
+				Duration = 12,
+			})
+		end
 		task.spawn(function()
 			for _ = 1, 30 do
 				task.wait(1)

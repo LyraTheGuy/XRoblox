@@ -83,7 +83,7 @@ local model = compile(fetch(BASE_URL .. "models/state.lua", "state.lua"), "state
 local shared = compile(fetch(BASE_URL .. "views/components/shared.lua", "shared.lua"), "shared.lua")()(config)
 
 local components = { shared = shared }
-for _, name in ipairs({ "button", "toggle", "dropdown", "slider", "keybind", "textinput", "colorpicker" }) do
+for _, name in ipairs({ "button", "toggle", "dropdown", "slider", "keybind", "textinput", "colorpicker", "toast", "updatecheck" }) do
     local factory = compile(fetch(BASE_URL .. "views/components/" .. name .. ".lua", name), name)()
     components[name] = factory(config, shared)
 end
@@ -110,4 +110,9 @@ for _, name in ipairs({ "main", "demo" }) do
     if not ok then
         showErrorGui("Controller '" .. name .. "' failed:\n" .. tostring(err))
     end
+end
+
+-- Update check: compare the running build against the live raw config
+if components.updatecheck and components.updatecheck.Check and config.Build then
+    components.updatecheck.Check({ LocalBuild = config.Build, ConfigURL = BASE_URL .. "config.lua" })
 end

@@ -5,9 +5,12 @@
 return {
     Window = {
         Title = "Silent AutoClicker",
-        Subtitle = "LyraHub UI v1.1 · silent click",
+        Subtitle = "LyraHub UI v1.2 · silent click",
         Size = Vector2.new(360, 420),
     },
+
+    -- Build marker compared by the update-checker against the live raw config
+    Build = "v1.2",
 
     Keys = {
         ToggleClicker = Enum.KeyCode.F,

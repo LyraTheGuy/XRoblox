@@ -9,9 +9,12 @@ local accentColor = Color3.fromRGB(118, 140, 185) -- shared by Theme + Defaults.
 return {
     Window = {
         Title = "LyraHub",
-        Subtitle = "MVC UI Kit v1.1",
+        Subtitle = "MVC UI Kit v1.2",
         Size = Vector2.new(620, 420), -- IndoVoice-style wide layout
     },
+
+    -- Build marker compared by the update-checker against the live raw config
+    Build = "v1.2",
 
     Keys = {
         HideUI = Enum.KeyCode.K,

@@ -18,6 +18,9 @@ return {
         Size = Vector2.new(620, 420), -- wide layout
     },
 
+    -- Build marker compared by the update-checker against the live raw config
+    Build = "v1.2",
+
     Clicker = {
         DefaultCPS = 20,
         PositionMode = "pick",

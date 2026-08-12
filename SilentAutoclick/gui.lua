@@ -392,6 +392,7 @@ return function(config, components)
     view.TopBarTitle = TopBarTitle
     view.Content = Content
     view.Theme = THEME
+    view.Toast = components.toast -- kit toast component (gui.Toast.show({ Text=..., Variant=... }))
 
     return view
 end

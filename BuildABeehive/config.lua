@@ -5,8 +5,15 @@
 return {
     Window = {
         Title = "Build A Beehive",
-        Subtitle = "Honey automation · LyraHub UI v1.1",
+        Subtitle = "Honey automation · LyraHub UI v1.2",
         Size = Vector2.new(620, 420),
+    },
+
+    -- Build marker compared by the update-checker against the live raw config
+    Build = "v1.2",
+
+    AutoCollect = {
+        SmartCollect = true, -- skip hives we can positively identify as empty
     },
 
     Keys = {

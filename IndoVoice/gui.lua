@@ -295,7 +295,7 @@ return function(config, components)
     Title.Parent = Sidebar
 
     local Subtitle = Instance.new("TextLabel")
-    Subtitle.Text = "v1.1 | LyraHub UI"
+    Subtitle.Text = "v1.2 | LyraHub UI"
     Subtitle.Size = UDim2.new(1, 0, 0, 14)
     Subtitle.Position = UDim2.new(0, 0, 0, 46)
     Subtitle.BackgroundTransparency = 1
@@ -485,7 +485,7 @@ return function(config, components)
     AboutVersion.Size = UDim2.new(1, -20, 0, 20)
     AboutVersion.Position = UDim2.new(0, 10, 1, -30)
     AboutVersion.BackgroundTransparency = 1
-    AboutVersion.Text = "v1.1 | LyraHub UI"
+    AboutVersion.Text = "v1.2 | LyraHub UI"
     AboutVersion.TextColor3 = LYRA.dim
     AboutVersion.Font = Enum.Font.Code
     AboutVersion.TextSize = 10
@@ -1617,6 +1617,7 @@ return function(config, components)
     -- ═══════════════════════════════════════════
     return {
         Theme = LYRA,
+        Toast = components.toast, -- kit toast component (gui.Toast.show({ Text=..., Variant=... }))
         MainGui = ScreenGui,
         Main = Main,
         MainShadow = MainShadow,

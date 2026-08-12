@@ -775,6 +775,7 @@ return function(config, components)
 
     return {
         Theme = theme,
+        Toast = components.toast, -- kit toast component (gui.Toast.show({ Text=..., Variant=... }))
         ScreenGui = screenGui,
         Main = main,
         Frame = main,
