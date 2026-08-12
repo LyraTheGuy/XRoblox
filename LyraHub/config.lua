@@ -9,7 +9,7 @@ local accentColor = Color3.fromRGB(118, 140, 185) -- shared by Theme + Defaults.
 return {
     Window = {
         Title = "LyraHub",
-        Subtitle = "MVC UI Kit v1.0",
+        Subtitle = "MVC UI Kit v1.1",
         Size = Vector2.new(620, 420), -- IndoVoice-style wide layout
     },
 

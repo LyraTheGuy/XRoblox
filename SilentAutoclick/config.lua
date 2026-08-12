@@ -5,7 +5,7 @@
 return {
     Window = {
         Title = "Silent AutoClicker",
-        Subtitle = "LyraHub UI · silent click",
+        Subtitle = "LyraHub UI v1.1 · silent click",
         Size = Vector2.new(360, 420),
     },
 

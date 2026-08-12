@@ -5,7 +5,7 @@
 return {
     Window = {
         Title = "Build A Beehive",
-        Subtitle = "Honey automation · LyraHub UI",
+        Subtitle = "Honey automation · LyraHub UI v1.1",
         Size = Vector2.new(620, 420),
     },
 

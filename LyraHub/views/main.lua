@@ -173,7 +173,7 @@ return function(config, components)
     chip.Parent = sidebar
     shared.corner(chip, UDim.new(1, 0))
     label({
-        Parent = chip, Text = "v1.0 · MVC", Position = UDim2.fromOffset(0, 0),
+        Parent = chip, Text = "v1.1 · MVC", Position = UDim2.fromOffset(0, 0),
         Size = UDim2.new(1, 0, 1, 0), TextSize = 8, Color = theme.faint,
         TextXAlignment = Enum.TextXAlignment.Center,
     })
