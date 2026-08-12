@@ -3,6 +3,10 @@
 
 local BASE_URL = ...
 
+-- Derive the LyraHub folder URL from the same repo/branch (this folder's URL
+-- is "<...>/staging/BuildABeehive/", the kit lives in "<...>/staging/LyraHub/").
+local LYRAHUB_URL = BASE_URL:gsub("/BuildABeehive/", "/LyraHub/")
+
 local function fetch(url, name)
     local ok, result = pcall(function()
         return game:HttpGet(url)
@@ -72,6 +76,14 @@ local configChunk = compile(fetch(BASE_URL .. "config.lua", "config.lua"), "conf
 local config = configChunk()
 assert(type(config) == "table", "config.lua must return a table")
 
+-- LyraHub UI kit (shared primitives + component factories)
+local shared = compile(fetch(LYRAHUB_URL .. "views/components/shared.lua", "shared.lua"), "shared.lua")(config)
+local components = { shared = shared }
+for _, name in ipairs({ "button", "textinput" }) do
+    local factory = compile(fetch(LYRAHUB_URL .. "views/components/" .. name .. ".lua", name), name)()
+    components[name] = factory(config, shared)
+end
+
 local guiChunk = compile(fetch(BASE_URL .. "gui.lua", "gui.lua"), "gui.lua")
 local coreChunk = compile(fetch(BASE_URL .. "core.lua", "core.lua"), "core.lua")
 local guiFactory = guiChunk()
@@ -86,7 +98,7 @@ if type(coreFactory) ~= "function" then
     return
 end
 
-local guiOk, gui = pcall(guiFactory, config)
+local guiOk, gui = pcall(guiFactory, config, components)
 if not guiOk then
     showErrorGui("gui.lua execution failed:\n" .. tostring(gui))
     return

@@ -92,14 +92,22 @@ return function(gui, config)
 			return fallback
 		end
 
-		local value = tonumber(input.Text)
+		-- LyraHub textinput views: read via GetText, write via SetText with
+		-- notifyChange=false so programmatic writes can't echo into OnChanged.
+		-- Skip the write while the field is focused so committing one field can't
+		-- clobber text the user is actively typing in another.
+		local value = tonumber(input.GetText())
 		if not value then
-			input.Text = tostring(fallback)
+			if not input.Box:IsFocused() then
+				input.SetText(tostring(fallback), false)
+			end
 			return fallback
 		end
 
 		value = math.clamp(value, 1, 3600)
-		input.Text = tostring(value)
+		if not input.Box:IsFocused() then
+			input.SetText(tostring(value), false)
+		end
 		return value
 	end
 	ctx.readInterval = readInterval
@@ -111,13 +119,13 @@ return function(gui, config)
 		ctx.buySeedInterval = readInterval(gui.BuySeedIntervalInput, 120)
 
 		if gui.BuySeedInput then
-			local seedId = tostring(gui.BuySeedInput.Text or ""):gsub("^%s+", ""):gsub("%s+$", "")
+			local seedId = tostring(gui.BuySeedInput.GetText() or ""):gsub("^%s+", ""):gsub("%s+$", "")
 			if seedId == "" then
 				seedId = "Bamboo"
 			end
 			ctx.buySeedId = seedId
-			if not gui.BuySeedInput:IsFocused() then
-				gui.BuySeedInput.Text = ctx.buySeedId
+			if not gui.BuySeedInput.Box:IsFocused() then
+				gui.BuySeedInput.SetText(ctx.buySeedId, false)
 			end
 		end
 	end
@@ -178,6 +186,9 @@ return function(gui, config)
 		end
 		if gui.MinimizedPanel then
 			gui.MinimizedPanel.Visible = minimized
+		end
+		if gui.Shadow then
+			gui.Shadow.Visible = not minimized
 		end
 	end
 	ctx.setMinimized = setMinimized
@@ -251,20 +262,20 @@ return function(gui, config)
 			setButtonState(gui.BuySeedButton, ctx.AutoBuySeed, "Buy Seed")
 		end
 
-		if gui.CollectIntervalInput and not gui.CollectIntervalInput:IsFocused() then
-			gui.CollectIntervalInput.Text = tostring(ctx.collectInterval)
+		if gui.CollectIntervalInput and not gui.CollectIntervalInput.Box:IsFocused() then
+			gui.CollectIntervalInput.SetText(tostring(ctx.collectInterval), false)
 		end
-		if gui.SellIntervalInput and not gui.SellIntervalInput:IsFocused() then
-			gui.SellIntervalInput.Text = tostring(ctx.sellInterval)
+		if gui.SellIntervalInput and not gui.SellIntervalInput.Box:IsFocused() then
+			gui.SellIntervalInput.SetText(tostring(ctx.sellInterval), false)
 		end
-		if gui.AuroraIntervalInput and not gui.AuroraIntervalInput:IsFocused() then
-			gui.AuroraIntervalInput.Text = tostring(ctx.auroraInterval)
+		if gui.AuroraIntervalInput and not gui.AuroraIntervalInput.Box:IsFocused() then
+			gui.AuroraIntervalInput.SetText(tostring(ctx.auroraInterval), false)
 		end
-		if gui.BuySeedIntervalInput and not gui.BuySeedIntervalInput:IsFocused() then
-			gui.BuySeedIntervalInput.Text = tostring(ctx.buySeedInterval)
+		if gui.BuySeedIntervalInput and not gui.BuySeedIntervalInput.Box:IsFocused() then
+			gui.BuySeedIntervalInput.SetText(tostring(ctx.buySeedInterval), false)
 		end
-		if gui.BuySeedInput and not gui.BuySeedInput:IsFocused() then
-			gui.BuySeedInput.Text = ctx.buySeedId
+		if gui.BuySeedInput and not gui.BuySeedInput.Box:IsFocused() then
+			gui.BuySeedInput.SetText(ctx.buySeedId, false)
 		end
 	end
 	ctx.updateStats = updateStats
@@ -337,6 +348,7 @@ return function(gui, config)
 		ctx.dragTarget = target
 		ctx.dragStart = input.Position
 		ctx.startPos = target.Position
+		ctx.shadowStart = gui.Shadow and gui.Shadow.Position
 		ctx.dragInput = input
 	end
 	ctx.beginDrag = beginDrag
@@ -380,6 +392,14 @@ return function(gui, config)
 		local position = ctx.startPos
 		ctx.dragTarget.Position =
 			UDim2.new(position.X.Scale, position.X.Offset + delta.X, position.Y.Scale, position.Y.Offset + delta.Y)
+
+		-- Keep the soft drop shadow glued to the main window while dragging
+		-- (shared.shadow only positions it once at creation).
+		if gui.Shadow and ctx.dragTarget == gui.Main and ctx.shadowStart then
+			local sp = ctx.shadowStart
+			gui.Shadow.Position =
+				UDim2.new(sp.X.Scale, sp.X.Offset + delta.X, sp.Y.Scale, sp.Y.Offset + delta.Y)
+		end
 	end)
 
 	bind(UserInputService.InputEnded, function(input)
@@ -416,16 +436,21 @@ return function(gui, config)
 		end
 	end
 
-	if gui.CollectIntervalInput then
-		bind(gui.CollectIntervalInput.FocusLost, function()
-			ctx.syncIntervals()
-		end)
-	end
-
-	if gui.SellIntervalInput then
-		bind(gui.SellIntervalInput.FocusLost, function()
-			ctx.syncIntervals()
-		end)
+	-- Commit-on-focus-lost: the LyraHub textinput fires OnChanged on blur, so
+	-- subscribing here syncs the ctx intervals/seed id whenever any of the five
+	-- fields is committed (component-internal value update, then our read-back).
+	for _, input in ipairs({
+		gui.CollectIntervalInput,
+		gui.SellIntervalInput,
+		gui.AuroraIntervalInput,
+		gui.BuySeedIntervalInput,
+		gui.BuySeedInput,
+	}) do
+		if input then
+			input.OnChanged(function()
+				ctx.syncIntervals()
+			end)
+		end
 	end
 
 	-- Reset action counters (fresh session stats without reloading)
