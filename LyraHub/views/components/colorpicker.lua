@@ -5,6 +5,12 @@
 -- the container bottom. Controllers subscribe with OnChanged(color: Color3).
 
 return function(theme, shared)
+    -- Accept the full config table (colors nested under .Theme) or a flat
+    -- theme table. Kit convention: factory(config, shared).
+    if theme.Theme then
+        theme = setmetatable({ ComponentDefaults = theme.ComponentDefaults }, { __index = theme.Theme })
+    end
+
     local UserInputService = game:GetService("UserInputService")
 
     local function toHex(c)
@@ -319,16 +325,24 @@ return function(theme, shared)
             -- Screen-space positioning (survives window drags); opens upward
             -- when the popup would overflow the swatch's container below.
             local popupH = popup.Size.Y.Offset
+            local popupW = popup.Size.X.Offset
             local below = button.AbsolutePosition.Y + button.AbsoluteSize.Y + 8
             local openUp = false
             local parent = button.Parent
             if parent then
                 openUp = (below + popupH) > (parent.AbsolutePosition.Y + parent.AbsoluteSize.Y)
             end
-            popup.Position = UDim2.fromOffset(
-                button.AbsolutePosition.X,
-                openUp and (button.AbsolutePosition.Y - popupH - 8) or below
-            )
+            local posX = button.AbsolutePosition.X
+            local posY = openUp and (button.AbsolutePosition.Y - popupH - 8) or below
+            -- Clamp to the viewport so the popup stays fully on screen even
+            -- when the window has been dragged to an edge.
+            if screenGui then
+                local vs = screenGui.AbsoluteSize
+                local margin = 8
+                posX = math.clamp(posX, margin, math.max(margin, vs.X - popupW - margin))
+                posY = math.clamp(posY, margin, math.max(margin, vs.Y - popupH - margin))
+            end
+            popup.Position = UDim2.fromOffset(posX, posY)
             popup.Visible = true
             shared.tween(button, { BackgroundColor3 = theme.accent }, 0.15)
             if not escapeConn then

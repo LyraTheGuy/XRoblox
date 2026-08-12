@@ -3,6 +3,12 @@
 -- ratio (0..1). Controllers subscribe with OnChanged.
 
 return function(theme, shared)
+    -- Accept the full config table (colors nested under .Theme) or a flat
+    -- theme table. Kit convention: factory(config, shared).
+    if theme.Theme then
+        theme = setmetatable({ ComponentDefaults = theme.ComponentDefaults }, { __index = theme.Theme })
+    end
+
     local UserInputService = game:GetService("UserInputService")
 
     return function(opts)

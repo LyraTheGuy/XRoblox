@@ -3,6 +3,12 @@
 -- soft drop shadows and tween helpers. Pure helpers; no state or business logic.
 
 return function(theme)
+    -- Accept the full config table (colors nested under .Theme) or a flat
+    -- theme table. Kit convention: factory(config, shared).
+    if theme.Theme then
+        theme = setmetatable({ ComponentDefaults = theme.ComponentDefaults }, { __index = theme.Theme })
+    end
+
     local TweenService = game:GetService("TweenService")
 
     local shared = {}

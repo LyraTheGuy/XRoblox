@@ -3,6 +3,12 @@
 -- animation (UIScale squish). Exposes a small controller-facing API.
 
 return function(theme, shared)
+    -- Accept the full config table (colors nested under .Theme) or a flat
+    -- theme table. Kit convention: factory(config, shared).
+    if theme.Theme then
+        theme = setmetatable({ ComponentDefaults = theme.ComponentDefaults }, { __index = theme.Theme })
+    end
+
     return function(opts)
         opts = opts or {}
         local baseTransparency = opts.BackgroundTransparency or 0
@@ -72,6 +78,14 @@ return function(theme, shared)
                 BackgroundTransparency = enabled and baseTransparency or 0.65,
                 BackgroundColor3 = enabled and baseColor or theme.panel,
             }, 0.15)
+        end
+        -- Re-theme the button (e.g. Start/Stop color switching). Updates the
+        -- hover color to a slightly lighter shade so the hover effect stays.
+        function view.SetColor(color)
+            color = color or theme.panel2
+            baseColor = color
+            hoverColor = color:Lerp(Color3.new(1, 1, 1), 0.15)
+            shared.tween(button, { BackgroundColor3 = color }, 0.15)
         end
         return view
     end
