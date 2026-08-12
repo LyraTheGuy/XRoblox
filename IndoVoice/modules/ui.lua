@@ -176,12 +176,14 @@ return function(ctx)
     bind(gui.MinBtn.MouseButton1Click, function()
         ctx.minimized = true
         gui.Main.Visible = false
+        gui.MainShadow.Visible = false
         gui.MinimizedOrb.Visible = true
     end)
 
     bind(gui.MinimizedOrb.MouseButton1Click, function()
         ctx.minimized = false
         gui.Main.Visible = true
+        gui.MainShadow.Visible = true
         gui.MinimizedOrb.Visible = false
     end)
 
@@ -196,6 +198,8 @@ return function(ctx)
             local delta = input.Position - ctx.dragStart
             gui.Main.Position = UDim2.new(ctx.startPos.X.Scale, ctx.startPos.X.Offset + delta.X, ctx.startPos.Y.Scale,
                 ctx.startPos.Y.Offset + delta.Y)
+            gui.MainShadow.Position = UDim2.new(gui.Main.Position.X.Scale, gui.Main.Position.X.Offset - 5,
+                gui.Main.Position.Y.Scale, gui.Main.Position.Y.Offset - 5)
         end
     end)
 
@@ -211,12 +215,14 @@ return function(ctx)
             ctx.hideUI = not ctx.hideUI
             if ctx.hideUI then
                 gui.Main.Visible = false
+                gui.MainShadow.Visible = false
                 gui.MinimizedOrb.Visible = false
             else
                 if ctx.minimized then
                     gui.MinimizedOrb.Visible = true
                 else
                     gui.Main.Visible = true
+                    gui.MainShadow.Visible = true
                 end
             end
         end

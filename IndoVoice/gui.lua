@@ -1,30 +1,18 @@
 -- LyraHub/gui.lua
--- Wide sleek GUI with Lyra violet theme, draggable from top bar + bottom line
-return function(config)
+-- Wide sleek GUI with Lyra violet theme, draggable from top bar + bottom line.
+-- Consumes the LyraHub UI kit (raw GitHub link) for primitives; the palette
+-- comes from config.Theme. Modules still drive raw widgets, so the return
+-- contract is unchanged.
+return function(config, components)
     local Players = game:GetService("Players")
     local TweenService = game:GetService("TweenService")
     local UserInputService = game:GetService("UserInputService")
     local lp = Players.LocalPlayer
 
-    -- Lyra Theme (violet/purple palette)
-    local LYRA = {
-        accent = Color3.fromRGB(155, 89, 255),
-        accentDark = Color3.fromRGB(110, 60, 200),
-        accentGlow = Color3.fromRGB(180, 130, 255),
-        bg = Color3.fromRGB(12, 10, 20),
-        bg2 = Color3.fromRGB(18, 15, 30),
-        panel = Color3.fromRGB(22, 20, 38),
-        panel2 = Color3.fromRGB(30, 27, 50),
-        sidebar = Color3.fromRGB(16, 13, 28),
-        topbar = Color3.fromRGB(20, 17, 34),
-        text = Color3.fromRGB(240, 235, 255),
-        dim = Color3.fromRGB(130, 120, 170),
-        success = Color3.fromRGB(80, 220, 140),
-        danger = Color3.fromRGB(255, 80, 100),
-        warn = Color3.fromRGB(255, 200, 80),
-        tp = Color3.fromRGB(100, 180, 255),
-        beam = Color3.fromRGB(255, 130, 90),
-    }
+    -- LyraHub kit primitives (corner/stroke/glow/gradient/shadow/tween)
+    local shared = components and components.shared
+    -- Lyra Theme (violet/purple palette) — from config, not hardcoded
+    local LYRA = config.Theme
 
     if _G.__LyraHub_Destroy then
         pcall(_G.__LyraHub_Destroy)
@@ -35,6 +23,13 @@ return function(config)
         style = style or Enum.EasingStyle.Quart
         dir = dir or Enum.EasingDirection.Out
         TweenService:Create(obj, TweenInfo.new(t, style, dir), props):Play()
+    end
+
+    -- Kit-style hover animation for chrome buttons (their colors never change
+    -- programmatically, so restoring the captured base color is safe)
+    local function hoverButton(btn, base, over)
+        btn.MouseEnter:Connect(function() shared.tween(btn, { BackgroundColor3 = over }, 0.12) end)
+        btn.MouseLeave:Connect(function() shared.tween(btn, { BackgroundColor3 = base }, 0.2) end)
     end
 
     -- ═══════════════════════════════════════════
@@ -54,10 +49,9 @@ return function(config)
     LoadBG.BackgroundColor3 = LYRA.bg
     LoadBG.BorderSizePixel = 0
     LoadBG.Parent = LoadGui
-    Instance.new("UICorner", LoadBG).CornerRadius = UDim.new(0, 12)
-    local LoadStroke = Instance.new("UIStroke", LoadBG)
-    LoadStroke.Color = LYRA.accent
-    LoadStroke.Thickness = 1.5
+    shared.corner(LoadBG, UDim.new(0, 12))
+    shared.gradient(LoadBG, LYRA.bg, LYRA.bg2, 90)
+    local LoadStroke = shared.stroke(LoadBG, LYRA.accent, 1.5, 0)
 
     local LoadTitle = Instance.new("TextLabel")
     LoadTitle.Text = "LYRA HUB"
@@ -88,14 +82,14 @@ return function(config)
     BarTrack.BackgroundColor3 = LYRA.panel2
     BarTrack.BorderSizePixel = 0
     BarTrack.Parent = LoadBG
-    Instance.new("UICorner", BarTrack).CornerRadius = UDim.new(1, 0)
+    shared.corner(BarTrack, UDim.new(1, 0))
 
     local BarFill = Instance.new("Frame")
     BarFill.Size = UDim2.new(0, 0, 1, 0)
     BarFill.BackgroundColor3 = LYRA.accent
     BarFill.BorderSizePixel = 0
     BarFill.Parent = BarTrack
-    Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1, 0)
+    shared.corner(BarFill, UDim.new(1, 0))
 
     local LoadStatus = Instance.new("TextLabel")
     LoadStatus.Text = "Initializing..."
@@ -155,11 +149,14 @@ return function(config)
     Main.BackgroundColor3 = LYRA.bg
     Main.BorderSizePixel = 0
     Main.ClipsDescendants = true
+    Main.ZIndex = 2
     Main.Parent = ScreenGui
-    Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
-    local MainStroke = Instance.new("UIStroke", Main)
-    MainStroke.Color = LYRA.accentDark
-    MainStroke.Thickness = 1
+    shared.corner(Main, UDim.new(0, 12))
+    shared.gradient(Main, LYRA.bg, LYRA.bg2, 90)
+    shared.glow(Main, LYRA.accent, 3, 0.9)
+    local MainStroke = shared.stroke(Main, LYRA.accentDark, 1, 0)
+    -- Soft drop shadow behind the window (follows on drag, hides on minimize)
+    local MainShadow = shared.shadow(Main, { ExtendX = 10, ExtendY = 10, Transparency = 0.72, OffsetY = 0 })
 
     -- ═══════════════════════════════════════════
     -- TOP BAR (draggable)
@@ -193,7 +190,8 @@ return function(config)
     MinBtn.TextSize = 14
     MinBtn.BorderSizePixel = 0
     MinBtn.Parent = TopBar
-    Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 6)
+    shared.corner(MinBtn, UDim.new(0, 6))
+    hoverButton(MinBtn, LYRA.panel2, LYRA.accent2)
 
     -- Close button
     local CloseBtn = Instance.new("TextButton")
@@ -206,7 +204,8 @@ return function(config)
     CloseBtn.TextSize = 13
     CloseBtn.BorderSizePixel = 0
     CloseBtn.Parent = TopBar
-    Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
+    shared.corner(CloseBtn, UDim.new(0, 6))
+    hoverButton(CloseBtn, LYRA.danger, LYRA.danger:Lerp(Color3.new(1, 1, 1), 0.15))
 
     -- ═══════════════════════════════════════════
     -- DRAG LOGIC (top bar + bottom line)
@@ -230,6 +229,9 @@ return function(config)
         if dragging then
             local delta = input.Position - dragStart
             Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            if MainShadow then
+                MainShadow.Position = UDim2.new(Main.Position.X.Scale, Main.Position.X.Offset - 5, Main.Position.Y.Scale, Main.Position.Y.Offset - 5)
+            end
         end
     end
 
@@ -244,7 +246,7 @@ return function(config)
     DragBar.BackgroundColor3 = LYRA.accentDark
     DragBar.BorderSizePixel = 0
     DragBar.Parent = Main
-    Instance.new("UICorner", DragBar).CornerRadius = UDim.new(1, 0)
+    shared.corner(DragBar, UDim.new(1, 0))
 
     local DragHit = Instance.new("TextButton")
     DragHit.Size = UDim2.new(0, 140, 0, 16)
@@ -268,10 +270,8 @@ return function(config)
     MinimizedOrb.BorderSizePixel = 0
     MinimizedOrb.Visible = false
     MinimizedOrb.Parent = ScreenGui
-    Instance.new("UICorner", MinimizedOrb).CornerRadius = UDim.new(1, 0)
-    local OrbStroke = Instance.new("UIStroke", MinimizedOrb)
-    OrbStroke.Color = LYRA.accentGlow
-    OrbStroke.Thickness = 1.5
+    shared.corner(MinimizedOrb, UDim.new(1, 0))
+    local OrbStroke = shared.stroke(MinimizedOrb, LYRA.accentGlow, 1.5, 0)
 
     -- ═══════════════════════════════════════════
     -- SIDEBAR (wider: 130px)
@@ -354,7 +354,7 @@ return function(config)
         btn.TextSize = 12
         btn.BorderSizePixel = 0
         btn.Parent = TabsBar
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+        shared.corner(btn, UDim.new(0, 8))
         TabButtons[name] = btn
     end
 
@@ -368,10 +368,8 @@ return function(config)
     Content.BorderSizePixel = 0
     Content.ClipsDescendants = true
     Content.Parent = Main
-    Instance.new("UICorner", Content).CornerRadius = UDim.new(0, 10)
-    local ContentStroke = Instance.new("UIStroke", Content)
-    ContentStroke.Color = LYRA.panel2
-    ContentStroke.Thickness = 1
+    shared.corner(Content, UDim.new(0, 10))
+    local ContentStroke = shared.stroke(Content, LYRA.panel2, 1, 0)
 
     -- Tab content frames
     local Tabs = {}
@@ -449,7 +447,7 @@ return function(config)
     CopySaweriaBtn.TextSize = 11
     CopySaweriaBtn.BorderSizePixel = 0
     CopySaweriaBtn.Parent = Tabs.About
-    Instance.new("UICorner", CopySaweriaBtn).CornerRadius = UDim.new(0, 6)
+    shared.corner(CopySaweriaBtn, UDim.new(0, 6))
 
     local AboutSep2 = Instance.new("Frame")
     AboutSep2.Size = UDim2.new(1, -20, 0, 1)
@@ -510,7 +508,7 @@ return function(config)
     SearchBox.TextSize = 13
     SearchBox.BorderSizePixel = 0
     SearchBox.Parent = Tabs.Players
-    Instance.new("UICorner", SearchBox).CornerRadius = UDim.new(0, 8)
+    shared.corner(SearchBox, UDim.new(0, 8))
 
     local PlayerList = Instance.new("ScrollingFrame")
     PlayerList.Size = UDim2.new(1, -20, 1, -70)
@@ -520,7 +518,7 @@ return function(config)
     PlayerList.ScrollBarThickness = 3
     PlayerList.AutomaticCanvasSize = Enum.AutomaticSize.Y
     PlayerList.Parent = Tabs.Players
-    Instance.new("UICorner", PlayerList).CornerRadius = UDim.new(0, 8)
+    shared.corner(PlayerList, UDim.new(0, 8))
     Instance.new("UIListLayout", PlayerList).Padding = UDim.new(0, 4)
 
     local PlayerHint = Instance.new("TextLabel")
@@ -548,7 +546,7 @@ return function(config)
         b.TextSize = 11
         b.BorderSizePixel = 0
         b.Parent = parent
-        Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+        shared.corner(b, UDim.new(0, 8))
         return b
     end
 
@@ -634,7 +632,7 @@ return function(config)
     SellIntervalInput.ClearTextOnFocus = false
     SellIntervalInput.BorderSizePixel = 0
     SellIntervalInput.Parent = FishScroll
-    Instance.new("UICorner", SellIntervalInput).CornerRadius = UDim.new(0, 4)
+    shared.corner(SellIntervalInput, UDim.new(0, 4))
 
     -- Sell Rarity selection (moved from Settings)
     local SellRarityTitle = Instance.new("TextLabel")
@@ -662,7 +660,7 @@ return function(config)
         btn.TextSize = 9
         btn.BorderSizePixel = 0
         btn.Parent = FishScroll
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
+        shared.corner(btn, UDim.new(0, 5))
         SellRarityButtons[rarity] = btn
     end
 
@@ -789,7 +787,7 @@ return function(config)
     OreSellIntervalInput.ClearTextOnFocus = false
     OreSellIntervalInput.BorderSizePixel = 0
     OreSellIntervalInput.Parent = MiningScroll
-    Instance.new("UICorner", OreSellIntervalInput).CornerRadius = UDim.new(0, 4)
+    shared.corner(OreSellIntervalInput, UDim.new(0, 4))
 
     -- Sell Rarities
     local OreSellRarityTitle = Instance.new("TextLabel")
@@ -817,7 +815,7 @@ return function(config)
         btn.TextSize = 9
         btn.BorderSizePixel = 0
         btn.Parent = MiningScroll
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
+        shared.corner(btn, UDim.new(0, 5))
         OreSellRarityButtons[rarity] = btn
     end
 
@@ -930,7 +928,7 @@ return function(config)
     SliderTrack.BackgroundColor3 = LYRA.bg2
     SliderTrack.BorderSizePixel = 0
     SliderTrack.Parent = FunScroll
-    Instance.new("UICorner", SliderTrack).CornerRadius = UDim.new(1, 0)
+    shared.corner(SliderTrack, UDim.new(1, 0))
 
     local ratio = math.clamp(config.Clicker.DefaultCPS / 100, 0, 1)
     local SliderFill = Instance.new("Frame")
@@ -938,7 +936,7 @@ return function(config)
     SliderFill.BackgroundColor3 = LYRA.accent
     SliderFill.BorderSizePixel = 0
     SliderFill.Parent = SliderTrack
-    Instance.new("UICorner", SliderFill).CornerRadius = UDim.new(1, 0)
+    shared.corner(SliderFill, UDim.new(1, 0))
 
     local SliderKnob = Instance.new("Frame")
     SliderKnob.Size = UDim2.new(0, 14, 0, 14)
@@ -946,7 +944,7 @@ return function(config)
     SliderKnob.BackgroundColor3 = LYRA.accentGlow
     SliderKnob.BorderSizePixel = 0
     SliderKnob.Parent = SliderTrack
-    Instance.new("UICorner", SliderKnob).CornerRadius = UDim.new(1, 0)
+    shared.corner(SliderKnob, UDim.new(1, 0))
 
     -- Start + Keybind buttons (side by side)
     local ToggleBtn = Instance.new("TextButton")
@@ -959,7 +957,7 @@ return function(config)
     ToggleBtn.TextSize = 11
     ToggleBtn.BorderSizePixel = 0
     ToggleBtn.Parent = FunScroll
-    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 6)
+    shared.corner(ToggleBtn, UDim.new(0, 6))
 
     local KeybindBtn = Instance.new("TextButton")
     KeybindBtn.Text = "Key: F"
@@ -971,7 +969,7 @@ return function(config)
     KeybindBtn.TextSize = 10
     KeybindBtn.BorderSizePixel = 0
     KeybindBtn.Parent = FunScroll
-    Instance.new("UICorner", KeybindBtn).CornerRadius = UDim.new(0, 6)
+    shared.corner(KeybindBtn, UDim.new(0, 6))
 
     -- ── Auto Gacha Section ──
     local GachaSep = Instance.new("Frame")
@@ -1056,7 +1054,7 @@ return function(config)
         btn.TextSize = 9
         btn.BorderSizePixel = 0
         btn.Parent = FunScroll
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+        shared.corner(btn, UDim.new(0, 6))
         GachaBoxButtons[boxName] = btn
     end
 
@@ -1090,7 +1088,7 @@ return function(config)
         btn.TextSize = 9
         btn.BorderSizePixel = 0
         btn.Parent = FunScroll
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+        shared.corner(btn, UDim.new(0, 6))
         GachaStopButtons[rarity] = btn
     end
 
@@ -1166,7 +1164,7 @@ return function(config)
         btn.TextSize = 11
         btn.BorderSizePixel = 0
         btn.Parent = FunScroll
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+        shared.corner(btn, UDim.new(0, 6))
         ShopGachaTypeButtons[typeName] = btn
     end
 
@@ -1196,7 +1194,7 @@ return function(config)
         btn.TextSize = 9
         btn.BorderSizePixel = 0
         btn.Parent = FunScroll
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+        shared.corner(btn, UDim.new(0, 6))
         ShopGachaStopButtons[rarity] = btn
     end
 
@@ -1235,7 +1233,7 @@ return function(config)
     RodSearchBox.ClearTextOnFocus = false
     RodSearchBox.BorderSizePixel = 0
     RodSearchBox.Parent = FunScroll
-    Instance.new("UICorner", RodSearchBox).CornerRadius = UDim.new(0, 4)
+    shared.corner(RodSearchBox, UDim.new(0, 4))
 
     local RodShopStatus = Instance.new("TextLabel")
     RodShopStatus.Size = UDim2.new(1, -20, 0, 16)
@@ -1312,7 +1310,7 @@ return function(config)
     RodListFrame.BorderSizePixel = 0
     RodListFrame.ClipsDescendants = true
     RodListFrame.Parent = FunScroll
-    Instance.new("UICorner", RodListFrame).CornerRadius = UDim.new(0, 6)
+    shared.corner(RodListFrame, UDim.new(0, 6))
 
     local RodListScroll = Instance.new("ScrollingFrame")
     RodListScroll.Size = UDim2.new(1, 0, 1, 0)
@@ -1334,7 +1332,7 @@ return function(config)
         row.BackgroundTransparency = 0.5
         row.BorderSizePixel = 0
         row.Parent = RodListScroll
-        Instance.new("UICorner", row).CornerRadius = UDim.new(0, 4)
+        shared.corner(row, UDim.new(0, 4))
 
         local displayName = rod.name:gsub("Tool_", ""):gsub("Rod$", "")
         local lbl = Instance.new("TextLabel")
@@ -1359,7 +1357,7 @@ return function(config)
         buyBtn.TextSize = 9
         buyBtn.BorderSizePixel = 0
         buyBtn.Parent = row
-        Instance.new("UICorner", buyBtn).CornerRadius = UDim.new(0, 4)
+        shared.corner(buyBtn, UDim.new(0, 4))
 
         RodBuyButtons[rod.name] = buyBtn
         RodRows[rod.name] = row
@@ -1449,7 +1447,7 @@ return function(config)
     WebhookInput.BorderSizePixel = 0
     WebhookInput.ClipsDescendants = true
     WebhookInput.Parent = SettingsScroll
-    Instance.new("UICorner", WebhookInput).CornerRadius = UDim.new(0, 4)
+    shared.corner(WebhookInput, UDim.new(0, 4))
     local WebhookInputPad = Instance.new("UIPadding", WebhookInput)
     WebhookInputPad.PaddingLeft = UDim.new(0, 6)
 
@@ -1478,7 +1476,7 @@ return function(config)
         btn.TextSize = 9
         btn.BorderSizePixel = 0
         btn.Parent = SettingsScroll
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+        shared.corner(btn, UDim.new(0, 6))
         WebhookRarityButtons[rarity] = btn
     end
 
@@ -1535,7 +1533,7 @@ return function(config)
     AccentPreview.BackgroundColor3 = LYRA.accent
     AccentPreview.BorderSizePixel = 0
     AccentPreview.Parent = SettingsScroll
-    Instance.new("UICorner", AccentPreview).CornerRadius = UDim.new(0, 4)
+    shared.corner(AccentPreview, UDim.new(0, 4))
 
     local DarkThemeBtn = Instance.new("TextButton")
     DarkThemeBtn.Text = "Dark (Lyra)"
@@ -1547,7 +1545,7 @@ return function(config)
     DarkThemeBtn.TextSize = 11
     DarkThemeBtn.BorderSizePixel = 0
     DarkThemeBtn.Parent = SettingsScroll
-    Instance.new("UICorner", DarkThemeBtn).CornerRadius = UDim.new(0, 6)
+    shared.corner(DarkThemeBtn, UDim.new(0, 6))
 
     local LightThemeBtn = Instance.new("TextButton")
     LightThemeBtn.Text = "Light (Lyra)"
@@ -1559,7 +1557,7 @@ return function(config)
     LightThemeBtn.TextSize = 11
     LightThemeBtn.BorderSizePixel = 0
     LightThemeBtn.Parent = SettingsScroll
-    Instance.new("UICorner", LightThemeBtn).CornerRadius = UDim.new(0, 6)
+    shared.corner(LightThemeBtn, UDim.new(0, 6))
 
     local ColorButtons = {}
 
@@ -1588,7 +1586,7 @@ return function(config)
     LogScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
     LogScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
     LogScroll.Parent = Tabs.Logs
-    Instance.new("UICorner", LogScroll).CornerRadius = UDim.new(0, 8)
+    shared.corner(LogScroll, UDim.new(0, 8))
     Instance.new("UIListLayout", LogScroll).Padding = UDim.new(0, 2)
 
     local ClearLogsBtn = Instance.new("TextButton")
@@ -1601,7 +1599,7 @@ return function(config)
     ClearLogsBtn.TextSize = 11
     ClearLogsBtn.BorderSizePixel = 0
     ClearLogsBtn.Parent = Tabs.Logs
-    Instance.new("UICorner", ClearLogsBtn).CornerRadius = UDim.new(0, 6)
+    shared.corner(ClearLogsBtn, UDim.new(0, 6))
 
     local LogCount = Instance.new("TextLabel")
     LogCount.Size = UDim2.new(0, 200, 0, 26)
@@ -1621,6 +1619,7 @@ return function(config)
         Theme = LYRA,
         MainGui = ScreenGui,
         Main = Main,
+        MainShadow = MainShadow,
         Header = Header,
         HeaderMask = HeaderMask,
         MainStroke = MainStroke,
