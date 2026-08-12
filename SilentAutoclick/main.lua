@@ -1,7 +1,12 @@
 -- SilentAutoclick/main.lua
--- Entry point: loads config, gui, core, then modules
+-- Entry point: loads LyraHub's shared primitives + component factories, then
+-- config, gui, core, and modules. The GUI is built with the LyraHub UI kit.
 
 local BASE_URL = ...
+
+-- Derive the LyraHub folder URL from the same repo/branch (this folder's URL
+-- is "<...>/staging/SilentAutoclick/", the kit lives in "<...>/staging/LyraHub/").
+local LYRAHUB_URL = BASE_URL:gsub("/SilentAutoclick/", "/LyraHub/")
 
 local function fetch(url, name)
     local ok, result = pcall(function()
@@ -63,10 +68,19 @@ local function showErrorGui(msg)
     task.delay(15, function() pcall(function() errGui:Destroy() end) end)
 end
 
-local configChunk = compile(fetch(BASE_URL .. "config.lua", "config.lua"), "config.lua")
-local config = configChunk()
+-- 1. Config (LyraHub shape: Window / Keys / Theme / ComponentDefaults)
+local config = compile(fetch(BASE_URL .. "config.lua", "config.lua"), "config.lua")()
 assert(type(config) == "table", "config.lua must return a table")
 
+-- 2. LyraHub UI kit (shared primitives + component factories)
+local shared = compile(fetch(LYRAHUB_URL .. "views/components/shared.lua", "shared.lua"), "shared.lua")(config)
+local components = { shared = shared }
+for _, name in ipairs({ "button", "dropdown", "slider", "keybind" }) do
+    local factory = compile(fetch(LYRAHUB_URL .. "views/components/" .. name .. ".lua", name), name)()
+    components[name] = factory(config, shared)
+end
+
+-- 3. GUI (built with the kit), then core + modules
 local guiChunk = compile(fetch(BASE_URL .. "gui.lua", "gui.lua"), "gui.lua")
 local coreChunk = compile(fetch(BASE_URL .. "core.lua", "core.lua"), "core.lua")
 local guiFactory = guiChunk()
@@ -81,7 +95,7 @@ if type(coreFactory) ~= "function" then
     return
 end
 
-local guiOk, gui = pcall(guiFactory, config)
+local guiOk, gui = pcall(guiFactory, config, components)
 if not guiOk then
     showErrorGui("gui.lua execution failed:\n" .. tostring(gui))
     return
@@ -94,7 +108,7 @@ if not coreOk then
 end
 
 -- Load modules
-local modules = {"clicker", "stats", "ui"}
+local modules = { "clicker", "stats", "ui" }
 for _, name in ipairs(modules) do
     local ok, err = pcall(function()
         local modChunk = loadModule(name)

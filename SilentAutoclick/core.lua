@@ -36,11 +36,9 @@ return function(gui, config)
     ctx.minimized = false
     ctx.hideUI = false
     ctx.draggingUI = false
-    ctx.draggingSlider = false
     ctx.dragStart = nil
     ctx.startPos = nil
     ctx.dragTarget = nil
-    ctx.listeningKeybind = false
 
     ctx.toggleKey = config.Keys.ToggleClicker
     ctx.pickKey = config.Keys.PickPosition
@@ -110,13 +108,13 @@ return function(gui, config)
         if ctx.clicking then
             gui.StatusLbl.Text = "Status: ON"
             gui.StatusLbl.TextColor3 = THEME.success
-            gui.ToggleBtn.Text = "Stop [" .. keyName .. "]"
-            gui.ToggleBtn.BackgroundColor3 = THEME.danger
+            gui.ToggleBtn.SetText("Stop [" .. keyName .. "]")
+            gui.ToggleBtn.SetColor(THEME.danger)
         else
             gui.StatusLbl.Text = "Status: OFF"
             gui.StatusLbl.TextColor3 = THEME.danger
-            gui.ToggleBtn.Text = "Start [" .. keyName .. "]"
-            gui.ToggleBtn.BackgroundColor3 = THEME.accent
+            gui.ToggleBtn.SetText("Start [" .. keyName .. "]")
+            gui.ToggleBtn.SetColor(THEME.accent)
         end
 
         gui.MethodLbl.Text = useVIM and "Mode: Silent" or "Mode: Fallback"
