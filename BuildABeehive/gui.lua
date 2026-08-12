@@ -233,11 +233,15 @@ return function(config, components)
     actionsTab.Visible = false
     actionsTab.Parent = content
 
-    local buyTab = Instance.new("Frame")
+    local buyTab = Instance.new("ScrollingFrame")
     buyTab.Name = "BuyTab"
     buyTab.Size = UDim2.new(1, 0, 1, 0)
     buyTab.BackgroundTransparency = 1
+    buyTab.BorderSizePixel = 0
     buyTab.Visible = false
+    buyTab.ScrollBarThickness = 3
+    buyTab.ScrollBarImageTransparency = 0.6
+    buyTab.CanvasSize = UDim2.new(0, 0, 0, 560)
     buyTab.Parent = content
 
     local function applyTab(activeTab)
@@ -640,35 +644,59 @@ return function(config, components)
         shared.tween(buyScale, { Scale = 1 }, 0.14, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
     end)
 
+    -- Flower checklist host: auto_buy_seed fills this with the checkbox rows.
+    -- (Previously the checklist was anchored below the toggle inside the card,
+    -- where content.ClipsDescendants cut it off — the "list not shown" bug.)
+    local flowerCheckListHost = Instance.new("Frame")
+    flowerCheckListHost.Name = "FlowerCheckListHost"
+    flowerCheckListHost.Size = UDim2.new(1, -24, 0, 236)
+    flowerCheckListHost.Position = UDim2.new(0, 12, 0, 296)
+    flowerCheckListHost.BackgroundColor3 = theme.panel
+    flowerCheckListHost.BackgroundTransparency = 0.35
+    flowerCheckListHost.BorderSizePixel = 0
+    flowerCheckListHost.Parent = buyTab
+    shared.corner(flowerCheckListHost, UDim.new(0, 10))
+    shared.stroke(flowerCheckListHost, theme.divider or theme.panel2, 1, 0.5)
+
     -- ═══════════════════════════════════════════
-    -- MINIMIZED PANEL (2 rows: stats + action counters)
+    -- MINIMIZED PANEL (header + 2 rows of stat cards)
     -- ═══════════════════════════════════════════
     local mini = Instance.new("Frame")
     mini.Name = "MinimizedPanel"
-    mini.Size = UDim2.new(0, 240, 0, 96)
+    mini.Size = UDim2.new(0, 260, 0, 112)
     mini.Position = UDim2.new(0, 20, 0, 20)
     mini.BackgroundColor3 = theme.bg
     mini.BorderSizePixel = 0
     mini.Visible = false
     mini.Active = true
+    mini.ZIndex = 5
     mini.Parent = screenGui
     shared.corner(mini, UDim.new(0, 12))
     shared.stroke(mini, theme.accent, 1, 0.4)
     shared.glow(mini, theme.glow or theme.accent, 3, 0.9)
 
+    local miniLogo = Instance.new("Frame")
+    miniLogo.Size = UDim2.fromOffset(6, 6)
+    miniLogo.Position = UDim2.new(0, 12, 0, 10)
+    miniLogo.BackgroundColor3 = theme.accent
+    miniLogo.BorderSizePixel = 0
+    miniLogo.Parent = mini
+    shared.corner(miniLogo, UDim.new(1, 0))
+    shared.glow(miniLogo, theme.glow or theme.accent, 2, 0.5)
+
     local miniHeader = label({
-        Parent = mini, Text = config.Window.Title, Position = UDim2.new(0, 8, 0, 4),
-        Size = UDim2.new(1, -28, 0, 16), TextSize = 10, Font = Enum.Font.GothamBold, Color = theme.text,
+        Parent = mini, Text = config.Window.Title, Position = UDim2.new(0, 24, 0, 4),
+        Size = UDim2.new(1, -56, 0, 16), TextSize = 10, Font = Enum.Font.GothamBold, Color = theme.text,
     })
 
     local miniExpand = components.button({
-        Parent = mini, Size = UDim2.fromOffset(18, 18), Position = UDim2.new(1, -24, 0, 3),
+        Parent = mini, Size = UDim2.fromOffset(20, 20), Position = UDim2.new(1, -26, 0, 3),
         Text = "▢", TextSize = 11, Color = theme.panel2, TextColor = theme.dim,
-        HoverColor = theme.accent2, CornerRadius = UDim.new(0, 5), ZIndex = 3, Glow = false,
+        HoverColor = theme.accent2, CornerRadius = UDim.new(0, 6), ZIndex = 3, Glow = false,
     })
 
     local miniDragHit = Instance.new("TextButton")
-    miniDragHit.Size = UDim2.new(1, -24, 0, 26)
+    miniDragHit.Size = UDim2.new(1, -32, 0, 26)
     miniDragHit.BackgroundTransparency = 1
     miniDragHit.Text = ""
     miniDragHit.AutoButtonColor = false
@@ -677,7 +705,7 @@ return function(config, components)
 
     local function makeMiniCard(labelText, order, parent)
         local card = Instance.new("Frame")
-        card.Size = UDim2.new(0, 53, 1, 0)
+        card.Size = UDim2.new(0, 56, 1, 0)
         card.BackgroundColor3 = theme.panel2
         card.BorderSizePixel = 0
         card.LayoutOrder = order
@@ -687,18 +715,18 @@ return function(config, components)
 
         label({
             Parent = card, Text = labelText, Position = UDim2.new(0, 2, 0, 2),
-            Size = UDim2.new(1, -4, 0, 10), TextSize = 8, Color = theme.dim,
+            Size = UDim2.new(1, -4, 0, 10), TextSize = 7, Color = theme.dim,
             TextXAlignment = Enum.TextXAlignment.Center,
         })
         return label({
             Parent = card, Text = "0", Position = UDim2.new(0, 2, 0, 14),
-            Size = UDim2.new(1, -4, 0, 16), TextSize = 12, Font = Enum.Font.GothamBold,
+            Size = UDim2.new(1, -4, 0, 18), TextSize = 13, Font = Enum.Font.GothamBold,
             TextXAlignment = Enum.TextXAlignment.Center,
         })
     end
 
     local miniCards = Instance.new("Frame")
-    miniCards.Size = UDim2.new(1, -16, 0, 34)
+    miniCards.Size = UDim2.new(1, -16, 0, 36)
     miniCards.Position = UDim2.new(0, 8, 0, 24)
     miniCards.BackgroundTransparency = 1
     miniCards.Parent = mini
@@ -716,8 +744,8 @@ return function(config, components)
 
     -- Second row: action counters (fed by ctx.counts via core.lua updateStats)
     local miniActionCards = Instance.new("Frame")
-    miniActionCards.Size = UDim2.new(1, -16, 0, 34)
-    miniActionCards.Position = UDim2.new(0, 8, 0, 60)
+    miniActionCards.Size = UDim2.new(1, -16, 0, 36)
+    miniActionCards.Position = UDim2.new(0, 8, 0, 66)
     miniActionCards.BackgroundTransparency = 1
     miniActionCards.Parent = mini
 
@@ -783,6 +811,7 @@ return function(config, components)
         AuroraIntervalInput = auroraIntervalInput,
         BuySeedIntervalInput = buySeedIntervalInput,
         BuySeedInput = buySeedInput,
+        FlowerCheckListHost = flowerCheckListHost,
         MinimizedPanel = mini,
         MiniHeader = miniHeader,
         MiniExpand = miniExpand.Instance,

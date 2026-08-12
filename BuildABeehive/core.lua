@@ -59,10 +59,49 @@ return function(gui, config)
 
 	ctx.RunService = RunService
 
-	ctx.ExtractRemote = ReplicatedStorage.Framework.Features.HoneySystem.HiveUtil.RemoteEvent
-	ctx.SellRemote = ReplicatedStorage.Framework.Features.HoneySystem.HoneyUtil.RemoteEvent
-	ctx.GameRemote = ReplicatedStorage.Framework.Features.GameEvent.GameEventUtil.RemoteEvent
-	ctx.FlowerRemote = ReplicatedStorage.Framework.Features.HoneySystem.FlowerUtil.RemoteEvent
+	-- Remotes live deep inside the game's framework hierarchy. Resolve them
+	-- defensively so a missing/renamed folder can never crash the whole hub
+	-- ("Framework is not a valid member of ReplicatedStorage"). A nil remote
+	-- simply leaves that automation inert — the modules wrap every FireServer
+	-- in pcall — and a delayed re-resolve picks the remotes up if the
+	-- framework loads after this script starts.
+	local REMOTE_PATHS = {
+		ExtractRemote = { "Framework", "Features", "HoneySystem", "HiveUtil", "RemoteEvent" },
+		SellRemote = { "Framework", "Features", "HoneySystem", "HoneyUtil", "RemoteEvent" },
+		GameRemote = { "Framework", "Features", "GameEvent", "GameEventUtil", "RemoteEvent" },
+		FlowerRemote = { "Framework", "Features", "HoneySystem", "FlowerUtil", "RemoteEvent" },
+	}
+
+	local function resolveRemotes()
+		local allFound = true
+		for name, path in pairs(REMOTE_PATHS) do
+			local current = ReplicatedStorage
+			for _, part in ipairs(path) do
+				current = current:FindFirstChild(part)
+				if not current then
+					break
+				end
+			end
+			ctx[name] = current
+			if not current then
+				allFound = false
+			end
+		end
+		return allFound
+	end
+
+	-- Resolve now; if the framework isn't present yet, retry once a second for
+	-- up to 30s (game structure often populates after the client connects).
+	if not resolveRemotes() then
+		task.spawn(function()
+			for _ = 1, 30 do
+				task.wait(1)
+				if ctx.Destroyed or resolveRemotes() then
+					break
+				end
+			end
+		end)
+	end
 
 	local function bind(signal, fn)
 		local connection = signal:Connect(fn)
