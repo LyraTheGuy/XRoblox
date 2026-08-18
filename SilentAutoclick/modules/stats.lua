@@ -13,6 +13,10 @@ return function(ctx)
     local clickTimestamps = {}
     local lastTotalClicks = 0
 
+    -- Sparkline sample history (one per 0.5s tick, drawn by gui.Sparkline)
+    local Sparkline = ctx.gui.Sparkline
+    local sparkHistory = {}
+
     -- FPS tracking via frame time deltas
     local frameCount = 0
     local fpsAccum = 0
@@ -59,6 +63,22 @@ return function(ctx)
                 end
             end
             ctx.actualCPS = #clickTimestamps
+
+            -- Push the sample into the sparkline: shift history, then resize
+            -- each bar to its CPS ratio. Fill only the used prefix (bars past
+            -- the history length stay at height 0 until samples arrive).
+            if Sparkline then
+                table.insert(sparkHistory, ctx.actualCPS)
+                if #sparkHistory > #Sparkline.Bars then
+                    table.remove(sparkHistory, 1)
+                end
+                local maxBar = Sparkline.MaxBar or 28
+                for i, cps in ipairs(sparkHistory) do
+                    local ratio = math.clamp(cps / Sparkline.Max, 0, 1)
+                    local h = ratio > 0 and math.max(2, math.floor(ratio * maxBar)) or 0
+                    Sparkline.Bars[i].Size = UDim2.new(0, Sparkline.Bars[i].Size.X.Offset, 0, h)
+                end
+            end
 
             -- Ping (ms)
             local ok, pingMs = pcall(function()

@@ -1,7 +1,12 @@
 -- SilentAutoclick/main.lua
--- Entry point: loads config, gui, core, then modules
+-- Entry point: loads LyraHub's shared primitives + component factories, then
+-- config, gui, core, and modules. The GUI is built with the LyraHub UI kit.
 
 local BASE_URL = ...
+
+-- Derive the LyraHub folder URL from the same repo/branch (this folder's URL
+-- is "<...>/staging/SilentAutoclick/", the kit lives in "<...>/staging/LyraHub/").
+local LYRAHUB_URL = BASE_URL:gsub("/SilentAutoclick/", "/LyraHub/")
 
 local function fetch(url, name)
     local ok, result = pcall(function()
@@ -63,10 +68,82 @@ local function showErrorGui(msg)
     task.delay(15, function() pcall(function() errGui:Destroy() end) end)
 end
 
-local configChunk = compile(fetch(BASE_URL .. "config.lua", "config.lua"), "config.lua")
-local config = configChunk()
+-- Pre-kit fallback status hint: only used when the LyraHub kit itself failed
+-- to load (you can't show the kit toast when the kit link is down). At
+-- runtime, notifications go through the kit toast component (gui.Toast).
+local function showKitToast(msg)
+    local Players = game:GetService("Players")
+    local lp = Players.LocalPlayer
+    local toastGui = Instance.new("ScreenGui")
+    toastGui.Name = "LyraHubKitToast"
+    toastGui.ResetOnSpawn = false
+    toastGui.DisplayOrder = 9998
+    pcall(function() toastGui.Parent = game:GetService("CoreGui") end)
+    if not toastGui.Parent then toastGui.Parent = lp:WaitForChild("PlayerGui") end
+
+    local toast = Instance.new("TextButton")
+    toast.Size = UDim2.new(0, 420, 0, 54)
+    toast.AnchorPoint = Vector2.new(0.5, 0)
+    toast.Position = UDim2.new(0.5, 0, 1, -64)
+    toast.BackgroundColor3 = Color3.fromRGB(26, 22, 14)
+    toast.AutoButtonColor = false
+    toast.BorderSizePixel = 0
+    toast.Parent = toastGui
+    Instance.new("UICorner", toast).CornerRadius = UDim.new(0, 10)
+    local toastStroke = Instance.new("UIStroke", toast)
+    toastStroke.Color = Color3.fromRGB(240, 190, 90)
+    toastStroke.Thickness = 1
+
+    local toastIcon = Instance.new("TextLabel")
+    toastIcon.Text = "⚠"
+    toastIcon.Size = UDim2.new(0, 24, 1, 0)
+    toastIcon.Position = UDim2.new(0, 8, 0, 0)
+    toastIcon.BackgroundTransparency = 1
+    toastIcon.TextColor3 = Color3.fromRGB(240, 190, 90)
+    toastIcon.Font = Enum.Font.GothamBold
+    toastIcon.TextSize = 16
+    toastIcon.Parent = toast
+
+    local toastText = Instance.new("TextLabel")
+    toastText.Size = UDim2.new(1, -36, 1, -8)
+    toastText.Position = UDim2.new(0, 34, 0, 4)
+    toastText.BackgroundTransparency = 1
+    toastText.Text = msg
+    toastText.TextColor3 = Color3.fromRGB(250, 240, 215)
+    toastText.Font = Enum.Font.Gotham
+    toastText.TextSize = 11
+    toastText.TextWrapped = true
+    toastText.TextXAlignment = Enum.TextXAlignment.Left
+    toastText.TextYAlignment = Enum.TextYAlignment.Center
+    toastText.Parent = toast
+
+    toast.MouseButton1Click:Connect(function() pcall(function() toastGui:Destroy() end) end)
+    task.delay(12, function() pcall(function() toastGui:Destroy() end) end)
+end
+
+-- 1. Config (LyraHub shape: Window / Keys / Theme / ComponentDefaults)
+local config = compile(fetch(BASE_URL .. "config.lua", "config.lua"), "config.lua")()
 assert(type(config) == "table", "config.lua must return a table")
 
+-- 2. LyraHub UI kit (shared primitives + component factories)
+-- shared.lua returns function(theme): call the chunk to get the factory,
+-- then call the factory with config to get the shared helper table.
+local components = {}
+local kitOk, kitErr = pcall(function()
+    local shared = compile(fetch(LYRAHUB_URL .. "views/components/shared.lua", "shared.lua"), "shared.lua")()(config)
+    components.shared = shared
+    for _, name in ipairs({ "button", "dropdown", "slider", "keybind", "toast", "updatecheck" }) do
+        local factory = compile(fetch(LYRAHUB_URL .. "views/components/" .. name .. ".lua", name), name)()
+        components[name] = factory(config, shared)
+    end
+end)
+if not kitOk then
+    warn("[LyraHub] Kit load failed: " .. tostring(kitErr))
+    showKitToast("LyraHub UI kit failed to load from the raw GitHub link.\nPush the latest LyraHub/ folder to GitHub, then re-run.")
+    return
+end
+
+-- 3. GUI (built with the kit), then core + modules
 local guiChunk = compile(fetch(BASE_URL .. "gui.lua", "gui.lua"), "gui.lua")
 local coreChunk = compile(fetch(BASE_URL .. "core.lua", "core.lua"), "core.lua")
 local guiFactory = guiChunk()
@@ -81,7 +158,7 @@ if type(coreFactory) ~= "function" then
     return
 end
 
-local guiOk, gui = pcall(guiFactory, config)
+local guiOk, gui = pcall(guiFactory, config, components)
 if not guiOk then
     showErrorGui("gui.lua execution failed:\n" .. tostring(gui))
     return
@@ -94,7 +171,7 @@ if not coreOk then
 end
 
 -- Load modules
-local modules = {"clicker", "stats", "ui"}
+local modules = { "clicker", "stats", "ui" }
 for _, name in ipairs(modules) do
     local ok, err = pcall(function()
         local modChunk = loadModule(name)
@@ -108,4 +185,9 @@ for _, name in ipairs(modules) do
     if not ok then
         showErrorGui("Module '" .. name .. "' failed:\n" .. tostring(err))
     end
+end
+
+-- Update check: compare the running build against the live raw config
+if components.updatecheck and components.updatecheck.Check and config.Build then
+    components.updatecheck.Check({ LocalBuild = config.Build, ConfigURL = BASE_URL .. "config.lua" })
 end

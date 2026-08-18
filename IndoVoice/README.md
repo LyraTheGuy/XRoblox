@@ -1,6 +1,6 @@
 # LyraHub
 
-Automation toolkit for IndoVoice on Roblox. Built with a custom violet-themed GUI, modular architecture, and persistent settings.
+Automation toolkit for IndoVoice on Roblox. Built with a custom violet-themed GUI on the **LyraHub UI kit** (fetched from the raw GitHub link, same as SilentAutoclick and BuildABeehive), modular architecture, and persistent settings.
 
 ## Features
 
@@ -90,7 +90,11 @@ Automation toolkit for IndoVoice on Roblox. Built with a custom violet-themed GU
 - Save/Load settings locally (auto-loads on start)
 
 ### UI
-- Lyra violet/purple theme
+- Lyra violet/purple theme (kit palette via `config.Theme`)
+- Built on the LyraHub UI kit: `main.lua` fetches `shared.lua` + `button.lua` from the raw GitHub link and passes them to `gui.lua` as `(config, components)`
+- Kit primitives everywhere: `shared.corner`/`stroke`/`glow`/`gradient`/`shadow`/`tween` replace raw `UICorner`/`UIStroke` decoration
+- Gradient background, glow stroke and soft drop shadow on the main window (shadow follows on drag, hides with the window)
+- Hover animations on the title-bar buttons
 - Wide layout (620x420)
 - Draggable from top bar and bottom line
 - Minimize to circular "L" orb
@@ -104,7 +108,7 @@ Automation toolkit for IndoVoice on Roblox. Built with a custom violet-themed GU
 ```
 IndoVoice/
 ├── bootstrap.lua       # Branch-specific tiny loader (fetches from GitHub)
-├── main.lua            # Entry point — loads config, gui, core, then modules
+├── main.lua            # Entry point — loads config, LyraHub kit, gui, core, then modules
 ├── config.lua          # Configuration (keys, theme, zones, sell rarities, webhook)
 ├── gui.lua             # Full GUI layout and elements
 ├── core.lua            # Shared state, utilities, players, zones, clicker, webhook, settings

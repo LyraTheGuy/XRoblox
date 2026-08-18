@@ -817,9 +817,11 @@ return function(ctx)
 
         local raritiesList = getActiveOreSellRarities()
         local result
+        local sold = false
         local success, err = pcall(function()
             if SellOreRemote then
                 result = SellOreRemote:InvokeServer(raritiesList)
+                sold = true
             end
         end)
 
@@ -844,7 +846,16 @@ return function(ctx)
         end
         ctx.autoTPEnabled = wasAutoTP
 
-        return success, result or err
+        if not success then
+            return false, result or err
+        end
+        if not sold then
+            -- Nothing was actually sold (remote nil or unexpected class) —
+            -- don't report a false SUCCESS.
+            return false, "Sell ore remote not available"
+        end
+
+        return true, result
     end
 
     -- Sell rarity toggles
@@ -877,7 +888,9 @@ return function(ctx)
                 while ctx.autoSellOreEnabled and not ctx.destroyed do
                     if SellOreRemote then
                         local ok, msg = performOreSell()
-                        log("Auto Sell Ore: " .. tostring(msg), ok and THEME.success or THEME.danger)
+                        -- msg can be nil when the server returns no result (e.g.
+                        -- nothing to sell) — log a friendly value instead of "nil".
+                        log("Auto Sell Ore: " .. tostring(msg or "ok"), ok and THEME.success or THEME.danger)
                     end
                     task.wait(ctx.ORE_SELL_INTERVAL)
                 end
@@ -898,7 +911,7 @@ return function(ctx)
         end
         local success, msg = performOreSell()
         if success then
-            log("Sell Ore Now: SUCCESS - " .. tostring(msg), THEME.success)
+            log("Sell Ore Now: SUCCESS - " .. tostring(msg or "done"), THEME.success)
         else
             log("Sell Ore Now: FAILED - " .. tostring(msg), THEME.danger)
         end

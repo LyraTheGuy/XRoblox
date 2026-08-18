@@ -1,10 +1,10 @@
--- BuildABeehive/bootstrap.lua
+-- LyraHub/bootstrap.lua
 -- Branch-specific tiny loader
 
 local USER = "LyraTheGuy"
 local REPO = "XRoblox"
-local FOLDER = "BuildABeehive"
-local BRANCH = "main" -- change to "staging" in staging branch copy only
+local FOLDER = "LyraHub"
+local BRANCH = "staging" -- change to "staging" in staging branch copy only
 
 local BASE_URL = ("https://raw.githubusercontent.com/%s/%s/%s/%s/"):format(USER, REPO, BRANCH, FOLDER)
 

@@ -29,7 +29,12 @@ return function(ctx)
     bind(UserInputService.InputChanged, function(input)
         if ctx.draggingUI and ctx.dragTarget and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - ctx.dragStart
-            ctx.dragTarget.Position = UDim2.new(ctx.startPos.X.Scale, ctx.startPos.X.Offset + delta.X, ctx.startPos.Y.Scale, ctx.startPos.Y.Offset + delta.Y)
+            local newPos = UDim2.new(ctx.startPos.X.Scale, ctx.startPos.X.Offset + delta.X, ctx.startPos.Y.Scale, ctx.startPos.Y.Offset + delta.Y)
+            ctx.dragTarget.Position = newPos
+            -- Keep the drop shadow glued to the main window (offset (-4, 0))
+            if ctx.dragTarget == gui.Main and gui.Shadow then
+                gui.Shadow.Position = UDim2.new(newPos.X.Scale, newPos.X.Offset - 4, newPos.Y.Scale, newPos.Y.Offset)
+            end
         end
     end)
 
@@ -46,12 +51,16 @@ return function(ctx)
     bind(gui.MinBtn.MouseButton1Click, function()
         ctx.minimized = true
         gui.Main.Visible = false
+        if gui.Shadow then gui.Shadow.Visible = false end
         gui.MinimizedPanel.Visible = true
+        -- Abort keybind capture so its full-screen scrim can't linger
+        if gui.KeybindBtn and gui.KeybindBtn.Cancel then gui.KeybindBtn.Cancel() end
     end)
 
     bind(gui.ExpandBtn.MouseButton1Click, function()
         ctx.minimized = false
         gui.Main.Visible = true
+        if gui.Shadow then gui.Shadow.Visible = true end
         gui.MinimizedPanel.Visible = false
     end)
 
@@ -72,8 +81,12 @@ return function(ctx)
             ctx.hideUI = not ctx.hideUI
             if ctx.hideUI then
                 gui.Main.Visible = false
+                if gui.Shadow then gui.Shadow.Visible = false end
                 gui.MinimizedPanel.Visible = false
+                -- Abort keybind capture so its full-screen scrim can't linger
+                if gui.KeybindBtn and gui.KeybindBtn.Cancel then gui.KeybindBtn.Cancel() end
             else
+                if gui.Shadow then gui.Shadow.Visible = true end
                 if ctx.minimized then
                     gui.MinimizedPanel.Visible = true
                 else

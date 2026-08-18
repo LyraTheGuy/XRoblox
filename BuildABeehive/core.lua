@@ -59,10 +59,58 @@ return function(gui, config)
 
 	ctx.RunService = RunService
 
-	ctx.ExtractRemote = ReplicatedStorage.Framework.Features.HoneySystem.HiveUtil.RemoteEvent
-	ctx.SellRemote = ReplicatedStorage.Framework.Features.HoneySystem.HoneyUtil.RemoteEvent
-	ctx.GameRemote = ReplicatedStorage.Framework.Features.GameEvent.GameEventUtil.RemoteEvent
-	ctx.FlowerRemote = ReplicatedStorage.Framework.Features.HoneySystem.FlowerUtil.RemoteEvent
+	-- Remotes live deep inside the game's framework hierarchy. Resolve them
+	-- defensively so a missing/renamed folder can never crash the whole hub
+	-- ("Framework is not a valid member of ReplicatedStorage"). A nil remote
+	-- simply leaves that automation inert — the modules wrap every FireServer
+	-- in pcall — and a delayed re-resolve picks the remotes up if the
+	-- framework loads after this script starts.
+	local REMOTE_PATHS = {
+		ExtractRemote = { "Framework", "Features", "HoneySystem", "HiveUtil", "RemoteEvent" },
+		SellRemote = { "Framework", "Features", "HoneySystem", "HoneyUtil", "RemoteEvent" },
+		GameRemote = { "Framework", "Features", "GameEvent", "GameEventUtil", "RemoteEvent" },
+		FlowerRemote = { "Framework", "Features", "HoneySystem", "FlowerUtil", "RemoteEvent" },
+	}
+
+	local function resolveRemotes()
+		local allFound = true
+		for name, path in pairs(REMOTE_PATHS) do
+			local current = ReplicatedStorage
+			for _, part in ipairs(path) do
+				current = current:FindFirstChild(part)
+				if not current then
+					break
+				end
+			end
+			ctx[name] = current
+			if not current then
+				allFound = false
+			end
+		end
+		return allFound
+	end
+
+	-- Resolve now; if the framework isn't present yet, retry once a second for
+	-- up to 30s (game structure often populates after the client connects). If
+	-- the remotes never resolve, surface a toast so the user knows why the
+	-- automation features are inert.
+	if not resolveRemotes() then
+		if gui.Toast and gui.Toast.show then
+			gui.Toast.show({
+				Text = "Honey remotes not found — automation features are inactive.\nThe game's framework may have changed; re-run after joining a server.",
+				Variant = "warn",
+				Duration = 12,
+			})
+		end
+		task.spawn(function()
+			for _ = 1, 30 do
+				task.wait(1)
+				if ctx.Destroyed or resolveRemotes() then
+					break
+				end
+			end
+		end)
+	end
 
 	local function bind(signal, fn)
 		local connection = signal:Connect(fn)
@@ -92,14 +140,22 @@ return function(gui, config)
 			return fallback
 		end
 
-		local value = tonumber(input.Text)
+		-- LyraHub textinput views: read via GetText, write via SetText with
+		-- notifyChange=false so programmatic writes can't echo into OnChanged.
+		-- Skip the write while the field is focused so committing one field can't
+		-- clobber text the user is actively typing in another.
+		local value = tonumber(input.GetText())
 		if not value then
-			input.Text = tostring(fallback)
+			if not input.Box:IsFocused() then
+				input.SetText(tostring(fallback), false)
+			end
 			return fallback
 		end
 
 		value = math.clamp(value, 1, 3600)
-		input.Text = tostring(value)
+		if not input.Box:IsFocused() then
+			input.SetText(tostring(value), false)
+		end
 		return value
 	end
 	ctx.readInterval = readInterval
@@ -111,19 +167,65 @@ return function(gui, config)
 		ctx.buySeedInterval = readInterval(gui.BuySeedIntervalInput, 120)
 
 		if gui.BuySeedInput then
-			local seedId = tostring(gui.BuySeedInput.Text or ""):gsub("^%s+", ""):gsub("%s+$", "")
+			local seedId = tostring(gui.BuySeedInput.GetText() or ""):gsub("^%s+", ""):gsub("%s+$", "")
 			if seedId == "" then
 				seedId = "Bamboo"
 			end
 			ctx.buySeedId = seedId
-			if not gui.BuySeedInput:IsFocused() then
-				gui.BuySeedInput.Text = ctx.buySeedId
+			if not gui.BuySeedInput.Box:IsFocused() then
+				gui.BuySeedInput.SetText(ctx.buySeedId, false)
 			end
 		end
 	end
 	ctx.syncIntervals = syncIntervals
 
-	ctx.addCount = function() end
+	-- Per-category action counters (incremented by the feature modules).
+	ctx.counts = {}
+
+	-- Persist counters to a settings file so they survive script reloads.
+	-- Uses the executor file API (writefile/readfile/isfile) guarded with pcall,
+	-- same pattern as IndoVoice's LyraHub_Settings.json.
+	local COUNTERS_FILE = "BuildABeehive_Counters.json"
+	local COUNTERS_SAVE_INTERVAL = 1 -- throttle: at most one write per second
+	local lastCountersSave = tick()
+
+	local function saveCounters()
+		pcall(function()
+			local HttpService = game:GetService("HttpService")
+			writefile(COUNTERS_FILE, HttpService:JSONEncode(ctx.counts))
+		end)
+	end
+	ctx.saveCounters = saveCounters
+
+	local function loadCounters()
+		pcall(function()
+			if isfile and isfile(COUNTERS_FILE) then
+				local HttpService = game:GetService("HttpService")
+				local loaded = HttpService:JSONDecode(readfile(COUNTERS_FILE))
+				if type(loaded) == "table" then
+					for key, value in pairs(loaded) do
+						if type(value) == "number" then
+							ctx.counts[key] = value
+						end
+					end
+				end
+			end
+		end)
+	end
+	loadCounters()
+
+	ctx.addCount = function(category, amount)
+		local key = tostring(category or "unknown")
+		ctx.counts[key] = (ctx.counts[key] or 0) + (amount or 1)
+
+		-- Persist with a 1s throttle: bursts of actions (e.g. per-hive collect
+		-- ticks) don't spam the disk, and a hard kill loses at most ~1s.
+		local now = tick()
+		if now - lastCountersSave >= COUNTERS_SAVE_INTERVAL then
+			lastCountersSave = now
+			saveCounters()
+		end
+	end
 
 	local function setMinimized(minimized)
 		ctx.minimized = minimized
@@ -133,8 +235,25 @@ return function(gui, config)
 		if gui.MinimizedPanel then
 			gui.MinimizedPanel.Visible = minimized
 		end
+		if gui.Shadow then
+			gui.Shadow.Visible = not minimized
+		end
 	end
 	ctx.setMinimized = setMinimized
+
+	-- Compact number formatting for large action counters (1.2k / 3.4M / 1.1B)
+	local function formatCount(n)
+		n = tonumber(n) or 0
+		if n >= 1e9 then
+			return string.format("%.1fB", n / 1e9)
+		elseif n >= 1e6 then
+			return string.format("%.1fM", n / 1e6)
+		elseif n >= 1e3 then
+			return string.format("%.1fK", n / 1e3)
+		end
+		return tostring(math.floor(n))
+	end
+	ctx.formatCount = formatCount
 
 	local function updateStats()
 		local hives = ctx.getMyHives()
@@ -165,6 +284,19 @@ return function(gui, config)
 			gui.MiniStats.TotalHiveVal.Text = tostring(ctx.totalHive)
 		end
 
+		if gui.ActionStats then
+			gui.ActionStats.CollectVal.Text = formatCount(ctx.counts.collect)
+			gui.ActionStats.SellVal.Text = formatCount(ctx.counts.sell)
+			gui.ActionStats.AuroraVal.Text = formatCount(ctx.counts.aurora)
+			gui.ActionStats.BuySeedVal.Text = formatCount(ctx.counts["buy_seed"])
+		end
+		if gui.MiniActionStats then
+			gui.MiniActionStats.CollectVal.Text = formatCount(ctx.counts.collect)
+			gui.MiniActionStats.SellVal.Text = formatCount(ctx.counts.sell)
+			gui.MiniActionStats.AuroraVal.Text = formatCount(ctx.counts.aurora)
+			gui.MiniActionStats.BuySeedVal.Text = formatCount(ctx.counts["buy_seed"])
+		end
+
 		if gui.CollectButton then
 			setButtonState(gui.CollectButton, ctx.AutoCollect, "Collect")
 		end
@@ -178,20 +310,20 @@ return function(gui, config)
 			setButtonState(gui.BuySeedButton, ctx.AutoBuySeed, "Buy Seed")
 		end
 
-		if gui.CollectIntervalInput and not gui.CollectIntervalInput:IsFocused() then
-			gui.CollectIntervalInput.Text = tostring(ctx.collectInterval)
+		if gui.CollectIntervalInput and not gui.CollectIntervalInput.Box:IsFocused() then
+			gui.CollectIntervalInput.SetText(tostring(ctx.collectInterval), false)
 		end
-		if gui.SellIntervalInput and not gui.SellIntervalInput:IsFocused() then
-			gui.SellIntervalInput.Text = tostring(ctx.sellInterval)
+		if gui.SellIntervalInput and not gui.SellIntervalInput.Box:IsFocused() then
+			gui.SellIntervalInput.SetText(tostring(ctx.sellInterval), false)
 		end
-		if gui.AuroraIntervalInput and not gui.AuroraIntervalInput:IsFocused() then
-			gui.AuroraIntervalInput.Text = tostring(ctx.auroraInterval)
+		if gui.AuroraIntervalInput and not gui.AuroraIntervalInput.Box:IsFocused() then
+			gui.AuroraIntervalInput.SetText(tostring(ctx.auroraInterval), false)
 		end
-		if gui.BuySeedIntervalInput and not gui.BuySeedIntervalInput:IsFocused() then
-			gui.BuySeedIntervalInput.Text = tostring(ctx.buySeedInterval)
+		if gui.BuySeedIntervalInput and not gui.BuySeedIntervalInput.Box:IsFocused() then
+			gui.BuySeedIntervalInput.SetText(tostring(ctx.buySeedInterval), false)
 		end
-		if gui.BuySeedInput and not gui.BuySeedInput:IsFocused() then
-			gui.BuySeedInput.Text = ctx.buySeedId
+		if gui.BuySeedInput and not gui.BuySeedInput.Box:IsFocused() then
+			gui.BuySeedInput.SetText(ctx.buySeedId, false)
 		end
 	end
 	ctx.updateStats = updateStats
@@ -264,6 +396,7 @@ return function(gui, config)
 		ctx.dragTarget = target
 		ctx.dragStart = input.Position
 		ctx.startPos = target.Position
+		ctx.shadowStart = gui.Shadow and gui.Shadow.Position
 		ctx.dragInput = input
 	end
 	ctx.beginDrag = beginDrag
@@ -277,7 +410,10 @@ return function(gui, config)
 	end
 	ctx.endDrag = endDrag
 
-	bind(gui.TopBar.InputBegan, function(input)
+	-- NOTE: the top bar is covered by a full-width transparent DragHit button,
+	-- so InputBegan on the TopBar frame itself almost never fires. Bind the
+	-- DragHit button (returned by gui.lua) instead, or dragging breaks.
+	bind(gui.DragHit.InputBegan, function(input)
 		if
 			input.UserInputType == Enum.UserInputType.MouseButton1
 			or input.UserInputType == Enum.UserInputType.Touch
@@ -304,6 +440,14 @@ return function(gui, config)
 		local position = ctx.startPos
 		ctx.dragTarget.Position =
 			UDim2.new(position.X.Scale, position.X.Offset + delta.X, position.Y.Scale, position.Y.Offset + delta.Y)
+
+		-- Keep the soft drop shadow glued to the main window while dragging
+		-- (shared.shadow only positions it once at creation).
+		if gui.Shadow and ctx.dragTarget == gui.Main and ctx.shadowStart then
+			local sp = ctx.shadowStart
+			gui.Shadow.Position =
+				UDim2.new(sp.X.Scale, sp.X.Offset + delta.X, sp.Y.Scale, sp.Y.Offset + delta.Y)
+		end
 	end)
 
 	bind(UserInputService.InputEnded, function(input)
@@ -340,20 +484,35 @@ return function(gui, config)
 		end
 	end
 
-	if gui.CollectIntervalInput then
-		bind(gui.CollectIntervalInput.FocusLost, function()
-			ctx.syncIntervals()
-		end)
+	-- Commit-on-focus-lost: the LyraHub textinput fires OnChanged on blur, so
+	-- subscribing here syncs the ctx intervals/seed id whenever any of the five
+	-- fields is committed (component-internal value update, then our read-back).
+	for _, input in ipairs({
+		gui.CollectIntervalInput,
+		gui.SellIntervalInput,
+		gui.AuroraIntervalInput,
+		gui.BuySeedIntervalInput,
+		gui.BuySeedInput,
+	}) do
+		if input then
+			input.OnChanged(function()
+				ctx.syncIntervals()
+			end)
+		end
 	end
 
-	if gui.SellIntervalInput then
-		bind(gui.SellIntervalInput.FocusLost, function()
-			ctx.syncIntervals()
+	-- Reset action counters (fresh session stats without reloading)
+	if gui.ResetCountersBtn then
+		bind(gui.ResetCountersBtn.MouseButton1Click, function()
+			table.clear(ctx.counts)
+			saveCounters() -- zero the persisted file too, so a reload starts fresh
+			updateStats()
 		end)
 	end
 
 	local function destroyAll()
 		ctx.Destroyed = true
+		saveCounters()
 		for _, connection in ipairs(ctx.connections) do
 			pcall(function()
 				connection:Disconnect()

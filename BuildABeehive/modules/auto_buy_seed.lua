@@ -15,29 +15,9 @@ return function(ctx)
 	ctx.updateStatus()
 
 	local lastRun = os.clock()
-	ctx.FLOWER_LIST = ctx.FLOWER_LIST
-		or {
-			"Lavender",
-			"Daisy",
-			"Clover",
-			"Sunflower",
-			"Dahlia",
-			"Bamboo",
-			"Tulip",
-			"AloeFlower",
-			"VenusFlyTrap",
-			"MorningGlory",
-			"Gourd",
-			"FireBlossom",
-			"Bluebell",
-			"Lily",
-			"Rose",
-			"Cactus",
-			"KniphofiaUvaria",
-			"AquilegiaCoerulea",
-			"MartagonLily",
-		}
 
+	-- FLOWER_LIST + selectedFlowers come from ctx (core.lua always defines them
+	-- before this module runs), so no fallback copy is needed here.
 	ctx.selectedFlowers = ctx.selectedFlowers or { Bamboo = true }
 
 	ctx.gui.BuySeedButton.MouseButton1Click:Connect(function()
@@ -47,7 +27,9 @@ return function(ctx)
 	end)
 
 	-- ===== Build checkbox list UI =====
-	local parent = ctx.gui.BuySeedButton.Parent
+	-- The checklist lives inside gui.FlowerCheckListHost (a dedicated panel in
+	-- the scrollable Buy tab) so it is never clipped by the content frame.
+	local parent = ctx.gui.FlowerCheckListHost or ctx.gui.BuySeedButton.Parent
 
 	-- Local Lua table (NOT stored on the Instance) mapping flowerName -> checkbox button
 	local checkBoxesByFlower = {}
@@ -56,10 +38,9 @@ return function(ctx)
 	if not listFrame then
 		listFrame = Instance.new("Frame")
 		listFrame.Name = "FlowerCheckListFrame"
-		listFrame.Size = UDim2.new(1, 0, 0, 220)
-		listFrame.Position =
-			UDim2.new(0, 0, 0, ctx.gui.BuySeedButton.Position.Y.Offset + ctx.gui.BuySeedButton.AbsoluteSize.Y + 40)
-		listFrame.BackgroundColor3 = (ctx.config.Theme and ctx.config.Theme.panel) or Color3.fromRGB(35, 35, 40)
+		listFrame.Size = UDim2.new(1, 0, 1, 0)
+		listFrame.Position = UDim2.new(0, 0, 0, 0)
+		listFrame.BackgroundTransparency = 1
 		listFrame.BorderSizePixel = 0
 		listFrame.Parent = parent
 
@@ -192,7 +173,10 @@ return function(ctx)
 
 	task.spawn(function()
 		while task.wait(0.25) do
-			if ctx.Destroyed or not ctx.AutoBuySeed then
+			if ctx.Destroyed then
+				break
+			end
+			if not ctx.AutoBuySeed then
 				lastRun = os.clock()
 				continue
 			end
