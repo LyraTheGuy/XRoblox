@@ -1,52 +1,60 @@
-# LyraHub — Modern MVC UI Kit (Roblox)
+# LyraHub — Roblox UI Kit
 
-A modular, production-ready Roblox GUI framework built with a clean
-**Model-View-Controller** architecture. Dark-blue/charcoal theme with white and
-muted-blue text, black/dark-grey accents, subtle transparency, soft glow and
-smooth transitions throughout.
+Production-ready Roblox GUI framework with a clean Model-View-Controller architecture. Dark theme with cyan accents.
 
-## ✨ Features
+## Components
 
-- **620×420 window** (IndoVoice-style wide layout) with drag, minimize, hide
-  keybind and full teardown
-- **Rounded buttons** with hover color-shift + springy press squish (`UIScale`)
-- **Toggle switches** with sliding knob + cross-fading track
-- **Dropdown menu** with animated height/fade/scale open-close + rotating chevron
-- **Horizontal & vertical sliders** with fill track + drag handling
-- **Keybind picker** — click to capture with a pulsing REC indicator, Esc or
-  click-away cancels, live-rebinds the UI key
-- **Text input** — placeholder, focus highlight, clear button, commit on blur
-- **Color picker** — HSV popup with gradient hue/sat/val sliders, hex readout and copy-to-clipboard
-- Subtle glow strokes, soft drop shadows, gradient backgrounds, live tweens
-- **Observable state store** — controllers publish via `model.set()`, views and
-  other controllers react via `model.onChange()`
+- **Buttons** — Rounded with hover/press animations
+- **Toggles** — Sliding switch with smooth transitions
+- **Dropdowns** — Animated list with chevron rotation
+- **Sliders** — Horizontal and vertical with drag handling
+- **Keybind** — Key capture picker with recording indicator
+- **Text Input** — Placeholder, focus highlight, clear button
+- **Color Picker** — HSV popup with hex readout
+- **Toast** — Notification popups
+- **Window** — Draggable with minimize/hide controls
 
-## 📁 Folder structure (MVC)
+## File Structure
 
 ```
-LyraHub/
-├── bootstrap.lua          # Tiny loader — paste this into the executor
-├── main.lua               # Composition root: builds the dependency graph
-├── config.lua             # THEME + window size + demo defaults (single source of truth)
+├── bootstrap.lua       # Loader
+├── main.lua            # Composition root
+├── config.lua          # Theme and defaults
 ├── models/
-│   └── state.lua          # Observable store: set / get / onChange / destroy
+│   └── state.lua       # Observable store (set/get/onChange)
 ├── views/
-│   ├── main.lua           # Window chrome + 3 tab pages (pure presentation)
+│   ├── main.lua        # Window chrome and tabs
 │   └── components/
-│       ├── shared.lua     # corner / stroke / glow / gradient / shadow / tween
-│       ├── button.lua     # rounded button factory (hover + press animations)
-│       ├── toggle.lua     # pill switch factory
-│       ├── dropdown.lua   # animated list factory
-│       ├── slider.lua     # horizontal/vertical slider factory
-│       ├── keybind.lua    # key capture picker factory
-│       ├── textinput.lua  # text field factory
-│       └── colorpicker.lua# HSV color picker factory
-└── controllers/
-    ├── main.lua           # Drag, minimize/expand, hide keybind, teardown
-    └── demo.lua           # Component ⇄ store bindings, tiles, quick actions
+│       ├── shared.lua      # Utilities (corner/stroke/glow/gradient/shadow)
+│       ├── button.lua      # Button factory
+│       ├── toggle.lua      # Toggle factory
+│       ├── dropdown.lua    # Dropdown factory
+│       ├── slider.lua      # Slider factory
+│       ├── keybind.lua     # Keybind factory
+│       ├── textinput.lua   # Text input factory
+│       ├── colorpicker.lua # Color picker factory
+│       ├── toast.lua       # Toast factory
+│       └── updatecheck.lua # Version checker
+├── controllers/
+│   ├── main.lua        # Window drag, minimize, hide keybind
+│   └── demo.lua        # Example bindings
+└── README.md
 ```
 
-## 🚀 Loading
+## Usage
+
+Import components and state store into your project:
+
+```lua
+local kit = require(lyrahub_url)
+local model = kit.model
+local components = kit.components
+
+local btn = components.button({ ... })
+model.set("key", value)
+model.onChange("key", function(newVal) ... end)
+```
+
 
 Paste `bootstrap.lua` into your executor. It fetches everything from this repo
 (branch `staging`) and runs the composition root. No other files need to be

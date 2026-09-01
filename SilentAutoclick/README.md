@@ -1,53 +1,40 @@
 # Silent AutoClicker
 
-Universal, lightweight silent autoclicker GUI for Roblox. Works on any game — not tied to a specific title's remotes or systems.
+Universal, lightweight autoclicker for Roblox with VirtualInputManager support.
 
 ## Features
 
-### Auto Clicker
-- Silent click via `VirtualInputManager` (no visible cursor movement/jitter), with a `mouse1press`/`mouse1release` fallback for executors without VIM access
-- Two click modes:
-  - **Follow Cursor** — clicks wherever your mouse currently is
-  - **Fixed Position** — locks to a picked coordinate (hotkey `P`)
-- Adjustable CPS (1-100) via draggable slider
-- Custom keybind support for start/stop (default `F`)
-
-### Live Stats
-- **Total Clicks** — running counter since the script started
-- **CPS (Actual)** — measured clicks-per-second over a rolling 1s window (reflects real throughput, not just the slider target)
-- **FPS** — client frame rate
-- **Ping** — live network latency (ms)
-- **CPS sparkline** — live bar chart of actual CPS vs the target line (60 samples ≈ 30s of history, updated every 0.5s); the warn-colored line repositions instantly when you drag the CPS slider
-
-### UI
-- Built with the **LyraHub UI kit** (same components as the LyraHub folder)
-- Compact draggable window (360x420) with gradient background, glow stroke, drop shadow
-- **LyraHub components**: rounded buttons (hover + press animations), dropdown for click mode,
-  draggable CPS slider, and a keybind picker with pulsing REC indicator + Esc/click-away cancel
-- Minimize into a small 4-card panel (Status / CPS / FPS / Ping) — stays visible and readable while collapsed
-- The stats panel also hosts a live **actual-CPS-vs-target sparkline** strip below the stat cards
-- Minimized panel is independently draggable
-- Hide/show entire UI with `K`
-- Close button fully disconnects everything (safe to re-run the script)
+- **Silent Click** — VirtualInputManager-based clicking with fallback support
+- **Click Modes** — Follow cursor or fixed position targeting
+- **CPS Control** — Adjustable 1-100 CPS with live feedback
+- **Stats** — Real-time clicks, CPS, FPS, and ping display
+- **Minimizable** — Compact pill mode while active
+- **Keybind Control** — Customizable F (toggle), P (target), K (hide/show)
 
 ## File Structure
 
 ```
-SilentAutoclick/
-├── bootstrap.lua       # Tiny loader (fetches from GitHub)
-├── main.lua            # Entry point — loads LyraHub kit, config, gui, core, modules
-├── config.lua          # Keys, theme (LyraHub shape), default CPS
-├── gui.lua             # GUI built with LyraHub components (dropdown/slider/keybind/buttons)
-├── core.lua            # Shared state, silent click, toggle, destroy
+├── bootstrap.lua       # Loader
+├── main.lua            # Entry point
+├── config.lua          # Settings and theme
+├── gui.lua             # UI components
+├── core.lua            # Click engine and state
 ├── modules/
-│   ├── clicker.lua     # Click mode dropdown, CPS slider, keybind picker, click loop
-│   ├── stats.lua       # Total Clicks / actual CPS / FPS / Ping + sparkline feed
-│   └── ui.lua          # Window drag, minimize/restore, close, hotkeys
-└── README.md           # This file
-
-The GUI fetches its component factories from the `LyraHub/` folder in the same
-repo (see `main.lua`); only the clicker-specific layout lives in this folder.
+│   ├── clicker.lua     # Click mode, CPS, keybinds
+│   ├── stats.lua       # Performance metrics
+│   └── ui.lua          # Window controls
+└── README.md
 ```
+
+## Usage
+
+1. Run `bootstrap.lua`
+2. Press `F` to toggle clicking
+3. Use mode dropdown to select **Follow Cursor** or **Fixed Position**
+4. Adjust CPS slider (1-100)
+5. Press `P` to pick target (Fixed Position only)
+6. Press `K` to hide/show UI
+
 
 ## Architecture
 

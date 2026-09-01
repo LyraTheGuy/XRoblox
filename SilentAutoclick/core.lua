@@ -11,47 +11,38 @@ return function(gui, config)
 
     local THEME = gui.Theme
 
-    -- ═══════════════════════════════════════════
-    -- SHARED MUTABLE STATE (ctx table)
-    -- ═══════════════════════════════════════════
-    local ctx = {}
-
-    ctx.gui = gui
-    ctx.config = config
-    ctx.THEME = THEME
-    ctx.lp = lp
-    ctx.mouse = mouse
-    ctx.Players = Players
-    ctx.UserInputService = UserInputService
-    ctx.RunService = RunService
-
-    ctx.destroyed = false
-    ctx.clicking = false
-    ctx.clickCPS = config.Clicker.DefaultCPS
-    ctx.clickDelay = 1 / ctx.clickCPS
-    ctx.lastClick = 0
-    ctx.mode = "cursor" -- "cursor" or "fixed"
-    ctx.fixedX = nil
-    ctx.fixedY = nil
-    ctx.minimized = false
-    ctx.hideUI = false
-    ctx.draggingUI = false
-    ctx.dragStart = nil
-    ctx.startPos = nil
-    ctx.dragTarget = nil
-
-    ctx.toggleKey = config.Keys.ToggleClicker
-    ctx.pickKey = config.Keys.PickPosition
-    ctx.hideKey = config.Keys.HideUI
-
-    -- Stats (filled in by modules/stats.lua, declared here so other modules
-    -- can safely read them regardless of module load order)
-    ctx.totalClicks = 0
-    ctx.actualCPS = 0
-    ctx.fps = 0
-    ctx.ping = 0
-
-    ctx.connections = {}
+    local ctx = {
+        gui = gui,
+        config = config,
+        THEME = THEME,
+        lp = lp,
+        mouse = mouse,
+        Players = Players,
+        UserInputService = UserInputService,
+        RunService = RunService,
+        destroyed = false,
+        clicking = false,
+        clickCPS = config.Clicker.DefaultCPS,
+        clickDelay = 1 / config.Clicker.DefaultCPS,
+        lastClick = 0,
+        mode = "cursor",
+        fixedX = nil,
+        fixedY = nil,
+        minimized = false,
+        hideUI = false,
+        draggingUI = false,
+        dragStart = nil,
+        startPos = nil,
+        dragTarget = nil,
+        toggleKey = config.Keys.ToggleClicker,
+        pickKey = config.Keys.PickPosition,
+        hideKey = config.Keys.HideUI,
+        totalClicks = 0,
+        actualCPS = 0,
+        fps = 0,
+        ping = 0,
+        connections = {}
+    }
 
     local function bind(signal, fn)
         local c = signal:Connect(fn)
@@ -60,9 +51,6 @@ return function(gui, config)
     end
     ctx.bind = bind
 
-    -- ═══════════════════════════════════════════
-    -- SILENT CLICK (VirtualInputManager)
-    -- ═══════════════════════════════════════════
     local VIM = (pcall(function() return cloneref(game:GetService("VirtualInputManager")) end))
         and cloneref(game:GetService("VirtualInputManager"))
         or game:GetService("VirtualInputManager")
@@ -158,10 +146,10 @@ return function(gui, config)
     local function destroyAll()
         ctx.destroyed = true
         ctx.clicking = false
-        for _, c in ipairs(ctx.connections) do
-            pcall(function() c:Disconnect() end)
+        for i = #ctx.connections, 1, -1 do
+            pcall(function() ctx.connections[i]:Disconnect() end)
+            table.remove(ctx.connections, i)
         end
-        table.clear(ctx.connections)
         pcall(function() gui.ScreenGui:Destroy() end)
     end
     ctx.destroyAll = destroyAll

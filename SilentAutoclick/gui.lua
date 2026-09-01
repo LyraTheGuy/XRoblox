@@ -48,9 +48,6 @@ return function(config, components)
         return l
     end
 
-    -- ═══════════════════════════════════════════
-    -- MAIN WINDOW
-    -- ═══════════════════════════════════════════
     local Main = Instance.new("Frame")
     Main.Size = UDim2.fromOffset(W, H)
     Main.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -67,7 +64,6 @@ return function(config, components)
     view.Main = Main
     view.Shadow = shared.shadow(Main)
 
-    -- Top bar (transparent — window buttons live on Main above the DragHit)
     local TopBar = Instance.new("Frame")
     TopBar.Size = UDim2.new(1, 0, 0, 48)
     TopBar.BackgroundTransparency = 1
@@ -123,9 +119,6 @@ return function(config, components)
     divider.BorderSizePixel = 0
     divider.Parent = Main
 
-    -- ═══════════════════════════════════════════
-    -- CONTENT
-    -- ═══════════════════════════════════════════
     local Content = Instance.new("Frame")
     Content.Size = UDim2.new(1, -24, 1, -68)
     Content.Position = UDim2.new(0, 12, 0, 56)
@@ -172,7 +165,6 @@ return function(config, components)
     })
     view.CPSSlider = CPSSlider
 
-    -- Live stats grid + "actual CPS vs target" sparkline strip
     local StatsFrame = Instance.new("Frame")
     StatsFrame.Size = UDim2.new(1, 0, 0, 160)
     StatsFrame.Position = UDim2.fromOffset(0, 132)
@@ -183,8 +175,6 @@ return function(config, components)
     shared.corner(StatsFrame, UDim.new(0, 10))
     shared.stroke(StatsFrame, THEME.divider, 1, 0.5)
 
-    -- Fixed-height cells keep the 2x2 cards compact; the bottom of the frame
-    -- is reserved for the sparkline strip.
     local StatsGrid = Instance.new("UIGridLayout")
     StatsGrid.CellSize = UDim2.new(0.5, -6, 0, 44)
     StatsGrid.CellPadding = UDim2.new(0, 8, 0, 8)
