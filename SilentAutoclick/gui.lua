@@ -153,21 +153,52 @@ return function(config, components)
     })
     view.PosLbl = PosLbl
 
+    local TimingPanel = Instance.new("Frame")
+    TimingPanel.Size = UDim2.new(1, 0, 0, 72)
+    TimingPanel.Position = UDim2.fromOffset(0, 96)
+    TimingPanel.BackgroundColor3 = THEME.panel
+    TimingPanel.BackgroundTransparency = 0.4
+    TimingPanel.BorderSizePixel = 0
+    TimingPanel.Parent = Content
+    shared.corner(TimingPanel, UDim.new(0, 10))
+    shared.stroke(TimingPanel, THEME.divider, 1, 0.5)
+
+    local TimingTitle = label({
+        Parent = TimingPanel, Text = "CLICK TIMING", Position = UDim2.fromOffset(10, 8),
+        Size = UDim2.new(1, -20, 0, 10), TextSize = 8, Color = THEME.faint, Font = Enum.Font.GothamBold,
+    })
+
+    local IntervalLbl = label({
+        Parent = TimingPanel, Text = "Delay: 1.00s / click", Position = UDim2.fromOffset(10, 20),
+        Size = UDim2.new(1, -20, 0, 14), TextSize = 11, Font = Enum.Font.GothamBold, Color = THEME.accent2,
+    })
+    view.IntervalLbl = IntervalLbl
+
+    local TimingInput = components.textinput({
+        Parent = TimingPanel,
+        Size = UDim2.new(1, -20, 0, 28),
+        Position = UDim2.fromOffset(10, 36),
+        Default = tostring(config.Clicker.IntervalSeconds or config.Clicker.DefaultIntervalSeconds or 1),
+        Placeholder = "1-360 seconds",
+        CornerRadius = UDim.new(0, 7),
+    })
+    view.TimingInput = TimingInput
+
     local CPSLbl = label({
-        Parent = Content, Text = "CPS: 20", Position = UDim2.fromOffset(0, 104),
+        Parent = Content, Text = "CPS: 20", Position = UDim2.fromOffset(0, 176),
         Size = UDim2.new(1, 0, 0, 14), TextSize = 12, Font = Enum.Font.GothamBold,
     })
     view.CPSLbl = CPSLbl
 
     local CPSSlider = components.slider({
-        Parent = Content, Size = UDim2.fromOffset(230, 6), Position = UDim2.fromOffset(0, 120),
+        Parent = Content, Size = UDim2.fromOffset(230, 6), Position = UDim2.fromOffset(0, 192),
         Default = config.Clicker.DefaultCPS / 100,
     })
     view.CPSSlider = CPSSlider
 
     local StatsFrame = Instance.new("Frame")
     StatsFrame.Size = UDim2.new(1, 0, 0, 160)
-    StatsFrame.Position = UDim2.fromOffset(0, 132)
+    StatsFrame.Position = UDim2.fromOffset(0, 206)
     StatsFrame.BackgroundColor3 = THEME.panel
     StatsFrame.BackgroundTransparency = 0.5
     StatsFrame.BorderSizePixel = 0

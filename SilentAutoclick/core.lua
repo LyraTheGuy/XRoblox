@@ -23,7 +23,8 @@ return function(gui, config)
         destroyed = false,
         clicking = false,
         clickCPS = config.Clicker.DefaultCPS,
-        clickDelay = 1 / config.Clicker.DefaultCPS,
+        clickIntervalSeconds = config.Clicker.IntervalSeconds or config.Clicker.DefaultIntervalSeconds or 1,
+        clickDelay = (config.Clicker.IntervalSeconds or config.Clicker.DefaultIntervalSeconds or 1),
         lastClick = 0,
         mode = "cursor",
         fixedX = nil,
@@ -107,6 +108,12 @@ return function(gui, config)
 
         gui.MethodLbl.Text = useVIM and "Mode: Silent" or "Mode: Fallback"
         gui.MethodLbl.TextColor3 = useVIM and THEME.success or THEME.warn
+
+        if gui.IntervalLbl then
+            local seconds = tonumber(ctx.clickIntervalSeconds) or 1
+            gui.IntervalLbl.Text = string.format("Delay: %.2fs / click", seconds)
+            gui.IntervalLbl.TextColor3 = THEME.accent2
+        end
 
         gui.MiniStats.StatusVal.Text = ctx.clicking and "ON" or "OFF"
         gui.MiniStats.StatusVal.TextColor3 = ctx.clicking and THEME.success or THEME.danger

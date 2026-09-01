@@ -20,6 +20,10 @@ return {
 
     Clicker = {
         DefaultCPS = 20,
+        DefaultIntervalSeconds = 1,
+        MinIntervalSeconds = 1,
+        MaxIntervalSeconds = 360,
+        IntervalSeconds = 1,
     },
 
     Theme = {

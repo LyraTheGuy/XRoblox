@@ -10,6 +10,25 @@ return function(ctx)
     local updateClickerUI = ctx.updateClickerUI
     local toggleClicker = ctx.toggleClicker
 
+    local function applyInterval(value)
+        local seconds = tonumber(value)
+        if not seconds then
+            return false
+        end
+
+        seconds = math.clamp(seconds, 1, 360)
+        ctx.clickIntervalSeconds = seconds
+        ctx.clickDelay = seconds
+        ctx.clickCPS = math.max(1, math.floor(1 / seconds))
+        ctx.config.Clicker.IntervalSeconds = seconds
+        gui.CPSLbl.Text = "CPS: " .. ctx.clickCPS
+        if gui.Sparkline then
+            gui.Sparkline.SetTarget(ctx.clickCPS)
+        end
+        updateClickerUI()
+        return true
+    end
+
     gui.ModeDropdown.OnSelected(function(item)
         ctx.mode = (item == "Fixed Position") and "fixed" or "cursor"
         updateClickerUI()
@@ -21,14 +40,30 @@ return function(ctx)
         updateClickerUI()
     end)
 
-    gui.CPSSlider.OnChanged(function(ratio)
-        ctx.clickCPS = math.max(1, math.floor(ratio * 100))
-        ctx.clickDelay = 1 / ctx.clickCPS
-        gui.CPSLbl.Text = "CPS: " .. ctx.clickCPS
-        if gui.Sparkline then
-            gui.Sparkline.SetTarget(ctx.clickCPS)
+    gui.TimingInput.OnChanged(function(value)
+        local trimmed = string.gsub(value or "", "%s+", "")
+        if trimmed == "" then
+            return
         end
+        applyInterval(trimmed)
     end)
+
+    gui.CPSSlider.OnChanged(function(ratio)
+        local cps = math.max(1, math.floor(ratio * 100))
+        ctx.clickCPS = cps
+        local seconds = math.max(1, 1 / cps)
+        ctx.clickIntervalSeconds = seconds
+        ctx.clickDelay = seconds
+        ctx.config.Clicker.IntervalSeconds = seconds
+        gui.TimingInput.SetText(string.format("%.2f", seconds), false)
+        gui.CPSLbl.Text = "CPS: " .. cps
+        if gui.Sparkline then
+            gui.Sparkline.SetTarget(cps)
+        end
+        updateClickerUI()
+    end)
+
+    applyInterval(ctx.config.Clicker.IntervalSeconds or ctx.clickIntervalSeconds or 1)
 
     bind(RunService.Heartbeat, function()
         if ctx.destroyed or not ctx.clicking then return end
