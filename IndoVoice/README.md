@@ -1,103 +1,60 @@
-# LyraHub
+# IndoVoice Automation Suite
 
-Automation toolkit for IndoVoice on Roblox. Built with a custom violet-themed GUI on the **LyraHub UI kit** (fetched from the raw GitHub link, same as SilentAutoclick and BuildABeehive), modular architecture, and persistent settings.
+Comprehensive automation toolkit for IndoVoice on Roblox.
 
 ## Features
 
-### Auto Fish
-- Remote-based fishing engine
-- Mouse hold casting with animation verification
-- Detects bite via `StartMinigame.OnClientEvent` (captures fish name, rarity, price, weight)
-- Waits for minigame GUI detection, then skips with randomized 5-10s delay
-- Catches via `CatchEvent:FireServer(true)`
-- Auto re-equip rod on timeout
-- Performance monitor: rarity breakdown, earnings tracker
-- Webhook notifications for rare catches
+**Gathering & Combat**
+- Auto Fish — Remote-based with minigame skip and auto re-equip
+- Auto Mine — Click-to-mine with hotspot ESP and stone detection
+- Auto Sell Ore — Auto teleport to shop and sell by rarity
 
-### Auto Mine
-- Click-to-mine system (TP near stone, click anywhere)
-- Detects mining start via `StartMinigame.OnClientEvent` on pickaxe
-- Skips minigame with randomized 5-10s delay
-- Catches via `MineResult:FireServer(true)`
-- Fires `MinigameOpenedEvent` and destroys minigame GUI after mining
-- Auto-equip pickaxe from backpack
-- Auto TP to nearest available stone (skips full stones: `AvailableSlot = 0` or `ConsumedSlot >= MaxSlot`)
-- Hotspot Only mode (filters stones with `IsHotspot = true`)
-- Hotspot ESP (highlights hotspot stones with yellow Highlight + billboard)
-- Ore rarity tracking and stats display
-- Webhook notifications for rare ores
+**Rewards & Currency**
+- Auto Gacha (BlindBox) — 10x rolls with stop-on-rarity
+- Shop Gacha — Pet/Aura/Trail automation
+- Auto Claim Daily & Session Rewards — Hourly loops
+- Auto Clicker — VirtualInputManager with position targeting
 
-### Auto Sell Ore
-- Teleports to `OreShop` NPC, sells, teleports back
-- Configurable sell interval
-- Toggle-per-rarity sell buttons (same style as fish sell)
-- Sell Now button for instant sell
+**Utilities**
+- Rod Shop — Browse and purchase rods
+- FishZone ESP — Highlight active zones, auto TP
+- Player ESP — Box highlight, teleport, tracer, inspect
+- Anti-Idle — Defeat idle detection
+- Webhook Integration — Discord notifications (customizable)
 
-### Auto Gacha (BlindBox)
-- 10x roll automation
-- Auto-reads available boxes from ReplicatedStorage
-- Stop-on-rarity: select target rarities and it stops when obtained
-- Shows pet name and rarity from each roll
-- Webhook alert on jackpot
+**Settings**
+- Theme Toggle (Dark/Light)
+- Accent Color Presets
+- Per-Rarity Auto-Sell & Webhook Filters
+- Settings Save/Load (persists across sessions)
 
-### Shop Gacha (Pet / Aura / Trail)
-- 10x roll automation for shop items
-- Type selection (Pet, Aura, Trail)
-- Stop-on-rarity with webhook notification
-- Auto-destroys gacha animation UI and mutes sounds
+## File Structure
 
-### FishZone
-- FishZone ESP (highlights active zones)
-- Auto TP to active fishing zones with body lock
-- Auto Sell fish by selected rarities
-- Sell Now (instant TP to FishShop and back)
-- Refresh character (Adonis command)
+```
+├── bootstrap.lua       # Loader
+├── main.lua            # Entry point with gate
+├── config.lua          # Theme and defaults
+├── gate.lua            # Authentication
+├── gui.lua             # Tabbed UI
+├── core.lua            # Shared state
+├── modules/
+│   ├── fishing.lua     # Auto Fish
+│   ├── mining.lua      # Auto Mine
+│   ├── gacha.lua       # Gacha automation
+│   ├── rodshop.lua     # Rod purchasing
+│   ├── shopgacha.lua   # Shop Gacha
+│   ├── antiafk.lua     # Anti-Idle
+│   └── ui.lua          # Window controls
+└── README.md
+```
 
-### Player Tools
-- Player ESP (box + nametag)
-- Teleport to player
-- Beam tracer
-- Avatar inspect
-- Search filter by name/display name
+## Usage
 
-### Auto Clicker
-- Silent click via VirtualInputManager
-- Adjustable CPS (1-100) with slider
-- Pick target position with hotkey
-- Custom keybind support
+1. Run `bootstrap.lua`
+2. Authenticate with password gate
+3. Select features from tabs
+4. Press `K` to hide/show UI
 
-### Rod Shop
-- Browse and purchase rods directly from GUI
-- Search filter
-- Status feedback on purchase success/failure
-
-### Rewards
-- Auto Claim Daily Reward (loops every 1 hour)
-- Auto Claim Session Reward slots 1-12 (loops every 1 hour)
-
-### Settings
-- Anti-Idle (disconnects Roblox idle detection)
-- Webhook integration (Discord)
-  - Fish caught notifications (filtered by rarity)
-  - Ore mined notifications (filtered by rarity)
-  - Sell notifications with earnings
-  - Gacha jackpot alerts
-  - Test webhook button
-- Auto-sell rarity selection (toggle per rarity)
-- Webhook rarity filter (toggle per rarity)
-- Dark / Light theme toggle
-- Accent color presets
-- Save/Load settings locally (auto-loads on start)
-
-### UI
-- Lyra violet/purple theme (kit palette via `config.Theme`)
-- Built on the LyraHub UI kit: `main.lua` fetches `shared.lua` + `button.lua` from the raw GitHub link and passes them to `gui.lua` as `(config, components)`
-- Kit primitives everywhere: `shared.corner`/`stroke`/`glow`/`gradient`/`shadow`/`tween` replace raw `UICorner`/`UIStroke` decoration
-- Gradient background, glow stroke and soft drop shadow on the main window (shadow follows on drag, hides with the window)
-- Hover animations on the title-bar buttons
-- Wide layout (620x420)
-- Draggable from top bar and bottom line
-- Minimize to circular "L" orb
 - Toggle with K key (minimize/restore)
 - Loading and unloading animations match main GUI size
 - Scrollable tabs for all sections
