@@ -115,6 +115,11 @@ return function(gui, config)
             gui.IntervalLbl.TextColor3 = THEME.accent2
         end
 
+        if gui.TimingStatus then
+            gui.TimingStatus.Text = string.format("Range: %.2fs - %.2fs", config.Clicker.MinIntervalSeconds or 1, config.Clicker.MaxIntervalSeconds or 360)
+            gui.TimingStatus.TextColor3 = THEME.dim
+        end
+
         gui.MiniStats.StatusVal.Text = ctx.clicking and "ON" or "OFF"
         gui.MiniStats.StatusVal.TextColor3 = ctx.clicking and THEME.success or THEME.danger
 
@@ -139,10 +144,28 @@ return function(gui, config)
             if not x or not y then
                 gui.PosLbl.Text = "Hover target and press P first"
                 gui.PosLbl.TextColor3 = THEME.warn
+                if gui.Toast then
+                    gui.Toast.show({
+                        Text = "Please pick a target position first",
+                        Variant = "warn",
+                        ScreenGui = gui.ScreenGui,
+                        Duration = 2,
+                    })
+                end
                 return
             end
         end
         ctx.clicking = not ctx.clicking
+        if gui.Toast then
+            local msg = ctx.clicking and "Clicking started" or "Clicking stopped"
+            local variant = ctx.clicking and "success" or "info"
+            gui.Toast.show({
+                Text = msg,
+                Variant = variant,
+                ScreenGui = gui.ScreenGui,
+                Duration = 1.5,
+            })
+        end
         updateClickerUI()
     end
     ctx.toggleClicker = toggleClicker

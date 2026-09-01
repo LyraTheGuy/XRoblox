@@ -11,6 +11,14 @@ return function(ctx)
         ctx.AutoDepositAurora = not ctx.AutoDepositAurora
         ctx.setButtonState(ctx.gui.DepositAuroraButton, ctx.AutoDepositAurora, "Aurora")
         ctx.updateStatus()
+        if ctx.gui.Toast and ctx.gui.Toast.show then
+            local msg = ctx.AutoDepositAurora and "Auto Aurora enabled" or "Auto Aurora disabled"
+            ctx.gui.Toast.show({
+                Text = msg,
+                Variant = ctx.AutoDepositAurora and "success" or "info",
+                Duration = 1.5,
+            })
+        end
     end)
 
     local elapsed = 0

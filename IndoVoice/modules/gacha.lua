@@ -202,5 +202,9 @@ return function(ctx)
             gui.Gacha.Status.Text = "Status: Stopped | Rolls: " .. autoGachaRolls
             gui.Gacha.Status.TextColor3 = THEME.dim
         end
+        if gui.Toast and gui.Toast.show then
+            local msg = ctx.autoGachaEnabled and "Auto Gacha started" or "Auto Gacha stopped"
+            gui.Toast.show({Text = msg, Variant = ctx.autoGachaEnabled and "success" or "info", Duration = 1.5})
+        end
     end)
 end

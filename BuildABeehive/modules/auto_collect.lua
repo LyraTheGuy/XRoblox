@@ -33,6 +33,14 @@ return function(ctx)
         ctx.AutoCollect = not ctx.AutoCollect
         ctx.setButtonState(ctx.gui.CollectButton, ctx.AutoCollect, "Collect")
         ctx.updateStatus()
+        if ctx.gui.Toast and ctx.gui.Toast.show then
+            local msg = ctx.AutoCollect and "Auto Collect enabled" or "Auto Collect disabled"
+            ctx.gui.Toast.show({
+                Text = msg,
+                Variant = ctx.AutoCollect and "success" or "info",
+                Duration = 1.5,
+            })
+        end
     end)
 
     task.spawn(function()

@@ -24,6 +24,14 @@ return function(ctx)
 		ctx.AutoBuySeed = not ctx.AutoBuySeed
 		ctx.setButtonState(ctx.gui.BuySeedButton, ctx.AutoBuySeed, "Buy Seed")
 		ctx.updateStatus()
+		if ctx.gui.Toast and ctx.gui.Toast.show then
+			local msg = ctx.AutoBuySeed and "Auto Buy Seed enabled" or "Auto Buy Seed disabled"
+			ctx.gui.Toast.show({
+				Text = msg,
+				Variant = ctx.AutoBuySeed and "success" or "info",
+				Duration = 1.5,
+			})
+		end
 	end)
 
 	-- ===== Build checkbox list UI =====

@@ -176,13 +176,34 @@ return function(config, components)
 
     local TimingInput = components.textinput({
         Parent = TimingPanel,
-        Size = UDim2.new(1, -20, 0, 28),
+        Size = UDim2.new(1, -84, 0, 28),
         Position = UDim2.fromOffset(10, 36),
         Default = tostring(config.Clicker.IntervalSeconds or config.Clicker.DefaultIntervalSeconds or 1),
-        Placeholder = "1-360 seconds",
+        Placeholder = "1-360s",
         CornerRadius = UDim.new(0, 7),
     })
     view.TimingInput = TimingInput
+
+    local ResetTimingBtn = components.button({
+        Parent = TimingPanel,
+        Size = UDim2.fromOffset(62, 24),
+        Position = UDim2.new(1, -72, 0, 39),
+        Text = "Reset",
+        TextSize = 10,
+        Color = THEME.panel2,
+        TextColor = THEME.text,
+        HoverColor = THEME.accent2,
+        CornerRadius = UDim.new(0, 6),
+        ZIndex = 3,
+        Glow = false,
+    })
+    view.ResetTimingBtn = ResetTimingBtn
+
+    local TimingStatus = label({
+        Parent = TimingPanel, Text = "Range: 1s - 360s", Position = UDim2.fromOffset(10, 54),
+        Size = UDim2.new(1, -20, 0, 12), TextSize = 8, Color = THEME.dim,
+    })
+    view.TimingStatus = TimingStatus
 
     local CPSLbl = label({
         Parent = Content, Text = "CPS: 20", Position = UDim2.fromOffset(0, 176),
@@ -196,9 +217,36 @@ return function(config, components)
     })
     view.CPSSlider = CPSSlider
 
+    -- ═══ CPS Preset Buttons ═══
+    local PresetsContainer = Instance.new("Frame")
+    PresetsContainer.Size = UDim2.new(1, 0, 0, 26)
+    PresetsContainer.Position = UDim2.fromOffset(0, 200)
+    PresetsContainer.BackgroundTransparency = 1
+    PresetsContainer.Parent = Content
+
+    local presetsLayout = Instance.new("UIListLayout")
+    presetsLayout.FillDirection = Enum.FillDirection.Horizontal
+    presetsLayout.Padding = UDim.new(0, 4)
+    presetsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    presetsLayout.Parent = PresetsContainer
+
+    local presetValues = { 5, 10, 20, 50, 100 }
+    local presetBtns = {}
+    for _, cpsValue in ipairs(presetValues) do
+        local btn = components.button({
+            Parent = PresetsContainer, Size = UDim2.fromOffset(42, 24),
+            Text = tostring(cpsValue), TextSize = 9,
+            Color = THEME.panel2, TextColor = THEME.dim,
+            HoverColor = THEME.accent2, CornerRadius = UDim.new(0, 6),
+            ZIndex = 2, Glow = false,
+        })
+        presetBtns[cpsValue] = btn.Instance
+    end
+    view.CPSPresetBtns = presetBtns
+
     local StatsFrame = Instance.new("Frame")
     StatsFrame.Size = UDim2.new(1, 0, 0, 160)
-    StatsFrame.Position = UDim2.fromOffset(0, 206)
+    StatsFrame.Position = UDim2.fromOffset(0, 230)
     StatsFrame.BackgroundColor3 = THEME.panel
     StatsFrame.BackgroundTransparency = 0.5
     StatsFrame.BorderSizePixel = 0
@@ -322,22 +370,58 @@ return function(config, components)
 
     -- Toggle + keybind
     local ToggleBtn = components.button({
-        Parent = Content, Size = UDim2.fromOffset(190, 36), Position = UDim2.fromOffset(0, 300),
+        Parent = Content, Size = UDim2.fromOffset(190, 36), Position = UDim2.fromOffset(0, 398),
         Text = "Start [F]", TextSize = 12, Color = THEME.accent, HoverColor = THEME.accent2, Glow = false,
     })
     view.ToggleBtn = ToggleBtn
 
     local KeybindBtn = components.keybind({
-        Parent = Content, Size = UDim2.fromOffset(122, 36), Position = UDim2.fromOffset(202, 300),
+        Parent = Content, Size = UDim2.fromOffset(122, 36), Position = UDim2.fromOffset(202, 398),
         Default = config.Keys.ToggleClicker,
     })
     view.KeybindBtn = KeybindBtn
 
     local HintLbl = label({
-        Parent = Content, Text = "P: pick target · K: hide/show UI", Position = UDim2.fromOffset(0, 338),
+        Parent = Content, Text = "P: pick target · K: hide/show UI", Position = UDim2.fromOffset(0, 436),
         Size = UDim2.new(1, 0, 0, 12), TextSize = 9, Color = THEME.faint,
     })
     view.HintLbl = HintLbl
+
+    -- ═══ Hotkey Customization ═══
+    local KeybindsPanel = Instance.new("Frame")
+    KeybindsPanel.Size = UDim2.new(1, 0, 0, 72)
+    KeybindsPanel.Position = UDim2.fromOffset(0, 454)
+    KeybindsPanel.BackgroundColor3 = THEME.panel
+    KeybindsPanel.BackgroundTransparency = 0.4
+    KeybindsPanel.BorderSizePixel = 0
+    KeybindsPanel.Parent = Content
+    shared.corner(KeybindsPanel, UDim.new(0, 10))
+    shared.stroke(KeybindsPanel, THEME.divider, 1, 0.5)
+
+    label({
+        Parent = KeybindsPanel, Text = "HOTKEYS", Position = UDim2.fromOffset(10, 8),
+        Size = UDim2.new(1, -20, 0, 10), TextSize = 8, Color = THEME.faint, Font = Enum.Font.GothamBold,
+    })
+
+    label({
+        Parent = KeybindsPanel, Text = "Pick Target", Position = UDim2.fromOffset(10, 20),
+        Size = UDim2.new(0.5, -14, 0, 12), TextSize = 9, Color = THEME.dim,
+    })
+    local PickTargetKey = components.keybind({
+        Parent = KeybindsPanel, Size = UDim2.fromOffset(56, 20), Position = UDim2.fromOffset(116, 18),
+        Default = "P",
+    })
+    view.PickTargetKey = PickTargetKey
+
+    label({
+        Parent = KeybindsPanel, Text = "Hide/Show UI", Position = UDim2.fromOffset(10, 40),
+        Size = UDim2.new(0.5, -14, 0, 12), TextSize = 9, Color = THEME.dim,
+    })
+    local HideShowKey = components.keybind({
+        Parent = KeybindsPanel, Size = UDim2.fromOffset(56, 20), Position = UDim2.fromOffset(116, 38),
+        Default = "K",
+    })
+    view.HideShowKey = HideShowKey
 
     -- ═══════════════════════════════════════════
     -- MINIMIZED PANEL (Status / CPS / FPS / Ping)

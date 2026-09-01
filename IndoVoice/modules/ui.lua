@@ -55,6 +55,10 @@ return function(ctx)
         gui.FishZone.ZoneESPBtn.BackgroundColor3 = ctx.zoneESPOn and THEME.success or THEME.accent
         refreshZoneESP()
         log("FishZone ESP: " .. (ctx.zoneESPOn and "ON" or "OFF"), ctx.zoneESPOn and THEME.success or THEME.dim)
+        if gui.Toast and gui.Toast.show then
+            local msg = ctx.zoneESPOn and "FishZone ESP enabled" or "FishZone ESP disabled"
+            gui.Toast.show({Text = msg, Variant = ctx.zoneESPOn and "success" or "info", Duration = 1.5})
+        end
     end)
 
     bind(gui.FishZone.AutoTPBtn.MouseButton1Click, function()
@@ -66,12 +70,19 @@ return function(ctx)
             moveToNearestActiveZone()
             log("Auto TP: ON - searching for active zone", THEME.success)
         end
+        if gui.Toast and gui.Toast.show then
+            local msg = ctx.autoTPEnabled and "Auto TP to FishZone ON" or "Auto TP to FishZone OFF"
+            gui.Toast.show({Text = msg, Variant = ctx.autoTPEnabled and "success" or "info", Duration = 1.5})
+        end
     end)
 
     bind(gui.FishZone.RefreshCharBtn.MouseButton1Click, function()
         gui.FishZone.RefreshCharBtn.Text = "Refreshing..."
         refreshCharacterAdonis()
         log("Refresh character sent (Adonis)", THEME.warn)
+        if gui.Toast and gui.Toast.show then
+            gui.Toast.show({Text = "Refreshed Character", Variant = "warn", Duration = 1.5})
+        end
         task.delay(1.2, function()
             if gui.FishZone.RefreshCharBtn and gui.FishZone.RefreshCharBtn.Parent then
                 gui.FishZone.RefreshCharBtn.Text = "Refresh Character"

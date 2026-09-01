@@ -1543,6 +1543,13 @@ return function(gui, config)
             clickCPS = ctx.clickCPS,
             toggleKey = tostring(ctx.TOGGLE_KEY):gsub("Enum.KeyCode.", ""),
 
+            -- Custom Hotkeys
+            keys = {
+                HideUI = ctx.config.Keys.HideUI and tostring(ctx.config.Keys.HideUI):gsub("Enum.KeyCode.", "") or "K",
+                ESP = ctx.config.Keys.ESP and tostring(ctx.config.Keys.ESP):gsub("Enum.KeyCode.", "") or "E",
+                Teleport = ctx.config.Keys.Teleport and tostring(ctx.config.Keys.Teleport):gsub("Enum.KeyCode.", "") or "T",
+            },
+
             -- Fishing/mining stats persistence
             perfRarityCounts = ctx.perfRarityCounts,
             perfTotalEarnings = ctx.perfTotalEarnings,
@@ -1640,6 +1647,22 @@ return function(gui, config)
                         gui.Mining.ESPBtn.Text = "Hotspot ESP: OFF"
                         gui.Mining.ESPBtn.BackgroundColor3 = THEME.warn
                     end
+                end
+            end
+
+            -- Hotkeys persistence
+            if result.keys and type(result.keys) == "table" then
+                if result.keys.HideUI and Enum.KeyCode[result.keys.HideUI] then
+                    ctx.config.Keys.HideUI = Enum.KeyCode[result.keys.HideUI]
+                    if gui.Settings.HideKeyLbl then
+                        gui.Settings.HideKeyLbl.Text = "Hide/Show UI: " .. result.keys.HideUI
+                    end
+                end
+                if result.keys.ESP and Enum.KeyCode[result.keys.ESP] then
+                    ctx.config.Keys.ESP = Enum.KeyCode[result.keys.ESP]
+                end
+                if result.keys.Teleport and Enum.KeyCode[result.keys.Teleport] then
+                    ctx.config.Keys.Teleport = Enum.KeyCode[result.keys.Teleport]
                 end
             end
 
@@ -1748,6 +1771,44 @@ return function(gui, config)
         log("Webhook test sent!", THEME.success)
     end)
 
+    -- Hotkey rebind listeners
+    if gui.Settings.HideUIKeybind and gui.Settings.HideUIKeybind.OnChanged then
+        gui.Settings.HideUIKeybind.OnChanged:Connect(function(keyName)
+            if Enum.KeyCode[keyName] then
+                ctx.config.Keys.HideUI = Enum.KeyCode[keyName]
+                if gui.Settings.HideKeyLbl then
+                    gui.Settings.HideKeyLbl.Text = "Hide/Show UI: " .. keyName
+                end
+                saveSettings()
+                if gui.Toast and gui.Toast.show then
+                    gui.Toast.show({Text = "Hide UI key bound to " .. keyName, Variant = "success", Duration = 1.5})
+                end
+            end
+        end)
+    end
+    if gui.Settings.ESPKeybind and gui.Settings.ESPKeybind.OnChanged then
+        gui.Settings.ESPKeybind.OnChanged:Connect(function(keyName)
+            if Enum.KeyCode[keyName] then
+                ctx.config.Keys.ESP = Enum.KeyCode[keyName]
+                saveSettings()
+                if gui.Toast and gui.Toast.show then
+                    gui.Toast.show({Text = "ESP key bound to " .. keyName, Variant = "success", Duration = 1.5})
+                end
+            end
+        end)
+    end
+    if gui.Settings.TPKeybind and gui.Settings.TPKeybind.OnChanged then
+        gui.Settings.TPKeybind.OnChanged:Connect(function(keyName)
+            if Enum.KeyCode[keyName] then
+                ctx.config.Keys.Teleport = Enum.KeyCode[keyName]
+                saveSettings()
+                if gui.Toast and gui.Toast.show then
+                    gui.Toast.show({Text = "TP key bound to " .. keyName, Variant = "success", Duration = 1.5})
+                end
+            end
+        end)
+    end
+
     -- Webhook URL input
     bind(gui.Settings.WebhookInput.FocusLost, function()
         ctx.webhookURL = gui.Settings.WebhookInput.Text
@@ -1793,6 +1854,71 @@ return function(gui, config)
                 gui.About.CopySaweriaBtn.BackgroundColor3 = THEME.accent
             end
         end)
+    end)
+
+    -- ═══════════════════════════════════════════
+    -- SAFETY & FAILSAFE SYSTEMS
+    -- ═══════════════════════════════════════════
+    local function setupSafetyFeatures()
+        local safetyConfig = ctx.config.Safety or {}
+
+        -- Staff / Admin Detector
+        if safetyConfig.AdminDetector then
+            local function checkPlayer(player)
+                if player == lp then return end
+                task.spawn(function()
+                    local isStaff = false
+                    pcall(function()
+                        if player:GetRankInGroup(player.Parent == game:GetService("Players") and game.CreatorId or 0) > 100 then
+                            isStaff = true
+                        end
+                    end)
+                    if not isStaff and player.Character then
+                        local tag = player.Character:FindFirstChild("AdminTag") or player.Character:FindFirstChild("ModTag")
+                        if tag then isStaff = true end
+                    end
+                    if isStaff then
+                        log("⚠️ Staff/Admin detected: " .. player.Name, THEME.danger)
+                        if gui.Toast and gui.Toast.show then
+                            gui.Toast.show({Text = "Admin Joined: " .. player.Name, Variant = "warn", Duration = 4})
+                        end
+                    end
+                end)
+            end
+            for _, player in ipairs(Players:GetPlayers()) do
+                checkPlayer(player)
+            end
+            Players.PlayerAdded:Connect(checkPlayer)
+        end
+    end
+    task.spawn(setupSafetyFeatures)
+
+    -- ═══════════════════════════════════════════
+    -- SESSION STATS UPTIME LOOP
+    -- ═══════════════════════════════════════════
+    local startTime = os.time()
+    task.spawn(function()
+        while not ctx.destroyed do
+            local elapsed = os.time() - startTime
+            local hrs = math.floor(elapsed / 3600)
+            local mins = math.floor((elapsed % 3600) / 60)
+            local secs = elapsed % 60
+            local timeStr = string.format("%02d:%02d:%02d", hrs, mins, secs)
+
+            if gui.About and gui.About.DashSessionTime then
+                gui.About.DashSessionTime.Text = "Uptime: " .. timeStr
+            end
+            if gui.About and gui.About.DashEarnings then
+                gui.About.DashEarnings.Text = "Ropiah Earned: " .. tostring(ctx.perfTotalEarnings or 0)
+            end
+            if gui.About and gui.About.DashActions then
+                local catches = ctx.perfCatchCount or 0
+                local mined = ctx.perfMinedCount or 0
+                local gachas = ctx.perfGachaCount or 0
+                gui.About.DashActions.Text = string.format("Catches: %d  |  Mined: %d  |  Gachas: %d", catches, mined, gachas)
+            end
+            task.wait(1)
+        end
     end)
 
     return ctx
