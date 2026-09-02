@@ -120,20 +120,85 @@ return function(ctx)
     ctx.reelIn = reelIn
 
     -- ═══════════════════════════════════════════
+    -- ROD DETECTION HELPER
+    -- ═══════════════════════════════════════════
+    local function hasRodEquipped()
+        local char = lp.Character
+        if not char then return false end
+        for _, tool in ipairs(char:GetChildren()) do
+            if tool:IsA("Tool") and (
+                tool.Name:find("Rod") or
+                tool.Name:find("Fishing") or
+                tool.Name:find("Hook") or
+                tool:FindFirstChild("Cast")
+            ) then
+                return true
+            end
+        end
+        return false
+    end
+
+    -- ═══════════════════════════════════════════
+    -- ENSURE ROD — must succeed before fishing starts
+    -- ═══════════════════════════════════════════
+    local function ensureRod()
+        -- Already equipped
+        if hasRodEquipped() then
+            return true
+        end
+
+        -- Try to equip from backpack
+        if equipRod() then
+            task.wait(0.3) -- brief wait for tool to parent into Character
+            return hasRodEquipped()
+        end
+
+        return false
+    end
+
+    -- ═══════════════════════════════════════════
     -- AUTO FISH LOOP
     -- ═══════════════════════════════════════════
     local function autoFishLoop()
-        log("Auto Fish: Started", THEME.success)
+        -- ── GATE: must equip rod before anything else ──
+        gui.Fishing.StatusLabel.Text = "Status: Equipping rod..."
+        gui.Fishing.StatusLabel.TextColor3 = THEME.warn
+        log("Auto Fish: Attempting to equip rod...", THEME.warn)
+
+        if not ensureRod() then
+            gui.Fishing.StatusLabel.Text = "Status: No rod found — cannot fish!"
+            gui.Fishing.StatusLabel.TextColor3 = THEME.danger
+            log("Auto Fish: ABORT — no fishing rod in Backpack or equipped", THEME.danger)
+            -- Toggle back OFF so the button reflects reality
+            ctx.autoFishEnabled = false
+            gui.Fishing.AutoFishToggle.btn.Text = "Auto Perfect Fish: OFF"
+            gui.Fishing.AutoFishToggle.btn.BackgroundColor3 = THEME.panel2
+            gui.Fishing.AutoFishToggle.btn.TextColor3 = THEME.dim
+            return
+        end
+
+        log("Auto Fish: Rod equipped, starting fishing loop", THEME.success)
         gui.Fishing.StatusLabel.Text = "Status: Fishing..."
         gui.Fishing.StatusLabel.TextColor3 = THEME.success
 
         while ctx.autoFishEnabled and not ctx.destroyed do
-            -- Check if we have a rod equipped
-            local char = lp.Character
-            if not char then
-                gui.Fishing.StatusLabel.Text = "Status: Waiting for character..."
-                task.wait(1)
-                continue
+            -- Re-check rod is still equipped (could have been unequipped)
+            if not hasRodEquipped() then
+                gui.Fishing.StatusLabel.Text = "Status: Rod lost — re-equipping..."
+                gui.Fishing.StatusLabel.TextColor3 = THEME.warn
+                log("Auto Fish: Rod lost, re-equipping", THEME.warn)
+                if not ensureRod() then
+                    gui.Fishing.StatusLabel.Text = "Status: Rod lost — stopping!"
+                    gui.Fishing.StatusLabel.TextColor3 = THEME.danger
+                    log("Auto Fish: ABORT — could not re-equip rod", THEME.danger)
+                    ctx.autoFishEnabled = false
+                    gui.Fishing.AutoFishToggle.btn.Text = "Auto Perfect Fish: OFF"
+                    gui.Fishing.AutoFishToggle.btn.BackgroundColor3 = THEME.panel2
+                    gui.Fishing.AutoFishToggle.btn.TextColor3 = THEME.dim
+                    return
+                end
+                gui.Fishing.StatusLabel.Text = "Status: Fishing..."
+                gui.Fishing.StatusLabel.TextColor3 = THEME.success
             end
 
             -- Check if bait is available
@@ -141,7 +206,6 @@ return function(ctx)
                 local now = tick()
                 if now - lastBaitCheck > 5 then
                     lastBaitCheck = now
-                    -- Try to check bait count (game-specific)
                     local backpack = lp:FindFirstChild("Backpack")
                     if backpack then
                         local hasBait = false
@@ -161,36 +225,11 @@ return function(ctx)
                 end
             end
 
-            -- Equip rod if not equipped
-            local hasRod = false
-            for _, tool in ipairs(char:GetChildren()) do
-                if tool:IsA("Tool") and (
-                    tool.Name:find("Rod") or
-                    tool.Name:find("Fishing") or
-                    tool.Name:find("Hook") or
-                    tool:FindFirstChild("Cast")
-                ) then
-                    hasRod = true
-                    break
-                end
-            end
-
-            if not hasRod then
-                if not equipRod() then
-                    gui.Fishing.StatusLabel.Text = "Status: No rod found!"
-                    gui.Fishing.StatusLabel.TextColor3 = THEME.danger
-                    log("Auto Fish: No rod available", THEME.danger)
-                    task.wait(2)
-                    continue
-                end
-            end
-
             -- Throw line
             throwLine()
             task.wait(1)
 
-            -- Wait for fish to bite (game-specific timing)
-            -- In Deep Fishing, the fishing minigame has a specific timing
+            -- Wait for fish to bite
             local biteTime = math.random(2, 8)
             task.wait(biteTime)
 
@@ -203,20 +242,16 @@ return function(ctx)
                 gui.Fishing.StatusLabel.TextColor3 = THEME.success
                 log("Fish #" .. fishCount .. " caught", THEME.success)
 
-                -- Instant collect
                 if ctx.instantCollectEnabled then
                     task.wait(0.1)
-                    -- The game usually handles collection automatically after reeling
                 end
             end
 
             task.wait(0.5)
         end
 
-        if ctx.autoFishEnabled then
-            gui.Fishing.StatusLabel.Text = "Status: Stopped | Fish: " .. fishCount
-            gui.Fishing.StatusLabel.TextColor3 = THEME.dim
-        end
+        gui.Fishing.StatusLabel.Text = "Status: Stopped | Fish: " .. fishCount
+        gui.Fishing.StatusLabel.TextColor3 = THEME.dim
         log("Auto Fish: Stopped (caught " .. fishCount .. " fish)", THEME.dim)
     end
 
@@ -226,7 +261,22 @@ return function(ctx)
     bind(gui.Fishing.AutoFishToggle.btn.MouseButton1Click, function()
         ctx.autoFishEnabled = gui.Fishing.AutoFishToggle.toggle()
         if ctx.autoFishEnabled then
-            task.spawn(autoFishLoop)
+            -- Equip rod FIRST, then start the loop (autoFishLoop also re-checks)
+            task.spawn(function()
+                gui.Fishing.StatusLabel.Text = "Status: Equipping rod..."
+                gui.Fishing.StatusLabel.TextColor3 = THEME.warn
+                if not ensureRod() then
+                    gui.Fishing.StatusLabel.Text = "Status: No rod found — cannot start!"
+                    gui.Fishing.StatusLabel.TextColor3 = THEME.danger
+                    log("Auto Fish: Cannot start — no fishing rod", THEME.danger)
+                    ctx.autoFishEnabled = false
+                    gui.Fishing.AutoFishToggle.btn.Text = "Auto Perfect Fish: OFF"
+                    gui.Fishing.AutoFishToggle.btn.BackgroundColor3 = THEME.panel2
+                    gui.Fishing.AutoFishToggle.btn.TextColor3 = THEME.dim
+                    return
+                end
+                autoFishLoop()
+            end)
         end
     end)
 
