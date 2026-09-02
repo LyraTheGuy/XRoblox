@@ -375,7 +375,7 @@ return function(config, components)
 
     -- ═══ Hotkey Customization ═══
     local KeybindsPanel = Instance.new("Frame")
-    KeybindsPanel.Size = UDim2.new(1, 0, 0, 64)
+    KeybindsPanel.Size = UDim2.new(1, 0, 0, 78)
     KeybindsPanel.Position = UDim2.fromOffset(0, 400)
     KeybindsPanel.BackgroundColor3 = THEME.panel
     KeybindsPanel.BackgroundTransparency = 0.4
@@ -389,22 +389,64 @@ return function(config, components)
         Size = UDim2.new(1, -20, 0, 10), TextSize = 8, Color = THEME.faint, Font = Enum.Font.GothamBold,
     })
 
+    -- Row 1: Pick Target
+    local Row1 = Instance.new("Frame")
+    Row1.Size = UDim2.new(1, -16, 0, 24)
+    Row1.Position = UDim2.fromOffset(8, 20)
+    Row1.BackgroundColor3 = THEME.panel2
+    Row1.BackgroundTransparency = 0.3
+    Row1.BorderSizePixel = 0
+    Row1.Parent = KeybindsPanel
+    shared.corner(Row1, UDim.new(0, 6))
+
+    local Row1Icon = Instance.new("TextLabel")
+    Row1Icon.Size = UDim2.fromOffset(18, 16)
+    Row1Icon.Position = UDim2.fromOffset(8, 4)
+    Row1Icon.BackgroundTransparency = 1
+    Row1Icon.Text = "⊙"
+    Row1Icon.TextColor3 = THEME.accent2
+    Row1Icon.Font = Enum.Font.GothamBold
+    Row1Icon.TextSize = 12
+    Row1Icon.Parent = Row1
+
     label({
-        Parent = KeybindsPanel, Text = "Pick Target", Position = UDim2.fromOffset(10, 20),
-        Size = UDim2.new(0.5, -14, 0, 11), TextSize = 9, Color = THEME.dim,
+        Parent = Row1, Text = "Pick Target", Position = UDim2.fromOffset(28, 0),
+        Size = UDim2.new(1, -110, 1, 0), TextSize = 10, Color = THEME.text, Font = Enum.Font.GothamBold,
     })
+
     local PickTargetKey = components.keybind({
-        Parent = KeybindsPanel, Size = UDim2.fromOffset(56, 20), Position = UDim2.fromOffset(114, 18),
+        Parent = Row1, Size = UDim2.new(0, 60, 0, 20), Position = UDim2.new(1, -66, 0.5, -10),
         Default = "P",
     })
     view.PickTargetKey = PickTargetKey
 
+    -- Row 2: Hide/Show UI
+    local Row2 = Instance.new("Frame")
+    Row2.Size = UDim2.new(1, -16, 0, 24)
+    Row2.Position = UDim2.fromOffset(8, 48)
+    Row2.BackgroundColor3 = THEME.panel2
+    Row2.BackgroundTransparency = 0.3
+    Row2.BorderSizePixel = 0
+    Row2.Parent = KeybindsPanel
+    shared.corner(Row2, UDim.new(0, 6))
+
+    local Row2Icon = Instance.new("TextLabel")
+    Row2Icon.Size = UDim2.fromOffset(18, 16)
+    Row2Icon.Position = UDim2.fromOffset(8, 4)
+    Row2Icon.BackgroundTransparency = 1
+    Row2Icon.Text = "◳"
+    Row2Icon.TextColor3 = THEME.accent2
+    Row2Icon.Font = Enum.Font.GothamBold
+    Row2Icon.TextSize = 12
+    Row2Icon.Parent = Row2
+
     label({
-        Parent = KeybindsPanel, Text = "Hide/Show UI", Position = UDim2.fromOffset(10, 38),
-        Size = UDim2.new(0.5, -14, 0, 11), TextSize = 9, Color = THEME.dim,
+        Parent = Row2, Text = "Hide / Show UI", Position = UDim2.fromOffset(28, 0),
+        Size = UDim2.new(1, -110, 1, 0), TextSize = 10, Color = THEME.text, Font = Enum.Font.GothamBold,
     })
+
     local HideShowKey = components.keybind({
-        Parent = KeybindsPanel, Size = UDim2.fromOffset(56, 20), Position = UDim2.fromOffset(114, 36),
+        Parent = Row2, Size = UDim2.new(0, 60, 0, 20), Position = UDim2.new(1, -66, 0.5, -10),
         Default = "K",
     })
     view.HideShowKey = HideShowKey
