@@ -57,53 +57,50 @@ return function(config, components)
     Main.ZIndex = 2
     Main.ClipsDescendants = true
     Main.Parent = ScreenGui
-    shared.corner(Main, UDim.new(0, 12))
+    shared.corner(Main, UDim.new(0, 10))
     shared.stroke(Main, THEME.divider, 1, 0.45)
-    shared.glow(Main, THEME.glow, 4, 0.92)
     shared.gradient(Main, THEME.bg, THEME.bg2, 90)
     view.Main = Main
-    view.Shadow = shared.shadow(Main)
 
     local TopBar = Instance.new("Frame")
-    TopBar.Size = UDim2.new(1, 0, 0, 48)
+    TopBar.Size = UDim2.new(1, 0, 0, 40)
     TopBar.BackgroundTransparency = 1
     TopBar.ZIndex = 2
     TopBar.Parent = Main
 
     local logo = Instance.new("Frame")
-    logo.Size = UDim2.fromOffset(10, 10)
-    logo.Position = UDim2.fromOffset(16, 19)
+    logo.Size = UDim2.fromOffset(8, 8)
+    logo.Position = UDim2.fromOffset(14, 16)
     logo.BackgroundColor3 = THEME.accent
     logo.BorderSizePixel = 0
     logo.Parent = TopBar
     shared.corner(logo, UDim.new(1, 0))
-    shared.glow(logo, THEME.glow, 2, 0.55)
 
     local TopBarTitle = label({
-        Parent = TopBar, Text = config.Window.Title, Position = UDim2.fromOffset(34, 10),
-        Size = UDim2.fromOffset(220, 22), TextSize = 14, Font = Enum.Font.GothamBold,
+        Parent = TopBar, Text = config.Window.Title, Position = UDim2.fromOffset(28, 8),
+        Size = UDim2.fromOffset(200, 18), TextSize = 13, Font = Enum.Font.GothamBold,
         Color = THEME.accent2,
     })
     label({
-        Parent = TopBar, Text = string.upper(config.Window.Subtitle), Position = UDim2.fromOffset(34, 30),
-        Size = UDim2.fromOffset(240, 12), TextSize = 7, Color = THEME.faint, Font = Enum.Font.GothamBold,
+        Parent = TopBar, Text = string.upper(config.Window.Subtitle), Position = UDim2.fromOffset(28, 25),
+        Size = UDim2.fromOffset(220, 10), TextSize = 7, Color = THEME.faint, Font = Enum.Font.GothamBold,
     })
 
     local minBtn = components.button({
-        Parent = Main, Size = UDim2.fromOffset(28, 28), Position = UDim2.fromOffset(W - 76, 10),
-        Text = "—", TextSize = 13, Color = THEME.panel2, TextColor = THEME.text,
-        HoverColor = THEME.accent2, CornerRadius = UDim.new(0, 8), ZIndex = 3, Glow = false,
+        Parent = Main, Size = UDim2.fromOffset(24, 24), Position = UDim2.fromOffset(W - 68, 8),
+        Text = "—", TextSize = 12, Color = THEME.panel2, TextColor = THEME.text,
+        HoverColor = THEME.accent2, CornerRadius = UDim.new(0, 7), ZIndex = 3, Glow = false,
     })
     local closeBtn = components.button({
-        Parent = Main, Size = UDim2.fromOffset(28, 28), Position = UDim2.fromOffset(W - 40, 10),
-        Text = "✕", TextSize = 12, Color = Color3.fromRGB(64, 28, 34), TextColor = THEME.danger,
-        HoverColor = Color3.fromRGB(96, 38, 46), CornerRadius = UDim.new(0, 8), ZIndex = 3, Glow = false,
+        Parent = Main, Size = UDim2.fromOffset(24, 24), Position = UDim2.fromOffset(W - 38, 8),
+        Text = "✕", TextSize = 11, Color = Color3.fromRGB(64, 28, 34), TextColor = THEME.danger,
+        HoverColor = Color3.fromRGB(96, 38, 46), CornerRadius = UDim.new(0, 7), ZIndex = 3, Glow = false,
     })
     view.MinBtn = minBtn.Instance
     view.CloseBtn = closeBtn.Instance
 
     local DragHit = Instance.new("TextButton")
-    DragHit.Size = UDim2.new(1, 0, 0, 48)
+    DragHit.Size = UDim2.new(1, 0, 0, 40)
     DragHit.BackgroundTransparency = 1
     DragHit.Text = ""
     DragHit.AutoButtonColor = false
@@ -114,82 +111,82 @@ return function(config, components)
 
     local divider = Instance.new("Frame")
     divider.Size = UDim2.new(1, 0, 0, 1)
-    divider.Position = UDim2.fromOffset(0, 48)
+    divider.Position = UDim2.fromOffset(0, 40)
     divider.BackgroundColor3 = THEME.divider
     divider.BorderSizePixel = 0
     divider.Parent = Main
 
     local Content = Instance.new("Frame")
-    Content.Size = UDim2.new(1, -24, 1, -68)
-    Content.Position = UDim2.new(0, 12, 0, 56)
+    Content.Size = UDim2.new(1, -24, 1, -52)
+    Content.Position = UDim2.new(0, 12, 0, 44)
     Content.BackgroundTransparency = 1
     Content.Parent = Main
 
     local StatusLbl = label({
         Parent = Content, Text = "Status: OFF", Position = UDim2.fromOffset(0, 0),
-        Size = UDim2.new(1, 0, 0, 20), TextSize = 15, Font = Enum.Font.GothamBold, Color = THEME.danger,
+        Size = UDim2.new(1, 0, 0, 16), TextSize = 13, Font = Enum.Font.GothamBold, Color = THEME.danger,
     })
     view.StatusLbl = StatusLbl
 
     local MethodLbl = label({
-        Parent = Content, Text = "Mode: -", Position = UDim2.fromOffset(0, 21),
-        Size = UDim2.new(1, 0, 0, 12), TextSize = 10, Color = THEME.warn,
+        Parent = Content, Text = "Mode: -", Position = UDim2.fromOffset(0, 16),
+        Size = UDim2.new(1, 0, 0, 11), TextSize = 9, Color = THEME.warn,
     })
     view.MethodLbl = MethodLbl
 
     label({
-        Parent = Content, Text = "CLICK MODE", Position = UDim2.fromOffset(0, 39),
-        Size = UDim2.new(1, 0, 0, 10), TextSize = 9, Color = THEME.faint, Font = Enum.Font.GothamBold,
+        Parent = Content, Text = "CLICK MODE", Position = UDim2.fromOffset(0, 30),
+        Size = UDim2.new(1, 0, 0, 9), TextSize = 8, Color = THEME.faint, Font = Enum.Font.GothamBold,
     })
     local ModeDropdown = components.dropdown({
-        Parent = Content, Size = UDim2.fromOffset(230, 30), Position = UDim2.fromOffset(0, 50),
-        Items = { "Follow Cursor", "Fixed Position" }, Default = "Follow Cursor", ItemHeight = 30,
+        Parent = Content, Size = UDim2.new(1, 0, 0, 28), Position = UDim2.fromOffset(0, 40),
+        Items = { "Follow Cursor", "Fixed Position" }, Default = "Follow Cursor", ItemHeight = 28,
     })
     view.ModeDropdown = ModeDropdown
 
     local PosLbl = label({
-        Parent = Content, Text = "Target: Not set (press P to pick)", Position = UDim2.fromOffset(0, 86),
-        Size = UDim2.new(1, 0, 0, 14), TextSize = 10, Color = THEME.dim, Visible = false,
+        Parent = Content, Text = "Target: Not set (press P to pick)", Position = UDim2.fromOffset(0, 72),
+        Size = UDim2.new(1, 0, 0, 12), TextSize = 9, Color = THEME.dim, Visible = false,
     })
     view.PosLbl = PosLbl
 
     local TimingPanel = Instance.new("Frame")
-    TimingPanel.Size = UDim2.new(1, 0, 0, 72)
-    TimingPanel.Position = UDim2.fromOffset(0, 96)
+    TimingPanel.Size = UDim2.new(1, 0, 0, 60)
+    TimingPanel.Position = UDim2.fromOffset(0, 86)
     TimingPanel.BackgroundColor3 = THEME.panel
     TimingPanel.BackgroundTransparency = 0.4
     TimingPanel.BorderSizePixel = 0
     TimingPanel.Parent = Content
-    shared.corner(TimingPanel, UDim.new(0, 10))
+    shared.corner(TimingPanel, UDim.new(0, 8))
     shared.stroke(TimingPanel, THEME.divider, 1, 0.5)
 
     local TimingTitle = label({
-        Parent = TimingPanel, Text = "CLICK TIMING", Position = UDim2.fromOffset(10, 8),
-        Size = UDim2.new(1, -20, 0, 10), TextSize = 8, Color = THEME.faint, Font = Enum.Font.GothamBold,
+        Parent = TimingPanel, Text = "CLICK TIMING", Position = UDim2.fromOffset(8, 6),
+        Size = UDim2.new(1, -16, 0, 9), TextSize = 8, Color = THEME.faint, Font = Enum.Font.GothamBold,
     })
 
     local IntervalLbl = label({
-        Parent = TimingPanel, Text = "Delay: 1.00s / click", Position = UDim2.fromOffset(10, 20),
-        Size = UDim2.new(1, -20, 0, 14), TextSize = 11, Font = Enum.Font.GothamBold, Color = THEME.accent2,
+        Parent = TimingPanel, Text = "Delay: 1.00s / click", Position = UDim2.fromOffset(8, 17),
+        Size = UDim2.new(1, -16, 0, 12), TextSize = 10, Font = Enum.Font.GothamBold, Color = THEME.accent2,
     })
     view.IntervalLbl = IntervalLbl
 
     local TimingInput = components.textinput({
         Parent = TimingPanel,
-        Size = UDim2.new(1, -84, 0, 28),
-        Position = UDim2.fromOffset(10, 36),
+        Size = UDim2.new(1, -76, 0, 24),
+        Position = UDim2.fromOffset(8, 32),
         Default = tostring(config.Clicker.IntervalSeconds or config.Clicker.DefaultIntervalSeconds or 1),
         Placeholder = "1-360s",
-        CornerRadius = UDim.new(0, 7),
+        CornerRadius = UDim.new(0, 6),
     })
     view.TimingInput = TimingInput
 
     local ResetTimingBtn = components.button({
         Parent = TimingPanel,
-        Size = UDim2.fromOffset(62, 24),
-        Position = UDim2.new(1, -72, 0, 39),
+        Size = UDim2.fromOffset(56, 22),
+        Position = UDim2.new(1, -64, 0, 34),
         Text = "Reset",
-        TextSize = 10,
+        TextSize = 9,
         Color = THEME.panel2,
         TextColor = THEME.text,
         HoverColor = THEME.accent2,
@@ -200,33 +197,33 @@ return function(config, components)
     view.ResetTimingBtn = ResetTimingBtn
 
     local TimingStatus = label({
-        Parent = TimingPanel, Text = "Range: 1s - 360s", Position = UDim2.fromOffset(10, 54),
-        Size = UDim2.new(1, -20, 0, 12), TextSize = 8, Color = THEME.dim,
+        Parent = TimingPanel, Text = "Range: 1s - 360s", Position = UDim2.fromOffset(8, 46),
+        Size = UDim2.new(1, -16, 0, 10), TextSize = 7, Color = THEME.dim,
     })
     view.TimingStatus = TimingStatus
 
     local CPSLbl = label({
-        Parent = Content, Text = "CPS: 20", Position = UDim2.fromOffset(0, 176),
-        Size = UDim2.new(1, 0, 0, 14), TextSize = 12, Font = Enum.Font.GothamBold,
+        Parent = Content, Text = "CPS: 20", Position = UDim2.fromOffset(0, 150),
+        Size = UDim2.new(1, 0, 0, 12), TextSize = 11, Font = Enum.Font.GothamBold,
     })
     view.CPSLbl = CPSLbl
 
     local CPSSlider = components.slider({
-        Parent = Content, Size = UDim2.fromOffset(230, 6), Position = UDim2.fromOffset(0, 192),
+        Parent = Content, Size = UDim2.new(1, 0, 0, 6), Position = UDim2.fromOffset(0, 163),
         Default = config.Clicker.DefaultCPS / 100,
     })
     view.CPSSlider = CPSSlider
 
     -- ═══ CPS Preset Buttons ═══
     local PresetsContainer = Instance.new("Frame")
-    PresetsContainer.Size = UDim2.new(1, 0, 0, 26)
-    PresetsContainer.Position = UDim2.fromOffset(0, 200)
+    PresetsContainer.Size = UDim2.new(1, 0, 0, 22)
+    PresetsContainer.Position = UDim2.fromOffset(0, 172)
     PresetsContainer.BackgroundTransparency = 1
     PresetsContainer.Parent = Content
 
     local presetsLayout = Instance.new("UIListLayout")
     presetsLayout.FillDirection = Enum.FillDirection.Horizontal
-    presetsLayout.Padding = UDim.new(0, 4)
+    presetsLayout.Padding = UDim.new(0, 3)
     presetsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
     presetsLayout.Parent = PresetsContainer
 
@@ -234,10 +231,10 @@ return function(config, components)
     local presetBtns = {}
     for _, cpsValue in ipairs(presetValues) do
         local btn = components.button({
-            Parent = PresetsContainer, Size = UDim2.fromOffset(42, 24),
-            Text = tostring(cpsValue), TextSize = 9,
+            Parent = PresetsContainer, Size = UDim2.fromOffset(42, 20),
+            Text = tostring(cpsValue), TextSize = 8,
             Color = THEME.panel2, TextColor = THEME.dim,
-            HoverColor = THEME.accent2, CornerRadius = UDim.new(0, 6),
+            HoverColor = THEME.accent2, CornerRadius = UDim.new(0, 5),
             ZIndex = 2, Glow = false,
         })
         presetBtns[cpsValue] = btn.Instance
@@ -245,25 +242,25 @@ return function(config, components)
     view.CPSPresetBtns = presetBtns
 
     local StatsFrame = Instance.new("Frame")
-    StatsFrame.Size = UDim2.new(1, 0, 0, 160)
-    StatsFrame.Position = UDim2.fromOffset(0, 230)
+    StatsFrame.Size = UDim2.new(1, 0, 0, 130)
+    StatsFrame.Position = UDim2.fromOffset(0, 196)
     StatsFrame.BackgroundColor3 = THEME.panel
     StatsFrame.BackgroundTransparency = 0.5
     StatsFrame.BorderSizePixel = 0
     StatsFrame.Parent = Content
-    shared.corner(StatsFrame, UDim.new(0, 10))
+    shared.corner(StatsFrame, UDim.new(0, 8))
     shared.stroke(StatsFrame, THEME.divider, 1, 0.5)
 
     local StatsGrid = Instance.new("UIGridLayout")
-    StatsGrid.CellSize = UDim2.new(0.5, -6, 0, 44)
-    StatsGrid.CellPadding = UDim2.new(0, 8, 0, 8)
+    StatsGrid.CellSize = UDim2.new(0.5, -6, 0, 36)
+    StatsGrid.CellPadding = UDim2.new(0, 6, 0, 6)
     StatsGrid.SortOrder = Enum.SortOrder.LayoutOrder
     StatsGrid.Parent = StatsFrame
     local StatsPadding = Instance.new("UIPadding")
-    StatsPadding.PaddingTop = UDim.new(0, 8)
-    StatsPadding.PaddingBottom = UDim.new(0, 8)
-    StatsPadding.PaddingLeft = UDim.new(0, 8)
-    StatsPadding.PaddingRight = UDim.new(0, 8)
+    StatsPadding.PaddingTop = UDim.new(0, 6)
+    StatsPadding.PaddingBottom = UDim.new(0, 6)
+    StatsPadding.PaddingLeft = UDim.new(0, 6)
+    StatsPadding.PaddingRight = UDim.new(0, 6)
     StatsPadding.Parent = StatsFrame
 
     local function makeStatCard(title, order)
@@ -272,17 +269,17 @@ return function(config, components)
         card.BorderSizePixel = 0
         card.LayoutOrder = order
         card.Parent = StatsFrame
-        shared.corner(card, UDim.new(0, 8))
+        shared.corner(card, UDim.new(0, 6))
         shared.stroke(card, THEME.divider, 1, 0.5)
 
         label({
-            Parent = card, Text = title, Position = UDim2.fromOffset(8, 5),
-            Size = UDim2.new(1, -16, 0, 12), TextSize = 8, Color = THEME.faint,
+            Parent = card, Text = title, Position = UDim2.fromOffset(6, 4),
+            Size = UDim2.new(1, -12, 0, 10), TextSize = 7, Color = THEME.faint,
             Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left,
         })
         return label({
-            Parent = card, Text = "0", Position = UDim2.fromOffset(8, 18),
-            Size = UDim2.new(1, -16, 0, 20), TextSize = 14, Font = Enum.Font.GothamBold,
+            Parent = card, Text = "0", Position = UDim2.fromOffset(6, 15),
+            Size = UDim2.new(1, -12, 0, 16), TextSize = 12, Font = Enum.Font.GothamBold,
             TextXAlignment = Enum.TextXAlignment.Left,
         })
     end
@@ -296,29 +293,24 @@ return function(config, components)
     view.Stats = Stats
 
     -- ═══ Live sparkline: actual CPS vs target ═══
-    -- 60 vertical bars, one per 0.5s sample (30s of history), heights scaled
-    -- against a fixed 150 CPS ceiling so the target line stays stable while
-    -- the bars show how close the clicker actually gets.
     local SPARK_MAX = 150
     local SPARK_SAMPLES = 60
-    -- Bar area = canvas height (40) minus bottom inset (3) minus the caption
-    -- band (y 2..12) so the tallest bars never slide under the caption text.
-    local SPARK_MAX_BAR = 22
+    local SPARK_MAX_BAR = 18
 
     local SparklineCanvas = Instance.new("Frame")
-    SparklineCanvas.Size = UDim2.new(1, -16, 0, 40)
-    SparklineCanvas.Position = UDim2.new(0, 8, 0, 110)
+    SparklineCanvas.Size = UDim2.new(1, -12, 0, 32)
+    SparklineCanvas.Position = UDim2.new(0, 6, 0, 88)
     SparklineCanvas.BackgroundColor3 = THEME.panel
     SparklineCanvas.BackgroundTransparency = 0.35
     SparklineCanvas.BorderSizePixel = 0
     SparklineCanvas.ClipsDescendants = true
     SparklineCanvas.Parent = StatsFrame
-    shared.corner(SparklineCanvas, UDim.new(0, 6))
+    shared.corner(SparklineCanvas, UDim.new(0, 5))
     shared.stroke(SparklineCanvas, THEME.divider, 1, 0.5)
 
     label({
-        Parent = SparklineCanvas, Text = "CPS  ·  actual vs target", Position = UDim2.fromOffset(8, 2),
-        Size = UDim2.new(1, -16, 0, 10), TextSize = 7, Color = THEME.faint, Font = Enum.Font.GothamBold,
+        Parent = SparklineCanvas, Text = "CPS  ·  actual vs target", Position = UDim2.fromOffset(6, 1),
+        Size = UDim2.new(1, -12, 0, 8), TextSize = 6, Color = THEME.faint, Font = Enum.Font.GothamBold,
         TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 4,
     })
 
@@ -370,55 +362,49 @@ return function(config, components)
 
     -- Toggle + keybind
     local ToggleBtn = components.button({
-        Parent = Content, Size = UDim2.fromOffset(190, 36), Position = UDim2.fromOffset(0, 398),
-        Text = "Start [F]", TextSize = 12, Color = THEME.accent, HoverColor = THEME.accent2, Glow = false,
+        Parent = Content, Size = UDim2.new(1, -130, 0, 30), Position = UDim2.fromOffset(0, 332),
+        Text = "Start [F]", TextSize = 11, Color = THEME.accent, HoverColor = THEME.accent2, Glow = false,
     })
     view.ToggleBtn = ToggleBtn
 
     local KeybindBtn = components.keybind({
-        Parent = Content, Size = UDim2.fromOffset(122, 36), Position = UDim2.fromOffset(202, 398),
+        Parent = Content, Size = UDim2.fromOffset(120, 30), Position = UDim2.new(1, -120, 0, 332),
         Default = config.Keys.ToggleClicker,
     })
     view.KeybindBtn = KeybindBtn
 
-    local HintLbl = label({
-        Parent = Content, Text = "P: pick target · K: hide/show UI", Position = UDim2.fromOffset(0, 436),
-        Size = UDim2.new(1, 0, 0, 12), TextSize = 9, Color = THEME.faint,
-    })
-    view.HintLbl = HintLbl
-
     -- ═══ Hotkey Customization ═══
     local KeybindsPanel = Instance.new("Frame")
-    KeybindsPanel.Size = UDim2.new(1, 0, 0, 72)
-    KeybindsPanel.Position = UDim2.fromOffset(0, 454)
+    KeybindsPanel.Size = UDim2.new(1, 0, 0, 60)
+    KeybindsPanel.Position = UDim2.fromOffset(0, 366)
     KeybindsPanel.BackgroundColor3 = THEME.panel
     KeybindsPanel.BackgroundTransparency = 0.4
     KeybindsPanel.BorderSizePixel = 0
     KeybindsPanel.Parent = Content
-    shared.corner(KeybindsPanel, UDim.new(0, 10))
+    shared.corner(KeybindsPanel, UDim.new(0, 8))
     shared.stroke(KeybindsPanel, THEME.divider, 1, 0.5)
 
     label({
-        Parent = KeybindsPanel, Text = "HOTKEYS", Position = UDim2.fromOffset(10, 8),
-        Size = UDim2.new(1, -20, 0, 10), TextSize = 8, Color = THEME.faint, Font = Enum.Font.GothamBold,
+        Parent = KeybindsPanel, Text = "HOTKEYS", Position = UDim2.fromOffset(8, 6),
+        Size = UDim2.new(1, -16, 0, 9), TextSize = 8, Color = THEME.faint, Font = Enum.Font.GothamBold,
     })
 
     label({
-        Parent = KeybindsPanel, Text = "Pick Target", Position = UDim2.fromOffset(10, 20),
-        Size = UDim2.new(0.5, -14, 0, 12), TextSize = 9, Color = THEME.dim,
+        Parent = KeybindsPanel, Text = "Pick Target", Position = UDim2.fromOffset(8, 18),
+        Size = UDim2.new(0.5, -12, 0, 10), TextSize = 8, Color = THEME.dim,
     })
     local PickTargetKey = components.keybind({
-        Parent = KeybindsPanel, Size = UDim2.fromOffset(56, 20), Position = UDim2.fromOffset(116, 18),
+        Parent = KeybindsPanel, Size = UDim2.fromOffset(52, 18), Position = UDim2.fromOffset(110, 16),
         Default = "P",
     })
     view.PickTargetKey = PickTargetKey
 
     label({
-        Parent = KeybindsPanel, Text = "Hide/Show UI", Position = UDim2.fromOffset(10, 40),
-        Size = UDim2.new(0.5, -14, 0, 12), TextSize = 9, Color = THEME.dim,
+        Parent = KeybindsPanel, Text = "Hide/Show UI", Position = UDim2.fromOffset(8, 34),
+        Size = UDim2.new(0.5, -12, 0, 10), TextSize = 8, Color = THEME.dim,
     })
     local HideShowKey = components.keybind({
-        Parent = KeybindsPanel, Size = UDim2.fromOffset(56, 20), Position = UDim2.fromOffset(116, 38),
+        Parent = KeybindsPanel, Size = UDim2.fromOffset(52, 18), Position = UDim2.fromOffset(110, 32),
         Default = "K",
     })
     view.HideShowKey = HideShowKey
@@ -428,61 +414,60 @@ return function(config, components)
     -- ═══════════════════════════════════════════
     local MinimizedPanel = Instance.new("Frame")
     MinimizedPanel.Name = "MinimizedPanel"
-    MinimizedPanel.Size = UDim2.fromOffset(240, 62)
+    MinimizedPanel.Size = UDim2.fromOffset(220, 52)
     MinimizedPanel.Position = UDim2.fromOffset(20, 20)
     MinimizedPanel.BackgroundColor3 = THEME.bg
     MinimizedPanel.BorderSizePixel = 0
     MinimizedPanel.Active = true
     MinimizedPanel.Visible = false
     MinimizedPanel.Parent = ScreenGui
-    shared.corner(MinimizedPanel, UDim.new(0, 10))
+    shared.corner(MinimizedPanel, UDim.new(0, 8))
     shared.stroke(MinimizedPanel, THEME.accent, 1, 0.4)
-    shared.glow(MinimizedPanel, THEME.glow, 3, 0.9)
     view.MinimizedPanel = MinimizedPanel
 
     local MiniHeader = label({
-        Parent = MinimizedPanel, Text = "AutoClicker", Position = UDim2.fromOffset(8, 4),
-        Size = UDim2.new(1, -28, 0, 16), TextSize = 10, Color = THEME.accent2, Font = Enum.Font.GothamBold,
+        Parent = MinimizedPanel, Text = "AutoClicker", Position = UDim2.fromOffset(6, 3),
+        Size = UDim2.new(1, -24, 0, 14), TextSize = 9, Color = THEME.accent2, Font = Enum.Font.GothamBold,
     })
     view.MiniHeader = MiniHeader
 
     local ExpandBtn = components.button({
-        Parent = MinimizedPanel, Size = UDim2.fromOffset(18, 18), Position = UDim2.fromOffset(240 - 24, 3),
-        Text = "▢", TextSize = 11, Color = THEME.panel2, TextColor = THEME.dim,
-        HoverColor = THEME.accent2, CornerRadius = UDim.new(0, 5), ZIndex = 3, Glow = false,
+        Parent = MinimizedPanel, Size = UDim2.fromOffset(16, 16), Position = UDim2.fromOffset(220 - 22, 2),
+        Text = "▢", TextSize = 10, Color = THEME.panel2, TextColor = THEME.dim,
+        HoverColor = THEME.accent2, CornerRadius = UDim.new(0, 4), ZIndex = 3, Glow = false,
     })
     view.ExpandBtn = ExpandBtn.Instance
 
     local MiniCardsRow = Instance.new("Frame")
-    MiniCardsRow.Size = UDim2.new(1, -16, 0, 34)
-    MiniCardsRow.Position = UDim2.fromOffset(8, 24)
+    MiniCardsRow.Size = UDim2.new(1, -12, 0, 28)
+    MiniCardsRow.Position = UDim2.fromOffset(6, 20)
     MiniCardsRow.BackgroundTransparency = 1
     MiniCardsRow.Parent = MinimizedPanel
 
     local MiniListLayout = Instance.new("UIListLayout")
     MiniListLayout.FillDirection = Enum.FillDirection.Horizontal
-    MiniListLayout.Padding = UDim.new(0, 4)
+    MiniListLayout.Padding = UDim.new(0, 3)
     MiniListLayout.SortOrder = Enum.SortOrder.LayoutOrder
     MiniListLayout.Parent = MiniCardsRow
 
     local function makeMiniCard(title, order)
         local card = Instance.new("Frame")
-        card.Size = UDim2.new(0, 53, 1, 0)
+        card.Size = UDim2.new(0, 48, 1, 0)
         card.BackgroundColor3 = THEME.panel2
         card.BorderSizePixel = 0
         card.LayoutOrder = order
         card.Parent = MiniCardsRow
-        shared.corner(card, UDim.new(0, 6))
+        shared.corner(card, UDim.new(0, 5))
         shared.stroke(card, THEME.divider, 1, 0.5)
 
         label({
             Parent = card, Text = title, Position = UDim2.fromOffset(2, 2),
-            Size = UDim2.new(1, -4, 0, 10), TextSize = 8, Color = THEME.dim,
+            Size = UDim2.new(1, -4, 0, 9), TextSize = 7, Color = THEME.dim,
             TextXAlignment = Enum.TextXAlignment.Center,
         })
         return label({
-            Parent = card, Text = "-", Position = UDim2.fromOffset(2, 13),
-            Size = UDim2.new(1, -4, 0, 16), TextSize = 11, Font = Enum.Font.GothamBold,
+            Parent = card, Text = "-", Position = UDim2.fromOffset(2, 11),
+            Size = UDim2.new(1, -4, 0, 14), TextSize = 10, Font = Enum.Font.GothamBold,
             TextXAlignment = Enum.TextXAlignment.Center,
         })
     end
