@@ -1,7 +1,8 @@
 -- SilentAutoclick/gui.lua
--- GUI built with the LyraHub UI kit (shared primitives + component factories).
--- Keeps the same external contract the core/modules use (StatusLbl, ToggleBtn,
--- Stats.*, MiniStats.*, DragHit, ...) so the engine layer stays untouched.
+-- GUI built with the LyraHub UI kit — horizontal sidebar+tabs layout
+-- matching IndoVoice / BuildABeehive. Keeps the same external contract
+-- the core/modules use (StatusLbl, ToggleBtn, Stats.*, MiniStats.*, ...) so
+-- the engine layer stays untouched.
 
 return function(config, components)
     local Players = game:GetService("Players")
@@ -9,7 +10,7 @@ return function(config, components)
 
     local shared = components.shared
     local THEME = config.Theme
-    local W, H = config.Window.Size.X, config.Window.Size.Y
+    local W, H = config.Window.Size.X, config.Window.Size.Y --620, 420
 
     -- Kill any previous instance
     if _G.__SilentAutoclick_Destroy then
@@ -41,14 +42,17 @@ return function(config, components)
         l.TextXAlignment = opts.TextXAlignment or Enum.TextXAlignment.Left
         l.TextYAlignment = opts.TextYAlignment or Enum.TextYAlignment.Center
         l.ZIndex = opts.ZIndex or 1
-        if opts.Visible ~= nil then
-            l.Visible = opts.Visible
-        end
+        if opts.Visible ~= nil then l.Visible = opts.Visible end
+        if opts.LayoutOrder then l.LayoutOrder = opts.LayoutOrder end
         l.Parent = opts.Parent
         return l
     end
 
+    -- ═══════════════════════════════════════════
+    -- MAIN WINDOW
+    -- ═══════════════════════════════════════════
     local Main = Instance.new("Frame")
+    Main.Name = "Main"
     Main.Size = UDim2.fromOffset(W, H)
     Main.AnchorPoint = Vector2.new(0.5, 0.5)
     Main.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -62,37 +66,41 @@ return function(config, components)
     shared.gradient(Main, THEME.bg, THEME.bg2, 90)
     view.Main = Main
 
+    -- ═══════════════════════════════════════════
+    -- TOP BAR
+    -- ═══════════════════════════════════════════
     local TopBar = Instance.new("Frame")
-    TopBar.Size = UDim2.new(1, 0, 0, 44)
+    TopBar.Size = UDim2.new(1, 0, 0, 36)
     TopBar.BackgroundTransparency = 1
     TopBar.ZIndex = 2
     TopBar.Parent = Main
 
     local logo = Instance.new("Frame")
     logo.Size = UDim2.fromOffset(8, 8)
-    logo.Position = UDim2.fromOffset(14, 18)
+    logo.Position = UDim2.fromOffset(14, 14)
     logo.BackgroundColor3 = THEME.accent
     logo.BorderSizePixel = 0
     logo.Parent = TopBar
     shared.corner(logo, UDim.new(1, 0))
 
     local TopBarTitle = label({
-        Parent = TopBar, Text = config.Window.Title, Position = UDim2.fromOffset(28, 10),
-        Size = UDim2.fromOffset(200, 18), TextSize = 13, Font = Enum.Font.GothamBold,
+        Parent = TopBar, Text = config.Window.Title, Position = UDim2.fromOffset(28, 8),
+        Size = UDim2.fromOffset(200, 16), TextSize = 13, Font = Enum.Font.GothamBold,
         Color = THEME.accent2,
     })
+    view.TopBarTitle = TopBarTitle
     label({
-        Parent = TopBar, Text = string.upper(config.Window.Subtitle), Position = UDim2.fromOffset(28, 27),
+        Parent = TopBar, Text = string.upper(config.Window.Subtitle), Position = UDim2.fromOffset(28, 23),
         Size = UDim2.fromOffset(220, 10), TextSize = 7, Color = THEME.faint, Font = Enum.Font.GothamBold,
     })
 
     local minBtn = components.button({
-        Parent = Main, Size = UDim2.fromOffset(24, 24), Position = UDim2.fromOffset(W - 68, 10),
+        Parent = Main, Size = UDim2.fromOffset(24, 24), Position = UDim2.new(1, -68, 0, 6),
         Text = "—", TextSize = 12, Color = THEME.panel2, TextColor = THEME.text,
         HoverColor = THEME.accent2, CornerRadius = UDim.new(0, 7), ZIndex = 3, Glow = false,
     })
     local closeBtn = components.button({
-        Parent = Main, Size = UDim2.fromOffset(24, 24), Position = UDim2.fromOffset(W - 38, 10),
+        Parent = Main, Size = UDim2.fromOffset(24, 24), Position = UDim2.new(1, -38, 0, 6),
         Text = "✕", TextSize = 11, Color = Color3.fromRGB(64, 28, 34), TextColor = THEME.danger,
         HoverColor = Color3.fromRGB(96, 38, 46), CornerRadius = UDim.new(0, 7), ZIndex = 3, Glow = false,
     })
@@ -100,7 +108,7 @@ return function(config, components)
     view.CloseBtn = closeBtn.Instance
 
     local DragHit = Instance.new("TextButton")
-    DragHit.Size = UDim2.new(1, 0, 0, 44)
+    DragHit.Size = UDim2.new(1, 0, 0, 36)
     DragHit.BackgroundTransparency = 1
     DragHit.Text = ""
     DragHit.AutoButtonColor = false
@@ -109,72 +117,256 @@ return function(config, components)
     DragHit.Parent = Main
     view.DragHit = DragHit
 
-    local divider = Instance.new("Frame")
-    divider.Size = UDim2.new(1, 0, 0, 1)
-    divider.Position = UDim2.fromOffset(0, 44)
-    divider.BackgroundColor3 = THEME.divider
-    divider.BorderSizePixel = 0
-    divider.Parent = Main
+    local topDivider = Instance.new("Frame")
+    topDivider.Size = UDim2.new(1, 0, 0, 1)
+    topDivider.Position = UDim2.fromOffset(0, 36)
+    topDivider.BackgroundColor3 = THEME.divider
+    topDivider.BorderSizePixel = 0
+    topDivider.Parent = Main
 
-    local Content = Instance.new("Frame")
-    Content.Size = UDim2.new(1, -28, 1, -56)
-    Content.Position = UDim2.new(0, 14, 0, 48)
-    Content.BackgroundTransparency = 1
-    Content.Parent = Main
+    -- ═══════════════════════════════════════════
+    -- SIDEBAR
+    -- ═══════════════════════════════════════════
+    local SIDEBAR_W = 130
+    local sidebar = Instance.new("Frame")
+    sidebar.Size = UDim2.new(0, SIDEBAR_W, 1, -37)
+    sidebar.Position = UDim2.new(0, 0, 0, 37)
+    sidebar.BackgroundColor3 = THEME.sidebar
+    sidebar.BorderSizePixel = 0
+    sidebar.Parent = Main
+    shared.corner(sidebar, UDim.new(0, 10))
+    shared.stroke(sidebar, THEME.divider, 1, 0.4)
 
+    label({
+        Parent = sidebar, Text = "Silent AC", Position = UDim2.fromOffset(14, 10),
+        Size = UDim2.new(1, -28, 0, 32), TextSize = 15, Font = Enum.Font.GothamBold,
+        Color = THEME.text,
+    })
+
+    local sidebarSep = Instance.new("Frame")
+    sidebarSep.Size = UDim2.new(0.72, 0, 0, 1)
+    sidebarSep.AnchorPoint = Vector2.new(0.5, 0)
+    sidebarSep.Position = UDim2.new(0.5, 0, 0, 46)
+    sidebarSep.BackgroundColor3 = THEME.panel2
+    sidebarSep.BorderSizePixel = 0
+    sidebarSep.Parent = sidebar
+
+    -- Tab buttons
+    local tabButtons = {}
+    local tabActive = {}
+    local tabIndicators = {}
+
+    local function makeTabBtn(name, icon, y)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, -16, 0, 34)
+        btn.Position = UDim2.new(0, 8, 0, y)
+        btn.BackgroundColor3 = THEME.panel2
+        btn.Text = icon .. "  " .. name
+        btn.TextColor3 = THEME.dim
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 11
+        btn.AutoButtonColor = false
+        btn.TextXAlignment = Enum.TextXAlignment.Left
+        btn.BorderSizePixel = 0
+        btn.Parent = sidebar
+        shared.corner(btn, UDim.new(0, 8))
+        shared.stroke(btn, THEME.divider, 1, 0.5)
+
+        local indicator = Instance.new("Frame")
+        indicator.Size = UDim2.fromOffset(3, 18)
+        indicator.Position = UDim2.new(1, -10, 0.5, -9)
+        indicator.BackgroundColor3 = THEME.accent
+        indicator.BackgroundTransparency = 1
+        indicator.BorderSizePixel = 0
+        indicator.Parent = btn
+        shared.corner(indicator, UDim.new(1, 0))
+
+        btn.MouseEnter:Connect(function()
+            if not tabActive[btn] then
+                shared.tween(btn, { TextColor3 = THEME.text }, 0.12)
+            end
+        end)
+        btn.MouseLeave:Connect(function()
+            if not tabActive[btn] then
+                shared.tween(btn, { TextColor3 = THEME.dim }, 0.18)
+            end
+        end)
+
+        tabButtons[name] = btn
+        tabActive[btn] = false
+        tabIndicators[name] = indicator
+        return btn, indicator
+    end
+
+    local tabClickingBtn   = makeTabBtn("Clicking",  "●", 56)
+    local tabTimingBtn     = makeTabBtn("Timing",    "◎", 98)
+    local tabStatsBtn      = makeTabBtn("Stats",     "▤", 140)
+    local tabSettingsBtn   = makeTabBtn("Settings",  "⚙", 182)
+
+    -- ═══════════════════════════════════════════
+    -- CONTENT AREA
+    -- ═══════════════════════════════════════════
+    local content = Instance.new("Frame")
+    content.Size = UDim2.new(1, -(SIDEBAR_W + 12), 1, -44)
+    content.Position = UDim2.new(0, SIDEBAR_W + 4, 0, 40)
+    content.BackgroundColor3 = THEME.panel
+    content.BackgroundTransparency = 0.35
+    content.BorderSizePixel = 0
+    content.ClipsDescendants = true
+    content.Parent = Main
+    shared.corner(content, UDim.new(0, 10))
+    shared.stroke(content, THEME.divider, 1, 0.5)
+
+    local CPAD = 14 -- content left/right padding
+    local CW = W - SIDEBAR_W - 12 - (CPAD * 2) -- usable content width
+
+    -- Tab frames (all same size, stacked on top of each other)
+    local clickingTab = Instance.new("Frame")
+    clickingTab.Name = "ClickingTab"
+    clickingTab.Size = UDim2.new(1, 0, 1, 0)
+    clickingTab.BackgroundTransparency = 1
+    clickingTab.Parent = content
+
+    local timingTab = Instance.new("Frame")
+    timingTab.Name = "TimingTab"
+    timingTab.Size = UDim2.new(1, 0, 1, 0)
+    timingTab.BackgroundTransparency = 1
+    timingTab.Visible = false
+    timingTab.Parent = content
+
+    local statsTab = Instance.new("Frame")
+    statsTab.Name = "StatsTab"
+    statsTab.Size = UDim2.new(1, 0, 1, 0)
+    statsTab.BackgroundTransparency = 1
+    statsTab.Visible = false
+    statsTab.Parent = content
+
+    local settingsTab = Instance.new("Frame")
+    settingsTab.Name = "SettingsTab"
+    settingsTab.Size = UDim2.new(1, 0, 1, 0)
+    settingsTab.BackgroundTransparency = 1
+    settingsTab.Visible = false
+    settingsTab.Parent = content
+
+    -- Tab switching
+    local function applyTab(activeName)
+        clickingTab.Visible  = (activeName == "Clicking")
+        timingTab.Visible    = (activeName == "Timing")
+        statsTab.Visible     = (activeName == "Stats")
+        settingsTab.Visible  = (activeName == "Settings")
+
+        local states = {
+            Clicking = activeName == "Clicking",
+            Timing   = activeName == "Timing",
+            Stats    = activeName == "Stats",
+            Settings = activeName == "Settings",
+        }
+        for name, btn in pairs(tabButtons) do
+            local active = states[name]
+            tabActive[btn] = active
+            shared.tween(btn, {
+                BackgroundColor3 = active and THEME.accent or THEME.panel2,
+                BackgroundTransparency = active and 0.1 or 0,
+                TextColor3 = active and THEME.text or THEME.dim,
+            }, 0.14)
+            shared.tween(tabIndicators[name], { BackgroundTransparency = active and 0 or 1 }, 0.14)
+        end
+    end
+
+    local function setTab(name) applyTab(name) end
+
+    tabClickingBtn.MouseButton1Click:Connect(function() setTab("Clicking") end)
+    tabTimingBtn.MouseButton1Click:Connect(function() setTab("Timing") end)
+    tabStatsBtn.MouseButton1Click:Connect(function() setTab("Stats") end)
+    tabSettingsBtn.MouseButton1Click:Connect(function() setTab("Settings") end)
+
+    setTab("Clicking")
+
+    -- ═══════════════════════════════════════════
+    -- CLICKING TAB
+    -- ═══════════════════════════════════════════
     local StatusLbl = label({
-        Parent = Content, Text = "Status: OFF", Position = UDim2.fromOffset(0, 4),
-        Size = UDim2.new(1, 0, 0, 18), TextSize = 14, Font = Enum.Font.GothamBold, Color = THEME.danger,
+        Parent = clickingTab, Text = "Status: OFF",
+        Position = UDim2.fromOffset(CPAD, 10),
+        Size = UDim2.new(1, -(CPAD * 2), 0, 18), TextSize = 14, Font = Enum.Font.GothamBold,
+        Color = THEME.danger,
     })
     view.StatusLbl = StatusLbl
 
     local MethodLbl = label({
-        Parent = Content, Text = "Mode: -", Position = UDim2.fromOffset(0, 24),
-        Size = UDim2.new(1, 0, 0, 12), TextSize = 9, Color = THEME.warn,
+        Parent = clickingTab, Text = "Mode: -",
+        Position = UDim2.fromOffset(CPAD, 30),
+        Size = UDim2.new(1, -(CPAD * 2), 0, 12), TextSize = 9, Color = THEME.warn,
     })
     view.MethodLbl = MethodLbl
 
     label({
-        Parent = Content, Text = "CLICK MODE", Position = UDim2.fromOffset(0, 42),
-        Size = UDim2.new(1, 0, 0, 10), TextSize = 8, Color = THEME.faint, Font = Enum.Font.GothamBold,
+        Parent = clickingTab, Text = "CLICK MODE",
+        Position = UDim2.fromOffset(CPAD, 52),
+        Size = UDim2.new(1, -(CPAD * 2), 0, 10), TextSize = 8, Color = THEME.faint, Font = Enum.Font.GothamBold,
     })
     local ModeDropdown = components.dropdown({
-        Parent = Content, Size = UDim2.new(1, 0, 0, 30), Position = UDim2.fromOffset(0, 54),
+        Parent = clickingTab,
+        Size = UDim2.new(1, -(CPAD * 2), 0, 30),
+        Position = UDim2.fromOffset(CPAD, 64),
         Items = { "Follow Cursor", "Fixed Position" }, Default = "Follow Cursor", ItemHeight = 30,
     })
     view.ModeDropdown = ModeDropdown
 
     local PosLbl = label({
-        Parent = Content, Text = "Target: Not set (press P to pick)", Position = UDim2.fromOffset(0, 88),
-        Size = UDim2.new(1, 0, 0, 12), TextSize = 9, Color = THEME.dim, Visible = false,
+        Parent = clickingTab, Text = "Target: Not set (press P to pick)",
+        Position = UDim2.fromOffset(CPAD, 100),
+        Size = UDim2.new(1, -(CPAD * 2), 0, 12), TextSize = 9, Color = THEME.dim, Visible = false,
     })
     view.PosLbl = PosLbl
 
+    -- Toggle button + keybind
+    local ToggleBtn = components.button({
+        Parent = clickingTab,
+        Size = UDim2.new(1, -(CPAD * 2) - 130, 0, 36),
+        Position = UDim2.fromOffset(CPAD, 296),
+        Text = "Start [F]", TextSize = 12, Color = THEME.accent, HoverColor = THEME.accent2, Glow = false,
+    })
+    view.ToggleBtn = ToggleBtn
+
+    local KeybindBtn = components.keybind({
+        Parent = clickingTab,
+        Size = UDim2.fromOffset(120, 36),
+        Position = UDim2.new(1, -(CPAD + 120), 0, 296),
+        Default = config.Keys.ToggleClicker,
+    })
+    view.KeybindBtn = KeybindBtn
+
+    -- ═══════════════════════════════════════════
+    -- TIMING TAB
+    -- ═══════════════════════════════════════════
     local TimingPanel = Instance.new("Frame")
-    TimingPanel.Size = UDim2.new(1, 0, 0, 62)
-    TimingPanel.Position = UDim2.fromOffset(0, 104)
+    TimingPanel.Size = UDim2.new(1, -(CPAD * 2), 0, 130)
+    TimingPanel.Position = UDim2.fromOffset(CPAD, 10)
     TimingPanel.BackgroundColor3 = THEME.panel
     TimingPanel.BackgroundTransparency = 0.4
     TimingPanel.BorderSizePixel = 0
-    TimingPanel.Parent = Content
+    TimingPanel.Parent = timingTab
     shared.corner(TimingPanel, UDim.new(0, 8))
     shared.stroke(TimingPanel, THEME.divider, 1, 0.5)
 
-    local TimingTitle = label({
-        Parent = TimingPanel, Text = "CLICK TIMING", Position = UDim2.fromOffset(10, 6),
-        Size = UDim2.new(1, -20, 0, 10), TextSize = 8, Color = THEME.faint, Font = Enum.Font.GothamBold,
+    label({
+        Parent = TimingPanel, Text = "CLICK TIMING",
+        Position = UDim2.fromOffset(12, 8),
+        Size = UDim2.new(1, -24, 0, 10), TextSize = 8, Color = THEME.faint, Font = Enum.Font.GothamBold,
     })
 
     local IntervalLbl = label({
-        Parent = TimingPanel, Text = "Delay: 1.00s / click", Position = UDim2.fromOffset(10, 18),
-        Size = UDim2.new(1, -20, 0, 13), TextSize = 11, Font = Enum.Font.GothamBold, Color = THEME.accent2,
+        Parent = TimingPanel, Text = "Delay: 1.00s / click",
+        Position = UDim2.fromOffset(12, 22),
+        Size = UDim2.new(1, -24, 0, 16), TextSize = 13, Font = Enum.Font.GothamBold, Color = THEME.accent2,
     })
     view.IntervalLbl = IntervalLbl
 
     local TimingInput = components.textinput({
         Parent = TimingPanel,
-        Size = UDim2.new(1, -80, 0, 26),
-        Position = UDim2.fromOffset(10, 34),
+        Size = UDim2.new(1, -120, 0, 28),
+        Position = UDim2.fromOffset(12, 42),
         Default = tostring(config.Clicker.IntervalSeconds or config.Clicker.DefaultIntervalSeconds or 1),
         Placeholder = "1-360s",
         CornerRadius = UDim.new(0, 6),
@@ -183,43 +375,42 @@ return function(config, components)
 
     local ResetTimingBtn = components.button({
         Parent = TimingPanel,
-        Size = UDim2.fromOffset(58, 22),
-        Position = UDim2.new(1, -68, 0, 36),
-        Text = "Reset",
-        TextSize = 9,
-        Color = THEME.panel2,
-        TextColor = THEME.text,
-        HoverColor = THEME.accent2,
-        CornerRadius = UDim.new(0, 6),
-        ZIndex = 3,
-        Glow = false,
+        Size = UDim2.fromOffset(60, 28),
+        Position = UDim2.new(1, -72, 0, 42),
+        Text = "Reset", TextSize = 9, Color = THEME.panel2, TextColor = THEME.text,
+        HoverColor = THEME.accent2, CornerRadius = UDim.new(0, 6), ZIndex = 3, Glow = false,
     })
     view.ResetTimingBtn = ResetTimingBtn
 
     local TimingStatus = label({
-        Parent = TimingPanel, Text = "Range: 1s - 360s", Position = UDim2.fromOffset(10, 48),
-        Size = UDim2.new(1, -20, 0, 10), TextSize = 7, Color = THEME.dim,
+        Parent = TimingPanel, Text = "Range: 1s - 360s",
+        Position = UDim2.fromOffset(12, 74),
+        Size = UDim2.new(1, -24, 0, 10), TextSize = 8, Color = THEME.dim,
     })
     view.TimingStatus = TimingStatus
 
+    -- CPS section
     local CPSLbl = label({
-        Parent = Content, Text = "CPS: 20", Position = UDim2.fromOffset(0, 176),
-        Size = UDim2.new(1, 0, 0, 14), TextSize = 12, Font = Enum.Font.GothamBold,
+        Parent = timingTab, Text = "CPS: 20",
+        Position = UDim2.fromOffset(CPAD, 152),
+        Size = UDim2.new(1, -(CPAD * 2), 0, 14), TextSize = 12, Font = Enum.Font.GothamBold,
     })
     view.CPSLbl = CPSLbl
 
     local CPSSlider = components.slider({
-        Parent = Content, Size = UDim2.new(1, 0, 0, 6), Position = UDim2.fromOffset(0, 192),
+        Parent = timingTab,
+        Size = UDim2.new(1, -(CPAD * 2), 0, 6),
+        Position = UDim2.fromOffset(CPAD, 170),
         Default = config.Clicker.DefaultCPS / 100,
     })
     view.CPSSlider = CPSSlider
 
-    -- ═══ CPS Preset Buttons ═══
+    -- CPS Preset Buttons
     local PresetsContainer = Instance.new("Frame")
-    PresetsContainer.Size = UDim2.new(1, 0, 0, 24)
-    PresetsContainer.Position = UDim2.fromOffset(0, 202)
+    PresetsContainer.Size = UDim2.new(1, -(CPAD * 2), 0, 24)
+    PresetsContainer.Position = UDim2.fromOffset(CPAD, 184)
     PresetsContainer.BackgroundTransparency = 1
-    PresetsContainer.Parent = Content
+    PresetsContainer.Parent = timingTab
 
     local presetsLayout = Instance.new("UIListLayout")
     presetsLayout.FillDirection = Enum.FillDirection.Horizontal
@@ -241,13 +432,16 @@ return function(config, components)
     end
     view.CPSPresetBtns = presetBtns
 
+    -- ═══════════════════════════════════════════
+    -- STATS TAB
+    -- ═══════════════════════════════════════════
     local StatsFrame = Instance.new("Frame")
-    StatsFrame.Size = UDim2.new(1, 0, 0, 110)
-    StatsFrame.Position = UDim2.fromOffset(0, 238)
+    StatsFrame.Size = UDim2.new(1, -(CPAD * 2), 0, 118)
+    StatsFrame.Position = UDim2.fromOffset(CPAD, 10)
     StatsFrame.BackgroundColor3 = THEME.panel
     StatsFrame.BackgroundTransparency = 0.5
     StatsFrame.BorderSizePixel = 0
-    StatsFrame.Parent = Content
+    StatsFrame.Parent = statsTab
     shared.corner(StatsFrame, UDim.new(0, 8))
     shared.stroke(StatsFrame, THEME.divider, 1, 0.5)
 
@@ -286,35 +480,35 @@ return function(config, components)
 
     local Stats = {
         TotalClicksVal = makeStatCard("TOTAL CLICKS", 1),
-        ActualCPSVal = makeStatCard("CPS (ACTUAL)", 2),
-        FPSVal = makeStatCard("FPS", 3),
-        PingVal = makeStatCard("PING", 4),
+        ActualCPSVal   = makeStatCard("CPS (ACTUAL)", 2),
+        FPSVal         = makeStatCard("FPS", 3),
+        PingVal        = makeStatCard("PING", 4),
     }
     view.Stats = Stats
 
-    -- ═══ Live sparkline: actual CPS vs target ═══
+    -- Sparkline
     local SPARK_MAX = 150
     local SPARK_SAMPLES = 60
-    local SPARK_MAX_BAR = 18
+    local SPARK_MAX_BAR = 24
 
     local SparklineCanvas = Instance.new("Frame")
-    SparklineCanvas.Size = UDim2.new(1, -12, 0, 30)
-    SparklineCanvas.Position = UDim2.new(0, 6, 0, 74)
+    SparklineCanvas.Size = UDim2.new(1, -(CPAD * 2), 0, 34)
+    SparklineCanvas.Position = UDim2.fromOffset(CPAD, 136)
     SparklineCanvas.BackgroundColor3 = THEME.panel
     SparklineCanvas.BackgroundTransparency = 0.35
     SparklineCanvas.BorderSizePixel = 0
     SparklineCanvas.ClipsDescendants = true
-    SparklineCanvas.Parent = StatsFrame
+    SparklineCanvas.Parent = statsTab
     shared.corner(SparklineCanvas, UDim.new(0, 5))
     shared.stroke(SparklineCanvas, THEME.divider, 1, 0.5)
 
     label({
-        Parent = SparklineCanvas, Text = "CPS  ·  actual vs target", Position = UDim2.fromOffset(6, 1),
-        Size = UDim2.new(1, -12, 0, 8), TextSize = 6, Color = THEME.faint, Font = Enum.Font.GothamBold,
-        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 4,
+        Parent = SparklineCanvas, Text = "CPS  ·  actual vs target",
+        Position = UDim2.fromOffset(6, 1),
+        Size = UDim2.new(1, -12, 0, 10), TextSize = 7, Color = THEME.faint,
+        Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 4,
     })
 
-    -- Target line: horizontal marker at the target CPS height (warn color)
     local TargetLine = Instance.new("Frame")
     TargetLine.Size = UDim2.new(1, 0, 0, 2)
     TargetLine.AnchorPoint = Vector2.new(0, 1)
@@ -324,17 +518,15 @@ return function(config, components)
     TargetLine.ZIndex = 3
     TargetLine.Parent = SparklineCanvas
     shared.corner(TargetLine, UDim.new(1, 0))
+
     local function setTargetLine(cps)
         local ratio = math.clamp((tonumber(cps) or 0) / SPARK_MAX, 0, 1)
         TargetLine.Position = UDim2.new(0, 0, 1, -3 - ratio * SPARK_MAX_BAR)
     end
     setTargetLine(config.Clicker.DefaultCPS)
 
-    -- Bars: one per sample, anchored to the canvas bottom. Canvas width is
-    -- (W - 24 window padding - 16 StatsFrame padding), derived from W so the
-    -- bars fill the strip instead of a hardcoded width.
     local sparkBars = {}
-    local canvasW = W - 24 - 16
+    local canvasW = W - SIDEBAR_W - 12 - (CPAD * 2)
     local barStep = canvasW / SPARK_SAMPLES
     local barWidth = math.max(2, math.floor(barStep) - 1)
     for i = 1, SPARK_SAMPLES do
@@ -360,37 +552,25 @@ return function(config, components)
         SetTarget = setTargetLine,
     }
 
-    -- Toggle + keybind
-    local ToggleBtn = components.button({
-        Parent = Content, Size = UDim2.new(1, -134, 0, 32), Position = UDim2.fromOffset(0, 360),
-        Text = "Start [F]", TextSize = 11, Color = THEME.accent, HoverColor = THEME.accent2, Glow = false,
-    })
-    view.ToggleBtn = ToggleBtn
-
-    local KeybindBtn = components.keybind({
-        Parent = Content, Size = UDim2.fromOffset(124, 32), Position = UDim2.new(1, -124, 0, 360),
-        Default = config.Keys.ToggleClicker,
-    })
-    view.KeybindBtn = KeybindBtn
-
-    -- ═══ Hotkey Customization ═══
+    -- ═══════════════════════════════════════════
+    -- SETTINGS (HOTKEYS) TAB
+    -- ═══════════════════════════════════════════
     local KeybindsPanel = Instance.new("Frame")
-    KeybindsPanel.Size = UDim2.new(1, 0, 0, 82)
-    KeybindsPanel.Position = UDim2.fromOffset(0, 400)
+    KeybindsPanel.Size = UDim2.new(1, -(CPAD * 2), 0, 160)
+    KeybindsPanel.Position = UDim2.fromOffset(CPAD, 10)
     KeybindsPanel.BackgroundColor3 = THEME.panel
     KeybindsPanel.BackgroundTransparency = 0.4
     KeybindsPanel.BorderSizePixel = 0
-    KeybindsPanel.Parent = Content
+    KeybindsPanel.Parent = settingsTab
     shared.corner(KeybindsPanel, UDim.new(0, 8))
     shared.stroke(KeybindsPanel, THEME.divider, 1, 0.5)
 
-    -- Section header
     label({
-        Parent = KeybindsPanel, Text = "HOTKEYS", Position = UDim2.fromOffset(12, 8),
+        Parent = KeybindsPanel, Text = "HOTKEYS",
+        Position = UDim2.fromOffset(12, 8),
         Size = UDim2.new(1, -24, 0, 10), TextSize = 8, Color = THEME.faint, Font = Enum.Font.GothamBold,
     })
 
-    -- Thin divider line under header
     local kbDivider = Instance.new("Frame")
     kbDivider.Size = UDim2.new(1, -20, 0, 1)
     kbDivider.Position = UDim2.fromOffset(10, 22)
@@ -398,52 +578,54 @@ return function(config, components)
     kbDivider.BorderSizePixel = 0
     kbDivider.Parent = KeybindsPanel
 
-    -- Row 1 — Pick Target
-    local Row1Bg = Instance.new("Frame")
-    Row1Bg.Size = UDim2.new(1, 0, 0, 26)
-    Row1Bg.Position = UDim2.fromOffset(0, 26)
-    Row1Bg.BackgroundColor3 = THEME.panel2
-    Row1Bg.BackgroundTransparency = 0.5
-    Row1Bg.BorderSizePixel = 0
-    Row1Bg.Parent = KeybindsPanel
+    local function makeHotkeyRow(labelText, yPos)
+        local rowBg = Instance.new("Frame")
+        rowBg.Size = UDim2.new(1, 0, 0, 32)
+        rowBg.Position = UDim2.fromOffset(0, yPos)
+        rowBg.BackgroundColor3 = THEME.panel2
+        rowBg.BackgroundTransparency = 0.5
+        rowBg.BorderSizePixel = 0
+        rowBg.Parent = KeybindsPanel
 
-    label({
-        Parent = Row1Bg, Text = "Pick Target",
-        Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -140, 1, 0),
-        TextSize = 10, Color = THEME.text, Font = Enum.Font.GothamBold,
-    })
+        label({
+            Parent = rowBg, Text = labelText,
+            Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -140, 1, 0),
+            TextSize = 10, Color = THEME.text, Font = Enum.Font.GothamBold,
+        })
+        return rowBg
+    end
 
+    -- Row 1: Toggle Clicker
+    makeHotkeyRow("Toggle Clicker", 26)
     local PickTargetKey = components.keybind({
-        Parent = Row1Bg, Size = UDim2.new(0, 110, 0, 22),
-        Position = UDim2.new(1, -116, 0.5, -11),
-        Default = "P",
+        Parent = KeybindsPanel,
+        Size = UDim2.new(0, 110, 0, 24),
+        Position = UDim2.new(1, -(CPAD + 110), 0, 34),
+        Default = config.Keys.ToggleClicker,
     })
     view.PickTargetKey = PickTargetKey
 
-    -- Row 2 — Hide/Show UI
-    local Row2Bg = Instance.new("Frame")
-    Row2Bg.Size = UDim2.new(1, 0, 0, 26)
-    Row2Bg.Position = UDim2.fromOffset(0, 54)
-    Row2Bg.BackgroundColor3 = THEME.panel2
-    Row2Bg.BackgroundTransparency = 0.5
-    Row2Bg.BorderSizePixel = 0
-    Row2Bg.Parent = KeybindsPanel
-
-    label({
-        Parent = Row2Bg, Text = "Hide / Show UI",
-        Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -140, 1, 0),
-        TextSize = 10, Color = THEME.text, Font = Enum.Font.GothamBold,
-    })
-
+    -- Row 2: Pick Target
+    makeHotkeyRow("Pick Target", 62)
     local HideShowKey = components.keybind({
-        Parent = Row2Bg, Size = UDim2.new(0, 110, 0, 22),
-        Position = UDim2.new(1, -116, 0.5, -11),
-        Default = "K",
+        Parent = KeybindsPanel,
+        Size = UDim2.new(0, 110, 0, 24),
+        Position = UDim2.new(1, -(CPAD + 110), 0, 70),
+        Default = "P",
     })
     view.HideShowKey = HideShowKey
 
+    -- Row 3: Hide/Show UI
+    makeHotkeyRow("Hide / Show UI", 98)
+    local HideUIKey = components.keybind({
+        Parent = KeybindsPanel,
+        Size = UDim2.new(0, 110, 0, 24),
+        Position = UDim2.new(1, -(CPAD + 110), 0, 106),
+        Default = "K",
+    })
+
     -- ═══════════════════════════════════════════
-    -- MINIMIZED PANEL (Status / CPS / FPS / Ping)
+    -- MINIMIZED PANEL
     -- ═══════════════════════════════════════════
     local MinimizedPanel = Instance.new("Frame")
     MinimizedPanel.Name = "MinimizedPanel"
@@ -459,13 +641,15 @@ return function(config, components)
     view.MinimizedPanel = MinimizedPanel
 
     local MiniHeader = label({
-        Parent = MinimizedPanel, Text = "AutoClicker", Position = UDim2.fromOffset(6, 3),
+        Parent = MinimizedPanel, Text = "AutoClicker",
+        Position = UDim2.fromOffset(6, 3),
         Size = UDim2.new(1, -24, 0, 14), TextSize = 9, Color = THEME.accent2, Font = Enum.Font.GothamBold,
     })
     view.MiniHeader = MiniHeader
 
     local ExpandBtn = components.button({
-        Parent = MinimizedPanel, Size = UDim2.fromOffset(16, 16), Position = UDim2.fromOffset(220 - 22, 2),
+        Parent = MinimizedPanel, Size = UDim2.fromOffset(16, 16),
+        Position = UDim2.new(1, -22, 0, 2),
         Text = "▢", TextSize = 10, Color = THEME.panel2, TextColor = THEME.dim,
         HoverColor = THEME.accent2, CornerRadius = UDim.new(0, 4), ZIndex = 3, Glow = false,
     })
@@ -506,16 +690,15 @@ return function(config, components)
     end
 
     view.MiniStats = {
-        StatusVal = makeMiniCard("STATUS", 1),
-        CPSVal = makeMiniCard("CPS", 2),
-        FPSVal = makeMiniCard("FPS", 3),
-        PingVal = makeMiniCard("PING", 4),
+        StatusVal  = makeMiniCard("STATUS", 1),
+        CPSVal     = makeMiniCard("CPS", 2),
+        FPSVal     = makeMiniCard("FPS", 3),
+        PingVal    = makeMiniCard("PING", 4),
     }
 
-    view.TopBarTitle = TopBarTitle
-    view.Content = Content
     view.Theme = THEME
-    view.Toast = components.toast -- kit toast component (gui.Toast.show({ Text=..., Variant=... }))
+    view.Toast = components.toast
+    view.Content = content
 
     return view
 end
