@@ -1,6 +1,6 @@
 -- SilentAutoclick/gui.lua
--- GUI built with the LyraHub UI kit — horizontal sidebar+tabs layout
--- matching IndoVoice / BuildABeehive. Keeps the same external contract
+-- GUI built with the LyraHub UI kit — horizontal tab bar layout
+-- (top bar → horizontal tabs → content area). Keeps the same external contract
 -- the core/modules use (StatusLbl, ToggleBtn, Stats.*, MiniStats.*, ...) so
 -- the engine layer stays untouched.
 
@@ -10,7 +10,7 @@ return function(config, components)
 
     local shared = components.shared
     local THEME = config.Theme
-    local W, H = config.Window.Size.X, config.Window.Size.Y --620, 420
+    local W, H = config.Window.Size.X, config.Window.Size.Y -- 620, 420
 
     -- Kill any previous instance
     if _G.__SilentAutoclick_Destroy then
@@ -63,8 +63,13 @@ return function(config, components)
     Main.Parent = ScreenGui
     shared.corner(Main, UDim.new(0, 10))
     shared.stroke(Main, THEME.divider, 1, 0.45)
+    shared.glow(Main, THEME.glow or THEME.accent, 4, 0.92)
     shared.gradient(Main, THEME.bg, THEME.bg2, 90)
     view.Main = Main
+
+    -- Drop shadow (ui.lua references view.Shadow)
+    local Shadow = shared.shadow(Main, { ExtendX = 10, ExtendY = 10, Transparency = 0.72, OffsetY = 0 })
+    view.Shadow = Shadow
 
     -- ═══════════════════════════════════════════
     -- TOP BAR
@@ -82,6 +87,7 @@ return function(config, components)
     logo.BorderSizePixel = 0
     logo.Parent = TopBar
     shared.corner(logo, UDim.new(1, 0))
+    shared.glow(logo, THEME.glow or THEME.accent, 2, 0.55)
 
     local TopBarTitle = label({
         Parent = TopBar, Text = config.Window.Title, Position = UDim2.fromOffset(28, 8),
@@ -125,59 +131,61 @@ return function(config, components)
     topDivider.Parent = Main
 
     -- ═══════════════════════════════════════════
-    -- SIDEBAR
+    -- HORIZONTAL TAB BAR
     -- ═══════════════════════════════════════════
-    local SIDEBAR_W = 130
-    local sidebar = Instance.new("Frame")
-    sidebar.Size = UDim2.new(0, SIDEBAR_W, 1, -37)
-    sidebar.Position = UDim2.new(0, 0, 0, 37)
-    sidebar.BackgroundColor3 = THEME.sidebar
-    sidebar.BorderSizePixel = 0
-    sidebar.Parent = Main
-    shared.corner(sidebar, UDim.new(0, 10))
-    shared.stroke(sidebar, THEME.divider, 1, 0.4)
+    local TAB_BAR_H = 34
+    local tabBar = Instance.new("Frame")
+    tabBar.Size = UDim2.new(1, 0, 0, TAB_BAR_H)
+    tabBar.Position = UDim2.new(0, 0, 0, 37)
+    tabBar.BackgroundColor3 = THEME.sidebar
+    tabBar.BorderSizePixel = 0
+    tabBar.ZIndex = 2
+    tabBar.Parent = Main
 
-    label({
-        Parent = sidebar, Text = "Silent AC", Position = UDim2.fromOffset(14, 10),
-        Size = UDim2.new(1, -28, 0, 32), TextSize = 15, Font = Enum.Font.GothamBold,
-        Color = THEME.text,
-    })
+    local tabBarLayout = Instance.new("UIListLayout")
+    tabBarLayout.FillDirection = Enum.FillDirection.Horizontal
+    tabBarLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    tabBarLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+    tabBarLayout.Padding = UDim.new(0, 4)
+    tabBarLayout.Parent = tabBar
 
-    local sidebarSep = Instance.new("Frame")
-    sidebarSep.Size = UDim2.new(0.72, 0, 0, 1)
-    sidebarSep.AnchorPoint = Vector2.new(0.5, 0)
-    sidebarSep.Position = UDim2.new(0.5, 0, 0, 46)
-    sidebarSep.BackgroundColor3 = THEME.panel2
-    sidebarSep.BorderSizePixel = 0
-    sidebarSep.Parent = sidebar
+    local tabBarPadding = Instance.new("UIPadding")
+    tabBarPadding.PaddingLeft = UDim.new(0, 10)
+    tabBarPadding.PaddingRight = UDim.new(0, 10)
+    tabBarPadding.PaddingTop = UDim.new(0, 0)
+    tabBarPadding.PaddingBottom = UDim.new(0, 0)
+    tabBarPadding.Parent = tabBar
 
     -- Tab buttons
     local tabButtons = {}
     local tabActive = {}
     local tabIndicators = {}
 
-    local function makeTabBtn(name, icon, y)
+    local function makeTabBtn(name, icon)
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, -16, 0, 34)
-        btn.Position = UDim2.new(0, 8, 0, y)
+        btn.Size = UDim2.new(0, 0, 0, 26)
+        btn.AutomaticSize = Enum.AutomaticSize.X
         btn.BackgroundColor3 = THEME.panel2
         btn.Text = icon .. "  " .. name
         btn.TextColor3 = THEME.dim
         btn.Font = Enum.Font.GothamBold
         btn.TextSize = 11
         btn.AutoButtonColor = false
-        btn.TextXAlignment = Enum.TextXAlignment.Left
+        btn.TextXAlignment = Enum.TextXAlignment.Center
         btn.BorderSizePixel = 0
-        btn.Parent = sidebar
-        shared.corner(btn, UDim.new(0, 8))
+        btn.ZIndex = 3
+        btn.Parent = tabBar
+        shared.corner(btn, UDim.new(0, 7))
         shared.stroke(btn, THEME.divider, 1, 0.5)
 
         local indicator = Instance.new("Frame")
-        indicator.Size = UDim2.fromOffset(3, 18)
-        indicator.Position = UDim2.new(1, -10, 0.5, -9)
+        indicator.Size = UDim2.new(1, -12, 0, 2)
+        indicator.AnchorPoint = Vector2.new(0.5, 0)
+        indicator.Position = UDim2.new(0.5, 0, 1, -4)
         indicator.BackgroundColor3 = THEME.accent
         indicator.BackgroundTransparency = 1
         indicator.BorderSizePixel = 0
+        indicator.ZIndex = 4
         indicator.Parent = btn
         shared.corner(indicator, UDim.new(1, 0))
 
@@ -198,17 +206,28 @@ return function(config, components)
         return btn, indicator
     end
 
-    local tabClickingBtn   = makeTabBtn("Clicking",  "●", 56)
-    local tabTimingBtn     = makeTabBtn("Timing",    "◎", 98)
-    local tabStatsBtn      = makeTabBtn("Stats",     "▤", 140)
-    local tabSettingsBtn   = makeTabBtn("Settings",  "⚙", 182)
+    local tabClickingBtn   = makeTabBtn("Clicking",  "●")
+    local tabTimingBtn     = makeTabBtn("Timing",    "◎")
+    local tabStatsBtn      = makeTabBtn("Stats",     "▤")
+    local tabSettingsBtn   = makeTabBtn("Settings",  "⚙")
+
+    -- Tab bar bottom divider
+    local tabDivider = Instance.new("Frame")
+    tabDivider.Size = UDim2.new(1, 0, 0, 1)
+    tabDivider.Position = UDim2.new(0, 0, 0, 37 + TAB_BAR_H)
+    tabDivider.BackgroundColor3 = THEME.divider
+    tabDivider.BorderSizePixel = 0
+    tabDivider.Parent = Main
 
     -- ═══════════════════════════════════════════
     -- CONTENT AREA
     -- ═══════════════════════════════════════════
+    local CONTENT_TOP = 37 + TAB_BAR_H + 1
+    local CPAD = 14
+
     local content = Instance.new("Frame")
-    content.Size = UDim2.new(1, -(SIDEBAR_W + 12), 1, -44)
-    content.Position = UDim2.new(0, SIDEBAR_W + 4, 0, 40)
+    content.Size = UDim2.new(1, -(CPAD * 2), 1, -(CONTENT_TOP + CPAD))
+    content.Position = UDim2.new(0, CPAD, 0, CONTENT_TOP)
     content.BackgroundColor3 = THEME.panel
     content.BackgroundTransparency = 0.35
     content.BorderSizePixel = 0
@@ -216,9 +235,6 @@ return function(config, components)
     content.Parent = Main
     shared.corner(content, UDim.new(0, 10))
     shared.stroke(content, THEME.divider, 1, 0.5)
-
-    local CPAD = 14 -- content left/right padding
-    local CW = W - SIDEBAR_W - 12 - (CPAD * 2) -- usable content width
 
     -- Tab frames (all same size, stacked on top of each other)
     local clickingTab = Instance.new("Frame")
@@ -320,11 +336,11 @@ return function(config, components)
     })
     view.PosLbl = PosLbl
 
-    -- Toggle button + keybind
+    -- Toggle button + keybind (side by side at bottom)
     local ToggleBtn = components.button({
         Parent = clickingTab,
         Size = UDim2.new(1, -(CPAD * 2) - 130, 0, 36),
-        Position = UDim2.fromOffset(CPAD, 296),
+        Position = UDim2.new(0, CPAD, 1, -(CPAD + 36)),
         Text = "Start [F]", TextSize = 12, Color = THEME.accent, HoverColor = THEME.accent2, Glow = false,
     })
     view.ToggleBtn = ToggleBtn
@@ -332,7 +348,7 @@ return function(config, components)
     local KeybindBtn = components.keybind({
         Parent = clickingTab,
         Size = UDim2.fromOffset(120, 36),
-        Position = UDim2.new(1, -(CPAD + 120), 0, 296),
+        Position = UDim2.new(1, -(CPAD + 120), 1, -(CPAD + 36)),
         Default = config.Keys.ToggleClicker,
     })
     view.KeybindBtn = KeybindBtn
@@ -526,7 +542,7 @@ return function(config, components)
     setTargetLine(config.Clicker.DefaultCPS)
 
     local sparkBars = {}
-    local canvasW = W - SIDEBAR_W - 12 - (CPAD * 2)
+    local canvasW = W - (CPAD * 2)
     local barStep = canvasW / SPARK_SAMPLES
     local barWidth = math.max(2, math.floor(barStep) - 1)
     for i = 1, SPARK_SAMPLES do
@@ -638,13 +654,22 @@ return function(config, components)
     MinimizedPanel.Parent = ScreenGui
     shared.corner(MinimizedPanel, UDim.new(0, 8))
     shared.stroke(MinimizedPanel, THEME.accent, 1, 0.4)
+    shared.glow(MinimizedPanel, THEME.glow or THEME.accent, 3, 0.9)
+    local MiniShadow = shared.shadow(MinimizedPanel, { ExtendX = 8, ExtendY = 8, Transparency = 0.72 })
     view.MinimizedPanel = MinimizedPanel
 
-    local MiniHeader = label({
-        Parent = MinimizedPanel, Text = "AutoClicker",
-        Position = UDim2.fromOffset(6, 3),
-        Size = UDim2.new(1, -24, 0, 14), TextSize = 9, Color = THEME.accent2, Font = Enum.Font.GothamBold,
-    })
+    local MiniHeader = Instance.new("TextButton")
+    MiniHeader.Text = "AutoClicker"
+    MiniHeader.Size = UDim2.new(1, -24, 0, 14)
+    MiniHeader.Position = UDim2.fromOffset(6, 3)
+    MiniHeader.BackgroundTransparency = 1
+    MiniHeader.TextColor3 = THEME.accent2
+    MiniHeader.Font = Enum.Font.GothamBold
+    MiniHeader.TextSize = 9
+    MiniHeader.TextXAlignment = Enum.TextXAlignment.Left
+    MiniHeader.AutoButtonColor = false
+    MiniHeader.BorderSizePixel = 0
+    MiniHeader.Parent = MinimizedPanel
     view.MiniHeader = MiniHeader
 
     local ExpandBtn = components.button({
