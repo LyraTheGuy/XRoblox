@@ -171,7 +171,7 @@ if not coreOk then
 end
 
 -- Load modules
-local modules = { "clicker", "stats", "ui" }
+local modules = { "clicker", "stats", "ui", "movement" }
 for _, name in ipairs(modules) do
     local ok, err = pcall(function()
         local modChunk = loadModule(name)
