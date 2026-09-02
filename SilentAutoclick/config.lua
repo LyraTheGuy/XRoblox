@@ -6,7 +6,7 @@ return {
     Window = {
         Title = "Silent AutoClicker",
         Subtitle = "LyraHub UI v1.2 · silent click",
-        Size = Vector2.new(360, 440),
+        Size = Vector2.new(360, 500),
     },
 
     -- Build marker compared by the update-checker against the live raw config
