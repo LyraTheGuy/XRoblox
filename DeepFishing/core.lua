@@ -349,6 +349,238 @@ return function(gui, config)
     ctx.applyTheme = applyTheme
 
     -- ═══════════════════════════════════════════
+    -- SETTINGS PERSISTENCE (save/load/reset)
+    -- ═══════════════════════════════════════════
+    local SETTINGS_FILE = "DeepFishing_Settings.json"
+
+    local function saveSettings()
+        local data = {
+            -- Fishing toggles
+            autoFishEnabled = ctx.autoFishEnabled,
+            instantCollectEnabled = ctx.instantCollectEnabled,
+            autoStopWhenEmptyEnabled = ctx.autoStopWhenEmptyEnabled,
+            collectAllRaritiesEnabled = ctx.collectAllRaritiesEnabled,
+            collectMutationsEnabled = ctx.collectMutationsEnabled,
+
+            -- Shop toggles
+            autoSellEnabled = ctx.autoSellEnabled,
+            autoDeleteEnabled = ctx.autoDeleteEnabled,
+            autoBuyBaitEnabled = ctx.autoBuyBaitEnabled,
+            autoBuyRodEnabled = ctx.autoBuyRodEnabled,
+            autoBuyUpgradesEnabled = ctx.autoBuyUpgradesEnabled,
+
+            -- Player toggles
+            flyEnabled = ctx.flyEnabled,
+            noClipEnabled = ctx.noClipEnabled,
+            infJumpEnabled = ctx.infJumpEnabled,
+            antiAfkEnabled = ctx.antiAfkEnabled,
+            antiPauseEnabled = ctx.antiPauseEnabled,
+
+            -- Movement values
+            flySpeed = ctx.flySpeed,
+            walkSpeed = ctx.walkSpeed,
+
+            -- Reward toggles
+            autoClaimFreeEnabled = ctx.autoClaimFreeEnabled,
+            autoClaimBigFishEnabled = ctx.autoClaimBigFishEnabled,
+            autoClaimPlaytimeEnabled = ctx.autoClaimPlaytimeEnabled,
+            autoClaimNextDayEnabled = ctx.autoClaimNextDayEnabled,
+            autoClaimGroupEnabled = ctx.autoClaimGroupEnabled,
+
+            -- Stats
+            perfFishCaught = ctx.perfFishCaught,
+            perfTotalEarnings = ctx.perfTotalEarnings,
+        }
+        local ok, err = pcall(function()
+            local HttpService = game:GetService("HttpService")
+            local json = HttpService:JSONEncode(data)
+            writefile(SETTINGS_FILE, json)
+        end)
+        if ok then
+            gui.Settings.SaveStatusLabel.Text = "Settings saved!"
+            gui.Settings.SaveStatusLabel.TextColor3 = THEME.success
+            log("Settings saved to " .. SETTINGS_FILE, THEME.success)
+        else
+            gui.Settings.SaveStatusLabel.Text = "Save failed: " .. tostring(err)
+            gui.Settings.SaveStatusLabel.TextColor3 = THEME.danger
+            log("Settings save failed: " .. tostring(err), THEME.danger)
+        end
+        task.delay(3, function()
+            if gui.Settings.SaveStatusLabel and gui.Settings.SaveStatusLabel.Parent then
+                gui.Settings.SaveStatusLabel.Text = ""
+            end
+        end)
+    end
+    ctx.saveSettings = saveSettings
+
+    local function applyToggle(btn, enabled, label)
+        if not btn then return end
+        if enabled then
+            btn.Text = label .. ": ON"
+            btn.BackgroundColor3 = THEME.success
+            btn.TextColor3 = Color3.new(1, 1, 1)
+        else
+            btn.Text = label .. ": OFF"
+            btn.BackgroundColor3 = THEME.panel2
+            btn.TextColor3 = THEME.dim
+        end
+    end
+
+    local function loadSettings()
+        local ok, result = pcall(function()
+            if isfile and isfile(SETTINGS_FILE) then
+                local raw = readfile(SETTINGS_FILE)
+                local HttpService = game:GetService("HttpService")
+                return HttpService:JSONDecode(raw)
+            end
+            return nil
+        end)
+        if not ok or not result then
+            gui.Settings.SaveStatusLabel.Text = "No saved settings found"
+            gui.Settings.SaveStatusLabel.TextColor3 = THEME.dim
+            log("No saved settings found", THEME.dim)
+            task.delay(2, function()
+                if gui.Settings.SaveStatusLabel and gui.Settings.SaveStatusLabel.Parent then
+                    gui.Settings.SaveStatusLabel.Text = ""
+                end
+            end)
+            return
+        end
+
+        local loaded = 0
+
+        -- Helper to restore a boolean toggle
+        local function restoreBool(key, default)
+            if result[key] ~= nil then
+                ctx[key] = result[key]
+                loaded = loaded + 1
+            end
+        end
+
+        -- Fishing
+        restoreBool("instantCollectEnabled", true)
+        restoreBool("autoStopWhenEmptyEnabled", true)
+        restoreBool("collectAllRaritiesEnabled", true)
+        restoreBool("collectMutationsEnabled", true)
+
+        -- Shop
+        restoreBool("autoSellEnabled", false)
+        restoreBool("autoDeleteEnabled", false)
+        restoreBool("autoBuyBaitEnabled", true)
+        restoreBool("autoBuyRodEnabled", true)
+        restoreBool("autoBuyUpgradesEnabled", true)
+
+        -- Player
+        restoreBool("noClipEnabled", false)
+        restoreBool("infJumpEnabled", false)
+        restoreBool("antiAfkEnabled", true)
+        restoreBool("antiPauseEnabled", false)
+
+        -- Movement values
+        if result.flySpeed then
+            ctx.flySpeed = tonumber(result.flySpeed) or ctx.flySpeed
+            loaded = loaded + 1
+        end
+        if result.walkSpeed then
+            ctx.walkSpeed = tonumber(result.walkSpeed) or ctx.walkSpeed
+            loaded = loaded + 1
+        end
+
+        -- Rewards
+        restoreBool("autoClaimFreeEnabled", true)
+        restoreBool("autoClaimBigFishEnabled", true)
+        restoreBool("autoClaimPlaytimeEnabled", true)
+        restoreBool("autoClaimNextDayEnabled", true)
+        restoreBool("autoClaimGroupEnabled", true)
+
+        -- Stats
+        if result.perfFishCaught then
+            ctx.perfFishCaught = tonumber(result.perfFishCaught) or 0
+            loaded = loaded + 1
+        end
+        if result.perfTotalEarnings then
+            ctx.perfTotalEarnings = tonumber(result.perfTotalEarnings) or 0
+            loaded = loaded + 1
+        end
+
+        -- Update GUI toggles to match restored state
+        applyToggle(gui.Fishing.InstantCollectToggle.btn, ctx.instantCollectEnabled, "Instant Collect")
+        applyToggle(gui.Fishing.AutoStopToggle.btn, ctx.autoStopWhenEmptyEnabled, "Auto Stop When Empty")
+        applyToggle(gui.Fishing.CollectRaritiesToggle.btn, ctx.collectAllRaritiesEnabled, "Collect All Rarities")
+        applyToggle(gui.Fishing.CollectMutationsToggle.btn, ctx.collectMutationsEnabled, "Collect Mutations")
+        applyToggle(gui.Shop.AutoSellToggle.btn, ctx.autoSellEnabled, "Auto Sell Fish")
+        applyToggle(gui.Shop.AutoDeleteToggle.btn, ctx.autoDeleteEnabled, "Auto Delete Low Rarity")
+        applyToggle(gui.Shop.AutoBuyBaitToggle.btn, ctx.autoBuyBaitEnabled, "Auto Buy Best Bait")
+        applyToggle(gui.Shop.AutoBuyRodToggle.btn, ctx.autoBuyRodEnabled, "Auto Buy Best Rod")
+        applyToggle(gui.Shop.AutoBuyUpgradesToggle.btn, ctx.autoBuyUpgradesEnabled, "Auto Buy Upgrades")
+        applyToggle(gui.Player.NoClipToggle.btn, ctx.noClipEnabled, "NoClip")
+        applyToggle(gui.Player.InfJumpToggle.btn, ctx.infJumpEnabled, "Infinite Jump")
+        applyToggle(gui.Player.AntiAfkToggle.btn, ctx.antiAfkEnabled, "Anti AFK")
+        applyToggle(gui.Player.AntiPauseToggle.btn, ctx.antiPauseEnabled, "Anti Gameplay Pause")
+        applyToggle(gui.Fishing.AutoClaimFreeToggle.btn, ctx.autoClaimFreeEnabled, "Auto Claim Free Rewards")
+        applyToggle(gui.Fishing.AutoClaimBigFishToggle.btn, ctx.autoClaimBigFishEnabled, "Auto Claim Big Fish")
+        applyToggle(gui.Fishing.AutoClaimPlaytimeToggle.btn, ctx.autoClaimPlaytimeEnabled, "Auto Claim Playtime Gift")
+        applyToggle(gui.Fishing.AutoClaimNextDayToggle.btn, ctx.autoClaimNextDayEnabled, "Auto Claim Next Day Reward")
+        applyToggle(gui.Fishing.AutoClaimGroupToggle.btn, ctx.autoClaimGroupEnabled, "Auto Claim Group Reward")
+        gui.Player.FlySpeedLabel.Text = "Fly Speed: " .. ctx.flySpeed
+        gui.Player.SpeedLabel.Text = "Walk Speed: " .. ctx.walkSpeed
+
+        gui.Settings.SaveStatusLabel.Text = "Loaded " .. loaded .. " settings"
+        gui.Settings.SaveStatusLabel.TextColor3 = THEME.success
+        log("Settings loaded: " .. loaded .. " values restored", THEME.success)
+        task.delay(3, function()
+            if gui.Settings.SaveStatusLabel and gui.Settings.SaveStatusLabel.Parent then
+                gui.Settings.SaveStatusLabel.Text = ""
+            end
+        end)
+    end
+    ctx.loadSettings = loadSettings
+
+    local function resetSettings()
+        pcall(function()
+            if delfile and isfile and isfile(SETTINGS_FILE) then
+                delfile(SETTINGS_FILE)
+            end
+        end)
+        gui.Settings.SaveStatusLabel.Text = "Settings reset — reload to apply"
+        gui.Settings.SaveStatusLabel.TextColor3 = THEME.warn
+        log("Settings file deleted. Reload script to apply defaults.", THEME.warn)
+        task.delay(3, function()
+            if gui.Settings.SaveStatusLabel and gui.Settings.SaveStatusLabel.Parent then
+                gui.Settings.SaveStatusLabel.Text = ""
+            end
+        end)
+    end
+    ctx.resetSettings = resetSettings
+
+    -- ═══════════════════════════════════════════
+    -- SETTINGS BUTTON BINDINGS
+    -- ═══════════════════════════════════════════
+    if gui.Settings.SaveBtn then
+        bind(gui.Settings.SaveBtn.MouseButton1Click, function()
+            saveSettings()
+        end)
+    end
+
+    if gui.Settings.LoadBtn then
+        bind(gui.Settings.LoadBtn.MouseButton1Click, function()
+            loadSettings()
+        end)
+    end
+
+    if gui.Settings.ResetBtn then
+        bind(gui.Settings.ResetBtn.MouseButton1Click, function()
+            resetSettings()
+        end)
+    end
+
+    -- Auto-load saved settings on startup
+    task.spawn(function()
+        task.wait(0.5) -- brief delay so modules have loaded
+        loadSettings()
+    end)
+
+    -- ═══════════════════════════════════════════
     -- DESTROY ALL
     -- ═══════════════════════════════════════════
     local function destroyAll()

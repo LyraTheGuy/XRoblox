@@ -465,6 +465,12 @@ return function(config, components)
     makeLabel(infoSection, "By LyraHub", LYRA.dim, 12)
     local unloadBtn = makeButton(infoSection, "Unload Script", LYRA.danger, 13)
 
+    local settingsSection = makeSection(Tabs.Settings, "💾 Persistent Settings", 5)
+    local saveBtn = makeButton(settingsSection, "Save Settings", LYRA.success, 6)
+    local loadBtn = makeButton(settingsSection, "Load Settings", LYRA.tp, 7)
+    local resetBtn = makeButton(settingsSection, "Reset to Defaults", LYRA.warn, 8)
+    local saveStatusLabel = makeLabel(settingsSection, "", LYRA.dim, 9)
+
     local logSection = makeSection(Tabs.Settings, "📋 Logs", 20)
     local logScroll = Instance.new("ScrollingFrame")
     logScroll.Size = UDim2.new(1, 0, 0, 120)
@@ -627,6 +633,10 @@ return function(config, components)
             UnloadBtn = unloadBtn,
             LogScroll = logScroll,
             LogCountLabel = logCountLabel,
+            SaveBtn = saveBtn,
+            LoadBtn = loadBtn,
+            ResetBtn = resetBtn,
+            SaveStatusLabel = saveStatusLabel,
         },
     }
 end

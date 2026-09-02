@@ -39,7 +39,7 @@ DeepFishing/
 | **Shop** | 🛒 | Bait shop (auto buy + manual), rod shop (auto buy + manual), upgrades, sell/delete |
 | **Player** | 🏃 | Fly, NoClip, Infinite Jump, Walk Speed, Anti-AFK, Anti Gameplay Pause |
 | **Rewards** | 🎁 | Redeem all codes, claim playtime/next day/group rewards (manual + auto) |
-| **Settings** | ⚙️ | Keybinds, project info, scrollable log (200 entries), unload button |
+| **Settings** | ⚙️ | Keybinds, persistent save/load/reset, project info, scrollable log, unload button |
 
 ---
 
@@ -248,6 +248,25 @@ return {
     ComponentDefaults = { CornerRadius = UDim.new(0, 10), PressScale = 0.97 },
 }
 ```
+
+---
+
+## Persistent Settings
+
+All toggle states, movement values, and stats are saved to `DeepFishing_Settings.json` using the executor file API (`writefile`/`readfile`).
+
+| Button | Action |
+|--------|--------|
+| **Save Settings** | Saves all current toggles and values to disk |
+| **Load Settings** | Restores saved settings and updates all GUI toggles |
+| **Reset to Defaults** | Deletes the settings file (reload script to apply defaults) |
+
+**What gets persisted:**
+- All auto-fish, auto-sell, auto-buy, movement, reward, and anti-AFK toggles
+- Fly speed and walk speed values
+- Fish caught count and total earnings stats
+
+**Auto-load:** Settings are automatically loaded from disk on script startup.
 
 ---
 
