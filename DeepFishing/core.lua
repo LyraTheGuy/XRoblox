@@ -130,7 +130,18 @@ return function(gui, config)
     ctx.log = log
 
     -- Clear logs
-    bind(gui.Settings.LogScroll.Parent.ClearLogsBtn and gui.Settings.LogScroll.Parent.ClearLogsBtn.MouseButton1Click or Instance.new("BindableEvent").Event, function() end)
+    if gui.Settings.ClearLogsBtn then
+        bind(gui.Settings.ClearLogsBtn.MouseButton1Click, function()
+            local children = gui.Settings.LogScroll:GetChildren()
+            for _, child in ipairs(children) do
+                if child:IsA("TextLabel") then
+                    child:Destroy()
+                end
+            end
+            logEntries = 0
+            gui.Settings.LogCountLabel.Text = "0 entries"
+        end)
+    end
 
     -- ═══════════════════════════════════════════
     -- CHARACTER UTILITIES

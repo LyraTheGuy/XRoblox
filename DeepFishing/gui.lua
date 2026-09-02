@@ -472,6 +472,7 @@ return function(config, components)
     local saveStatusLabel = makeLabel(settingsSection, "", LYRA.dim, 9)
 
     local logSection = makeSection(Tabs.Settings, "📋 Logs", 20)
+    local clearLogsBtn = makeButton(logSection, "Clear Logs", LYRA.danger, 20)
     local logScroll = Instance.new("ScrollingFrame")
     logScroll.Size = UDim2.new(1, 0, 0, 120)
     logScroll.BackgroundTransparency = 1
@@ -569,6 +570,7 @@ return function(config, components)
     return {
         ScreenGui = ScreenGui,
         Main = Main,
+        MainStroke = MainStroke,
         Theme = LYRA,
         TabButtons = TabButtons,
         Tabs = Tabs,
@@ -633,6 +635,7 @@ return function(config, components)
             UnloadBtn = unloadBtn,
             LogScroll = logScroll,
             LogCountLabel = logCountLabel,
+            ClearLogsBtn = clearLogsBtn,
             SaveBtn = saveBtn,
             LoadBtn = loadBtn,
             ResetBtn = resetBtn,
