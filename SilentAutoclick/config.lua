@@ -24,7 +24,7 @@ return {
         -- Interval mode: 1 click every N seconds
         DefaultIntervalSeconds = 5,
         MinIntervalSeconds = 1,
-        MaxIntervalSeconds = 60,
+        MaxIntervalSeconds = 900,
     },
 
     Movement = {
