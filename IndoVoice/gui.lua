@@ -1543,16 +1543,19 @@ return function(config, components)
         lbl.TextXAlignment = Enum.TextXAlignment.Left
         lbl.Parent = SettingsScroll
 
+        -- Convert string default to Enum.KeyCode if needed
+        local defaultKey = (type(default) == "string" and Enum.KeyCode[default]) or default
+
         local keybind = components.keybind({
             Parent = SettingsScroll,
             Size = UDim2.fromOffset(70, 22),
             Position = UDim2.new(1, -80, 0, y - 2),
-            Default = default,
+            Default = defaultKey,
         })
         return keybind
     end
 
-    local hideUIKey = makeHotkeyRow("Toggle UI", 58, config.Keys.HideUI:gsub("Enum.KeyCode.", "") or "K")
+    local hideUIKey = makeHotkeyRow("Toggle UI", 58, tostring(config.Keys.HideUI):gsub("Enum.KeyCode.", "") or "K")
     local espKey = makeHotkeyRow("Toggle ESP", 76, config.Keys.ESP or "E")
     local tpKey = makeHotkeyRow("Teleport", 94, config.Keys.Teleport or "T")
 

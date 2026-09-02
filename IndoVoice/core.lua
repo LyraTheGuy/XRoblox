@@ -1773,9 +1773,11 @@ return function(gui, config)
 
     -- Hotkey rebind listeners
     if gui.Settings.HideUIKeybind and gui.Settings.HideUIKeybind.OnChanged then
-        gui.Settings.HideUIKeybind.OnChanged:Connect(function(keyName)
-            if Enum.KeyCode[keyName] then
-                ctx.config.Keys.HideUI = Enum.KeyCode[keyName]
+        gui.Settings.HideUIKeybind.OnChanged(function(keyCode)
+            if typeof(keyCode) == "EnumItem" then
+                ctx.config.Keys.HideUI = keyCode
+                ctx.HIDE_KEY = keyCode
+                local keyName = tostring(keyCode):gsub("Enum.KeyCode.", "")
                 if gui.Settings.HideKeyLbl then
                     gui.Settings.HideKeyLbl.Text = "Hide/Show UI: " .. keyName
                 end
@@ -1787,9 +1789,10 @@ return function(gui, config)
         end)
     end
     if gui.Settings.ESPKeybind and gui.Settings.ESPKeybind.OnChanged then
-        gui.Settings.ESPKeybind.OnChanged:Connect(function(keyName)
-            if Enum.KeyCode[keyName] then
-                ctx.config.Keys.ESP = Enum.KeyCode[keyName]
+        gui.Settings.ESPKeybind.OnChanged(function(keyCode)
+            if typeof(keyCode) == "EnumItem" then
+                ctx.config.Keys.ESP = keyCode
+                local keyName = tostring(keyCode):gsub("Enum.KeyCode.", "")
                 saveSettings()
                 if gui.Toast and gui.Toast.show then
                     gui.Toast.show({Text = "ESP key bound to " .. keyName, Variant = "success", Duration = 1.5})
@@ -1798,9 +1801,10 @@ return function(gui, config)
         end)
     end
     if gui.Settings.TPKeybind and gui.Settings.TPKeybind.OnChanged then
-        gui.Settings.TPKeybind.OnChanged:Connect(function(keyName)
-            if Enum.KeyCode[keyName] then
-                ctx.config.Keys.Teleport = Enum.KeyCode[keyName]
+        gui.Settings.TPKeybind.OnChanged(function(keyCode)
+            if typeof(keyCode) == "EnumItem" then
+                ctx.config.Keys.Teleport = keyCode
+                local keyName = tostring(keyCode):gsub("Enum.KeyCode.", "")
                 saveSettings()
                 if gui.Toast and gui.Toast.show then
                     gui.Toast.show({Text = "TP key bound to " .. keyName, Variant = "success", Duration = 1.5})

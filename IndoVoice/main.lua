@@ -150,7 +150,7 @@ local kitOk, kitErr = pcall(function()
     assert(type(buttonFactory) == "function", "button.lua must return a function")
     components.shared = shared
     components.button = buttonFactory(config, shared)
-    for _, name in ipairs({ "toast", "updatecheck" }) do
+    for _, name in ipairs({ "toast", "updatecheck", "keybind" }) do
         local chunk = compile(fetch(LYRAHUB_URL .. "views/components/" .. name .. ".lua", name), name)
         components[name] = chunk()(config, shared)
     end

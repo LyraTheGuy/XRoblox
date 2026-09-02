@@ -1,5 +1,5 @@
 -- SilentAutoclick/core.lua
--- Shared context: clicker, game interaction, settings persistence, movement, utility
+-- Shared context: clicker, game interaction, movement
 return function(gui, config)
     local Players = game:GetService("Players")
     local UserInputService = game:GetService("UserInputService")
@@ -21,11 +21,13 @@ return function(gui, config)
         RunService = RunService,
         ReplicatedStorage = ReplicatedStorage,
         destroyed = false,
+
         -- Clicker state
         clicking = false,
         clickCPS = config.Clicker.DefaultCPS,
-        clickIntervalSeconds = config.Clicker.IntervalSeconds or config.Clicker.DefaultIntervalSeconds or 1,
-        clickDelay = config.Clicker.IntervalSeconds or config.Clicker.DefaultIntervalSeconds or 1,
+        clickMode = "cps", -- "cps" or "interval"
+        clickIntervalSeconds = config.Clicker.DefaultIntervalSeconds or 5,
+        clickDelay = 1 / (config.Clicker.DefaultCPS or 50),
         lastClick = 0,
         mode = "cursor",
         fixedX = nil,
@@ -54,10 +56,6 @@ return function(gui, config)
         flyBodyGyro = nil,
         noclipConnection = nil,
         infJumpConnection = nil,
-        -- Anti-AFK
-        antiAfkEnabled = config.AntiAfk.Enabled or true,
-        antiPauseEnabled = true,
-        antiIdleConnections = {},
 
         -- Connections
         connections = {},
@@ -135,14 +133,6 @@ return function(gui, config)
         end
         gui.MethodLbl.Text = useVIM and "Mode: Silent" or "Mode: Fallback"
         gui.MethodLbl.TextColor3 = useVIM and THEME.success or THEME.warn
-        if gui.IntervalLbl then
-            gui.IntervalLbl.Text = string.format("Delay: %.2fs / click", ctx.clickIntervalSeconds)
-            gui.IntervalLbl.TextColor3 = THEME.accent2
-        end
-        if gui.TimingStatus then
-            gui.TimingStatus.Text = string.format("Range: %.2fs - %.2fs", config.Clicker.MinIntervalSeconds, config.Clicker.MaxIntervalSeconds)
-            gui.TimingStatus.TextColor3 = THEME.dim
-        end
         gui.MiniStats.StatusVal.Text = ctx.clicking and "ON" or "OFF"
         gui.MiniStats.StatusVal.TextColor3 = ctx.clicking and THEME.success or THEME.danger
         if ctx.mode == "fixed" then
@@ -190,123 +180,6 @@ return function(gui, config)
     end
     ctx.findRemote = findRemote
 
-
-
-    -- ═══════════════════════════════════════════
-    -- ANTI-AFK
-    -- ═══════════════════════════════════════════
-    local function enableAntiIdle()
-        ctx.antiAfkEnabled = true
-        local VirtualUser = game:GetService("VirtualUser")
-        pcall(function()
-            if getconnections then
-                for _, c in pairs(getconnections(lp.Idled)) do
-                    if c["Disable"] then c["Disable"](c) elseif c["Disconnect"] then c["Disconnect"](c) end
-                end
-            end
-        end) or (function()
-            local c = lp.Idled:Connect(function()
-                VirtualUser:CaptureController()
-                VirtualUser:ClickButton2(Vector2.new())
-            end)
-            table.insert(ctx.antiIdleConnections, c)
-        end)()
-    end
-    local function disableAntiIdle()
-        ctx.antiAfkEnabled = false
-        for _, c in ipairs(ctx.antiIdleConnections) do pcall(function() c:Disconnect() end) end
-        table.clear(ctx.antiIdleConnections)
-    end
-    ctx.enableAntiIdle = enableAntiIdle
-    ctx.disableAntiIdle = disableAntiIdle
-
-    -- ═══════════════════════════════════════════
-    -- SETTINGS PERSISTENCE
-    -- ═══════════════════════════════════════════
-    local SETTINGS_FILE = "SilentHub_Settings.json"
-
-    local function saveSettings()
-        local data = {
-            clickIntervalSeconds = ctx.clickIntervalSeconds,
-            clickCPS = ctx.clickCPS,
-            mode = ctx.mode,
-            fixedX = ctx.fixedX,
-            fixedY = ctx.fixedY,
-            flyEnabled = ctx.flyEnabled,
-            noClipEnabled = ctx.noClipEnabled,
-            infJumpEnabled = ctx.infJumpEnabled,
-            flySpeed = ctx.flySpeed,
-            walkSpeed = ctx.walkSpeed,
-            antiAfkEnabled = ctx.antiAfkEnabled,
-            antiPauseEnabled = ctx.antiPauseEnabled,
-        }
-        local ok, err = pcall(function()
-            writefile(SETTINGS_FILE, game:GetService("HttpService"):JSONEncode(data))
-        end)
-        if ok then
-            gui.SaveStatusLabel.Text = "Settings saved!"
-            gui.SaveStatusLabel.TextColor3 = THEME.success
-        else
-            gui.SaveStatusLabel.Text = "Save failed"
-            gui.SaveStatusLabel.TextColor3 = THEME.danger
-        end
-        task.delay(3, function()
-            if gui.SaveStatusLabel and gui.SaveStatusLabel.Parent then gui.SaveStatusLabel.Text = "" end
-        end)
-    end
-    ctx.saveSettings = saveSettings
-
-    local function applyToggle(btn, enabled, label)
-        if not btn then return end
-        btn.Text = label .. (enabled and ": ON" or ": OFF")
-        btn.BackgroundColor3 = enabled and THEME.success or THEME.panel2
-        btn.TextColor3 = enabled and Color3.new(1, 1, 1) or THEME.dim
-    end
-
-    local function loadSettings()
-        local ok, result = pcall(function()
-            if isfile and isfile(SETTINGS_FILE) then
-                return game:GetService("HttpService"):JSONDecode(readfile(SETTINGS_FILE))
-            end
-            return nil
-        end)
-        if not ok or not result then
-            gui.SaveStatusLabel.Text = "No saved settings"
-            gui.SaveStatusLabel.TextColor3 = THEME.dim
-            task.delay(2, function() gui.SaveStatusLabel.Text = "" end)
-            return
-        end
-        local loaded = 0
-        local function restoreBool(key)
-            if result[key] ~= nil then ctx[key] = result[key]; loaded = loaded + 1 end
-        end
-        restoreBool("noClipEnabled")
-        restoreBool("infJumpEnabled")
-        restoreBool("antiAfkEnabled")
-        restoreBool("antiPauseEnabled")
-        if result.flySpeed then ctx.flySpeed = tonumber(result.flySpeed) or ctx.flySpeed; loaded = loaded + 1 end
-        if result.walkSpeed then ctx.walkSpeed = tonumber(result.walkSpeed) or ctx.walkSpeed; loaded = loaded + 1 end
-        -- Update GUI
-        applyToggle(gui.NoClipToggle.btn, ctx.noClipEnabled, "NoClip")
-        applyToggle(gui.InfJumpToggle.btn, ctx.infJumpEnabled, "Infinite Jump")
-        applyToggle(gui.AntiAfkToggle.btn, ctx.antiAfkEnabled, "Anti AFK")
-        applyToggle(gui.AntiPauseToggle.btn, ctx.antiPauseEnabled, "Anti Gameplay Pause")
-        gui.FlySpeedLabel.Text = "Fly Speed: " .. ctx.flySpeed
-        gui.SpeedLabel.Text = "Walk Speed: " .. ctx.walkSpeed
-        gui.SaveStatusLabel.Text = "Loaded " .. loaded .. " settings"
-        gui.SaveStatusLabel.TextColor3 = THEME.success
-        task.delay(3, function() gui.SaveStatusLabel.Text = "" end)
-    end
-    ctx.loadSettings = loadSettings
-
-    local function resetSettings()
-        pcall(function() if delfile and isfile and isfile(SETTINGS_FILE) then delfile(SETTINGS_FILE) end end)
-        gui.SaveStatusLabel.Text = "Reset — reload to apply"
-        gui.SaveStatusLabel.TextColor3 = THEME.warn
-        task.delay(3, function() gui.SaveStatusLabel.Text = "" end)
-    end
-    ctx.resetSettings = resetSettings
-
     -- ═══════════════════════════════════════════
     -- DESTROY
     -- ═══════════════════════════════════════════
@@ -321,16 +194,11 @@ return function(gui, config)
         if ctx.flyBodyGyro and ctx.flyBodyGyro.Parent then ctx.flyBodyGyro:Destroy() end
         if ctx.noclipConnection then pcall(function() ctx.noclipConnection:Disconnect() end) end
         if ctx.infJumpConnection then pcall(function() ctx.infJumpConnection:Disconnect() end) end
-        for _, c in ipairs(ctx.antiIdleConnections) do pcall(function() c:Disconnect() end) end
-        table.clear(ctx.antiIdleConnections)
         for i = #ctx.connections, 1, -1 do pcall(function() ctx.connections[i]:Disconnect() end); table.remove(ctx.connections, i) end
         pcall(function() gui.ScreenGui:Destroy() end)
     end
     ctx.destroyAll = destroyAll
     _G.__SilentAutoclick_Destroy = destroyAll
-
-    -- Auto-load settings
-    task.spawn(function() task.wait(0.5); loadSettings() end)
 
     return ctx
 end
