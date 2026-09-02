@@ -1552,7 +1552,7 @@ return function(config, components)
         return keybind
     end
 
-    local hideUIKey = makeHotkeyRow("Toggle UI", 58, config.Keys.HideUI:gsub("Enum.KeyCode.", "") or "K")
+    local hideUIKey = makeHotkeyRow("Toggle UI", 58, tostring(config.Keys.HideUI):gsub("Enum.KeyCode.", "") or "K")
     local espKey = makeHotkeyRow("Toggle ESP", 76, config.Keys.ESP or "E")
     local tpKey = makeHotkeyRow("Teleport", 94, config.Keys.Teleport or "T")
 
