@@ -29,10 +29,6 @@ return {
         WalkSpeed = 16,
     },
 
-    AntiAfk = {
-        Enabled = true,
-    },
-
     Theme = {
         bg = Color3.fromRGB(16, 16, 22),
         bg2 = Color3.fromRGB(22, 22, 30),

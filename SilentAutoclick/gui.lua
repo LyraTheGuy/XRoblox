@@ -386,14 +386,8 @@ return function(config, components)
     -- ═══════════════════════════════════════════
     local utilitySection = makeSection("🛡️ Utility")
 
-    local antiAfkToggle, toggleAntiAfk = makeToggle(utilitySection, "Anti AFK", true, 1)
-    local antiPauseToggle, toggleAntiPause = makeToggle(utilitySection, "Anti Gameplay Pause", true, 2)
-
-    view.AntiAfkToggle = { btn = antiAfkToggle, toggle = toggleAntiAfk }
-    view.AntiPauseToggle = { btn = antiPauseToggle, toggle = toggleAntiPause }
-
     -- Persistence
-    local saveBtn = makeActionButton(utilitySection, "Save Settings", THEME.success, 3)
+    local saveBtn = makeActionButton(utilitySection, "Save Settings", THEME.success, 1)
     local loadBtn = makeActionButton(utilitySection, "Load Settings", THEME.accent, 4)
     local resetBtn = makeActionButton(utilitySection, "Reset to Defaults", THEME.warn, 5)
     local saveStatusLabel = makeLabel(utilitySection, "", THEME.dim, 6)

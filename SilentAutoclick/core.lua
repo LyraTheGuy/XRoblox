@@ -54,11 +54,6 @@ return function(gui, config)
         flyBodyGyro = nil,
         noclipConnection = nil,
         infJumpConnection = nil,
-        -- Anti-AFK
-        antiAfkEnabled = config.AntiAfk.Enabled or true,
-        antiPauseEnabled = true,
-        antiIdleConnections = {},
-
         -- Connections
         connections = {},
     }
@@ -193,34 +188,6 @@ return function(gui, config)
 
 
     -- ═══════════════════════════════════════════
-    -- ANTI-AFK
-    -- ═══════════════════════════════════════════
-    local function enableAntiIdle()
-        ctx.antiAfkEnabled = true
-        local VirtualUser = game:GetService("VirtualUser")
-        pcall(function()
-            if getconnections then
-                for _, c in pairs(getconnections(lp.Idled)) do
-                    if c["Disable"] then c["Disable"](c) elseif c["Disconnect"] then c["Disconnect"](c) end
-                end
-            end
-        end) or (function()
-            local c = lp.Idled:Connect(function()
-                VirtualUser:CaptureController()
-                VirtualUser:ClickButton2(Vector2.new())
-            end)
-            table.insert(ctx.antiIdleConnections, c)
-        end)()
-    end
-    local function disableAntiIdle()
-        ctx.antiAfkEnabled = false
-        for _, c in ipairs(ctx.antiIdleConnections) do pcall(function() c:Disconnect() end) end
-        table.clear(ctx.antiIdleConnections)
-    end
-    ctx.enableAntiIdle = enableAntiIdle
-    ctx.disableAntiIdle = disableAntiIdle
-
-    -- ═══════════════════════════════════════════
     -- SETTINGS PERSISTENCE
     -- ═══════════════════════════════════════════
     local SETTINGS_FILE = "SilentHub_Settings.json"
@@ -237,8 +204,6 @@ return function(gui, config)
             infJumpEnabled = ctx.infJumpEnabled,
             flySpeed = ctx.flySpeed,
             walkSpeed = ctx.walkSpeed,
-            antiAfkEnabled = ctx.antiAfkEnabled,
-            antiPauseEnabled = ctx.antiPauseEnabled,
         }
         local ok, err = pcall(function()
             writefile(SETTINGS_FILE, game:GetService("HttpService"):JSONEncode(data))
@@ -282,15 +247,11 @@ return function(gui, config)
         end
         restoreBool("noClipEnabled")
         restoreBool("infJumpEnabled")
-        restoreBool("antiAfkEnabled")
-        restoreBool("antiPauseEnabled")
         if result.flySpeed then ctx.flySpeed = tonumber(result.flySpeed) or ctx.flySpeed; loaded = loaded + 1 end
         if result.walkSpeed then ctx.walkSpeed = tonumber(result.walkSpeed) or ctx.walkSpeed; loaded = loaded + 1 end
         -- Update GUI
         applyToggle(gui.NoClipToggle.btn, ctx.noClipEnabled, "NoClip")
         applyToggle(gui.InfJumpToggle.btn, ctx.infJumpEnabled, "Infinite Jump")
-        applyToggle(gui.AntiAfkToggle.btn, ctx.antiAfkEnabled, "Anti AFK")
-        applyToggle(gui.AntiPauseToggle.btn, ctx.antiPauseEnabled, "Anti Gameplay Pause")
         gui.FlySpeedLabel.Text = "Fly Speed: " .. ctx.flySpeed
         gui.SpeedLabel.Text = "Walk Speed: " .. ctx.walkSpeed
         gui.SaveStatusLabel.Text = "Loaded " .. loaded .. " settings"
@@ -321,8 +282,6 @@ return function(gui, config)
         if ctx.flyBodyGyro and ctx.flyBodyGyro.Parent then ctx.flyBodyGyro:Destroy() end
         if ctx.noclipConnection then pcall(function() ctx.noclipConnection:Disconnect() end) end
         if ctx.infJumpConnection then pcall(function() ctx.infJumpConnection:Disconnect() end) end
-        for _, c in ipairs(ctx.antiIdleConnections) do pcall(function() c:Disconnect() end) end
-        table.clear(ctx.antiIdleConnections)
         for i = #ctx.connections, 1, -1 do pcall(function() ctx.connections[i]:Disconnect() end); table.remove(ctx.connections, i) end
         pcall(function() gui.ScreenGui:Destroy() end)
     end
