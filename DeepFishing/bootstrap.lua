@@ -4,7 +4,7 @@
 local USER = "LyraTheGuy"
 local REPO = "XRoblox"
 local FOLDER = "DeepFishing"
-local BRANCH = "staging" -- Change this to "main" for the main branch
+local BRANCH = "main" -- Change this to "main" for the main branch
 
 local BASE_URL = ("https://raw.githubusercontent.com/%s/%s/%s/%s/"):format(USER, REPO, BRANCH, FOLDER)
 
