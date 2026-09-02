@@ -1,5 +1,5 @@
 -- SilentAutoclick/config.lua
--- Config table: clicker + movement + utility + persistence
+-- Config table: clicker + movement + utility
 
 return {
     Window = {
@@ -8,7 +8,7 @@ return {
         Size = Vector2.new(400, 420),
     },
 
-    Build = "v2.1",
+    Build = "v3.0",
 
     Keys = {
         ToggleClicker = Enum.KeyCode.F,
@@ -17,11 +17,14 @@ return {
     },
 
     Clicker = {
-        DefaultCPS = 20,
-        DefaultIntervalSeconds = 1,
+        -- CPS mode: clicks per second (10-100)
+        DefaultCPS = 50,
+        MinCPS = 10,
+        MaxCPS = 100,
+        -- Interval mode: 1 click every N seconds
+        DefaultIntervalSeconds = 5,
         MinIntervalSeconds = 1,
-        MaxIntervalSeconds = 360,
-        IntervalSeconds = 1,
+        MaxIntervalSeconds = 60,
     },
 
     Movement = {

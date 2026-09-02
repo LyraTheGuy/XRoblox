@@ -47,9 +47,6 @@ return function(config, components)
     shared.gradient(Main, THEME.bg, THEME.bg2, 90)
     view.Main = Main
 
-    local Shadow = shared.shadow(Main, { ExtendX = 10, ExtendY = 10, Transparency = 0.72, OffsetY = 0 })
-    view.Shadow = Shadow
-
     -- ═══════════════════════════════════════════
     -- TOP BAR (fixed)
     -- ═══════════════════════════════════════════
@@ -100,7 +97,7 @@ return function(config, components)
     })
     local closeBtn = components.button({
         Parent = Main, Size = UDim2.fromOffset(24, 24), Position = UDim2.new(1, -38, 0, 8),
-        Text = "✕", TextSize = 11, Color = Color3.fromRGB(64, 28, 34), TextColor = THEME.danger,
+        Text = "X", TextSize = 11, Color = Color3.fromRGB(64, 28, 34), TextColor = THEME.danger,
         HoverColor = Color3.fromRGB(96, 38, 46), CornerRadius = UDim.new(0, 7), ZIndex = 4, Glow = false,
     })
     view.MinBtn = minBtn.Instance
@@ -274,7 +271,7 @@ return function(config, components)
     -- ═══════════════════════════════════════════
     -- SECTION 1: AUTO CLICKER
     -- ═══════════════════════════════════════════
-    local clickerSection = makeSection("● Auto Clicker")
+    local clickerSection = makeSection("Auto Clicker")
 
     local StatusLbl = makeLabel(clickerSection, "Status: OFF", THEME.danger, 1)
     view.StatusLbl = StatusLbl
@@ -310,42 +307,36 @@ return function(config, components)
     -- ═══════════════════════════════════════════
     -- SECTION 2: CLICK TIMING
     -- ═══════════════════════════════════════════
-    local timingSection = makeSection("◎ Click Timing")
+    local timingSection = makeSection("Click Timing")
 
-    local IntervalLbl = makeLabel(timingSection, "Delay: 1.00s / click", THEME.accent2, 1)
-    view.IntervalLbl = IntervalLbl
-
-    local TimingInput = components.textinput({
-        Parent = timingSection, Size = UDim2.new(1, 0, 0, 28),
-        Default = tostring(config.Clicker.IntervalSeconds or 1), Placeholder = "1-360s",
-        LayoutOrder = 2,
+    -- Mode selector: CPS or Interval
+    local TimingModeDropdown = components.dropdown({
+        Parent = timingSection,
+        Size = UDim2.new(1, 0, 0, 28),
+        Items = { "Clicks per Second", "1 Click per X Seconds" }, Default = "Clicks per Second", ItemHeight = 28,
+        LayoutOrder = 1,
     })
-    view.TimingInput = TimingInput
+    view.TimingModeDropdown = TimingModeDropdown
 
-    local ResetTimingBtn = components.button({
-        Parent = timingSection, Size = UDim2.new(1, 0, 0, 24),
-        Text = "Reset to Default", TextSize = 9, Color = THEME.panel2, TextColor = THEME.text,
-        HoverColor = THEME.accent2, CornerRadius = UDim.new(0, 6), Glow = false, LayoutOrder = 3,
-    })
-    view.ResetTimingBtn = ResetTimingBtn
-
-    local TimingStatus = makeLabel(timingSection, "Range: 1s - 360s", THEME.dim, 4)
+    -- Status label showing current setting
+    local TimingStatus = makeLabel(timingSection, "50 clicks/sec", THEME.accent2, 2)
     view.TimingStatus = TimingStatus
 
-    local CPSLbl = makeLabel(timingSection, "CPS: 20", THEME.text, 5)
+    -- CPS mode: slider + presets
+    local CPSLbl = makeLabel(timingSection, "Clicks/sec: 50", THEME.text, 3)
     view.CPSLbl = CPSLbl
 
     local CPSSlider = components.slider({
         Parent = timingSection, Size = UDim2.new(1, 0, 0, 6),
-        Default = config.Clicker.DefaultCPS / 100, LayoutOrder = 6,
+        Default = 0.5, LayoutOrder = 4,
     })
     view.CPSSlider = CPSSlider
 
-    -- CPS Presets
+    -- CPS Presets row
     local PresetsRow = Instance.new("Frame")
     PresetsRow.Size = UDim2.new(1, 0, 0, 22)
     PresetsRow.BackgroundTransparency = 1
-    PresetsRow.LayoutOrder = 7
+    PresetsRow.LayoutOrder = 5
     PresetsRow.ZIndex = 4
     PresetsRow.Parent = timingSection
     local presetsLayout = Instance.new("UIListLayout")
@@ -354,9 +345,9 @@ return function(config, components)
     presetsLayout.Parent = PresetsRow
 
     local presetBtns = {}
-    for _, cps in ipairs({ 5, 10, 20, 50, 100 }) do
+    for _, cps in ipairs({ 10, 20, 50, 100 }) do
         local btn = components.button({
-            Parent = PresetsRow, Size = UDim2.new(0, 50, 0, 22),
+            Parent = PresetsRow, Size = UDim2.new(0, 56, 0, 22),
             Text = tostring(cps), TextSize = 9, Color = THEME.panel2, TextColor = THEME.dim,
             HoverColor = THEME.accent2, CornerRadius = UDim.new(0, 5), Glow = false,
         })
@@ -364,10 +355,38 @@ return function(config, components)
     end
     view.CPSPresetBtns = presetBtns
 
+    -- Interval mode: input field (hidden by default)
+    local IntervalInput = components.textinput({
+        Parent = timingSection, Size = UDim2.new(1, 0, 0, 28),
+        Default = tostring(config.Clicker.DefaultIntervalSeconds or 5), Placeholder = "1-60 seconds",
+        LayoutOrder = 6,
+    })
+    view.IntervalInput = IntervalInput
+    -- Hide interval UI by default (CPS mode)
+    view._intervalModeElements = { CPSLbl, CPSSlider, PresetsRow }
+    view._cpsModeElements = { IntervalInput }
+
     -- ═══════════════════════════════════════════
-    -- SECTION 3: MOVEMENT
+    -- SECTION 3: STATS
     -- ═══════════════════════════════════════════
-    local moveSection = makeSection("🏃 Movement")
+    local statsSection = makeSection("Stats")
+
+    local TotalClicksVal = makeLabel(statsSection, "Clicks: 0", THEME.text, 1)
+    local ActualCPSVal = makeLabel(statsSection, "CPS: 0", THEME.text, 2)
+    local FPSVal = makeLabel(statsSection, "FPS: 0", THEME.text, 3)
+    local PingVal = makeLabel(statsSection, "Ping: 0 ms", THEME.text, 4)
+
+    view.Stats = {
+        TotalClicksVal = TotalClicksVal,
+        ActualCPSVal = ActualCPSVal,
+        FPSVal = FPSVal,
+        PingVal = PingVal,
+    }
+
+    -- ═══════════════════════════════════════════
+    -- SECTION 4: MOVEMENT
+    -- ═══════════════════════════════════════════
+    local moveSection = makeSection("Movement")
 
     local flyToggle, toggleFly = makeToggle(moveSection, "Fly", false, 1)
     local flySpeedLabel = makeLabel(moveSection, "Fly Speed: 50", THEME.dim, 2)
@@ -382,23 +401,11 @@ return function(config, components)
     view.SpeedLabel = speedLabel
 
     -- ═══════════════════════════════════════════
-    -- SECTION 4: UTILITY
+    -- SECTION 5: UNLOAD
     -- ═══════════════════════════════════════════
-    local utilitySection = makeSection("🛡️ Utility")
+    local unloadSection = makeSection("Script")
 
-    -- Persistence
-    local saveBtn = makeActionButton(utilitySection, "Save Settings", THEME.success, 1)
-    local loadBtn = makeActionButton(utilitySection, "Load Settings", THEME.accent, 4)
-    local resetBtn = makeActionButton(utilitySection, "Reset to Defaults", THEME.warn, 5)
-    local saveStatusLabel = makeLabel(utilitySection, "", THEME.dim, 6)
-
-    view.SaveBtn = saveBtn
-    view.LoadBtn = loadBtn
-    view.ResetBtn = resetBtn
-    view.SaveStatusLabel = saveStatusLabel
-
-    -- Unload
-    local unloadBtn = makeActionButton(utilitySection, "Unload Script", THEME.danger, 7)
+    local unloadBtn = makeActionButton(unloadSection, "Unload Script", THEME.danger, 1)
     view.UnloadBtn = unloadBtn
 
     -- ═══════════════════════════════════════════
@@ -435,7 +442,7 @@ return function(config, components)
     local ExpandBtn = components.button({
         Parent = MinimizedPanel, Size = UDim2.fromOffset(16, 16),
         Position = UDim2.new(1, -22, 0, 2),
-        Text = "▢", TextSize = 10, Color = THEME.panel2, TextColor = THEME.dim,
+        Text = "O", TextSize = 10, Color = THEME.panel2, TextColor = THEME.dim,
         HoverColor = THEME.accent2, CornerRadius = UDim.new(0, 4), ZIndex = 3, Glow = false,
     })
     view.ExpandBtn = ExpandBtn.Instance
@@ -488,14 +495,6 @@ return function(config, components)
         CPSVal = makeMiniCard("CPS", 2),
         FPSVal = makeMiniCard("FPS", 3),
         PingVal = makeMiniCard("PING", 4),
-    }
-
-    -- Stats (embedded in utilitySection or separate mini section)
-    view.Stats = {
-        TotalClicksVal = makeLabel(utilitySection, "Clicks: 0", THEME.text, 8),
-        ActualCPSVal = makeLabel(utilitySection, "CPS: 0", THEME.text, 9),
-        FPSVal = makeLabel(utilitySection, "FPS: 0", THEME.text, 10),
-        PingVal = makeLabel(utilitySection, "Ping: 0 ms", THEME.text, 11),
     }
 
     view.Theme = THEME

@@ -9,13 +9,8 @@ return function(ctx)
     local MiniStats = ctx.gui.MiniStats
 
     -- Rolling window of click timestamps to measure real achieved CPS
-    -- (as opposed to the CPS *target* set by the slider).
     local clickTimestamps = {}
     local lastTotalClicks = 0
-
-    -- Sparkline sample history (one per 0.5s tick, drawn by gui.Sparkline)
-    local Sparkline = ctx.gui.Sparkline
-    local sparkHistory = {}
 
     -- FPS tracking via frame time deltas
     local frameCount = 0
@@ -32,7 +27,7 @@ return function(ctx)
         frameCount = frameCount + 1
         fpsAccum = fpsAccum + dt
 
-        -- Track new clicks since last frame for the rolling CPS window
+        -- Track new clicks since last frame
         if ctx.totalClicks > lastTotalClicks then
             local now = tick()
             for _ = 1, (ctx.totalClicks - lastTotalClicks) do
@@ -64,22 +59,6 @@ return function(ctx)
             end
             ctx.actualCPS = #clickTimestamps
 
-            -- Push the sample into the sparkline: shift history, then resize
-            -- each bar to its CPS ratio. Fill only the used prefix (bars past
-            -- the history length stay at height 0 until samples arrive).
-            if Sparkline then
-                table.insert(sparkHistory, ctx.actualCPS)
-                if #sparkHistory > #Sparkline.Bars then
-                    table.remove(sparkHistory, 1)
-                end
-                local maxBar = Sparkline.MaxBar or 28
-                for i, cps in ipairs(sparkHistory) do
-                    local ratio = math.clamp(cps / Sparkline.Max, 0, 1)
-                    local h = ratio > 0 and math.max(2, math.floor(ratio * maxBar)) or 0
-                    Sparkline.Bars[i].Size = UDim2.new(0, Sparkline.Bars[i].Size.X.Offset, 0, h)
-                end
-            end
-
             -- Ping (ms)
             local ok, pingMs = pcall(function()
                 return Stats_Service.Network.ServerStatsItem["Data Ping"]:GetValue()
@@ -87,17 +66,21 @@ return function(ctx)
             ctx.ping = ok and math.floor(pingMs + 0.5) or ctx.ping
 
             -- Push to expanded panel
-            Stats.TotalClicksVal.Text = tostring(ctx.totalClicks)
-            Stats.ActualCPSVal.Text = tostring(ctx.actualCPS)
-            Stats.FPSVal.Text = tostring(ctx.fps)
-            Stats.PingVal.Text = tostring(ctx.ping) .. " ms"
+            if Stats then
+                Stats.TotalClicksVal.Text = "Clicks: " .. tostring(ctx.totalClicks)
+                Stats.ActualCPSVal.Text = "CPS: " .. tostring(ctx.actualCPS)
+                Stats.FPSVal.Text = "FPS: " .. tostring(ctx.fps)
+                Stats.PingVal.Text = "Ping: " .. tostring(ctx.ping) .. " ms"
+            end
 
             -- Push to compact minimized panel
-            MiniStats.StatusVal.Text = ctx.clicking and "ON" or "OFF"
-            MiniStats.StatusVal.TextColor3 = ctx.clicking and ctx.THEME.success or ctx.THEME.danger
-            MiniStats.CPSVal.Text = tostring(ctx.actualCPS)
-            MiniStats.FPSVal.Text = tostring(ctx.fps)
-            MiniStats.PingVal.Text = tostring(ctx.ping)
+            if MiniStats then
+                MiniStats.StatusVal.Text = ctx.clicking and "ON" or "OFF"
+                MiniStats.StatusVal.TextColor3 = ctx.clicking and ctx.THEME.success or ctx.THEME.danger
+                MiniStats.CPSVal.Text = tostring(ctx.actualCPS)
+                MiniStats.FPSVal.Text = tostring(ctx.fps)
+                MiniStats.PingVal.Text = tostring(ctx.ping)
+            end
         end
     end)
 end
