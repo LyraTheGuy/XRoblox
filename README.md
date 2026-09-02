@@ -31,6 +31,15 @@ Comprehensive automation toolkit for IndoVoice.
 
 ---
 
+### 🐟 DeepFishing
+Automation suite for Deep Fishing game.
+
+**Features:** Auto perfect fish, instant collect, auto sell/delete by rarity, auto buy bait/rod/upgrades, fly/noclip/infinite jump, codes redemption, playtime/group/next day rewards, anti-AFK.
+
+**Quick Start:** Run `bootstrap.lua` → Select features from tabs → Configure settings → Press K to hide/show
+
+---
+
 ### 🎨 LyraHub
 Production-ready Roblox UI framework used by all projects.
 
@@ -74,6 +83,14 @@ XRoblox/
 │   ├── main.lua
 │   ├── config.lua
 │   ├── gate.lua
+│   ├── gui.lua
+│   ├── core.lua
+│   ├── modules/
+│   └── README.md
+├── DeepFishing/         # Deep Fishing automator
+│   ├── bootstrap.lua
+│   ├── main.lua
+│   ├── config.lua
 │   ├── gui.lua
 │   ├── core.lua
 │   ├── modules/

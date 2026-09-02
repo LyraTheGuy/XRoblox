@@ -199,11 +199,13 @@ return function(config, components)
     local tabOverviewBtn, tabOverviewIndicator = makeTabButton("Overview", 76)
     local tabActionsBtn, tabActionsIndicator = makeTabButton("Actions", 118)
     local tabBuyBtn, tabBuyIndicator = makeTabButton("Buy", 160)
+    local tabSettingsBtn, tabSettingsIndicator = makeTabButton("Settings", 202)
 
     local tabIndicators = {
         Overview = tabOverviewIndicator,
         Actions = tabActionsIndicator,
         Buy = tabBuyIndicator,
+        Settings = tabSettingsIndicator,
     }
 
     -- ═══════════════════════════════════════════
@@ -244,15 +246,28 @@ return function(config, components)
     buyTab.CanvasSize = UDim2.new(0, 0, 0, 560)
     buyTab.Parent = content
 
+    local settingsTab = Instance.new("ScrollingFrame")
+    settingsTab.Name = "SettingsTab"
+    settingsTab.Size = UDim2.new(1, 0, 1, 0)
+    settingsTab.BackgroundTransparency = 1
+    settingsTab.BorderSizePixel = 0
+    settingsTab.Visible = false
+    settingsTab.ScrollBarThickness = 3
+    settingsTab.ScrollBarImageTransparency = 0.6
+    settingsTab.CanvasSize = UDim2.new(0, 0, 0, 480)
+    settingsTab.Parent = content
+
     local function applyTab(activeTab)
         local showOverview = activeTab == "Overview"
         local showActions = activeTab == "Actions"
         local showBuy = activeTab == "Buy"
+        local showSettings = activeTab == "Settings"
         overviewTab.Visible = showOverview
         actionsTab.Visible = showActions
         buyTab.Visible = showBuy
+        settingsTab.Visible = showSettings
 
-        local states = { Overview = showOverview, Actions = showActions, Buy = showBuy }
+        local states = { Overview = showOverview, Actions = showActions, Buy = showBuy, Settings = showSettings }
         for name, btn in pairs(tabButtons) do
             local active = states[name]
             tabActive[btn] = active
@@ -274,7 +289,22 @@ return function(config, components)
     -- ═══════════════════════════════════════════
     local status = label({
         Parent = overviewTab, Text = "Status: OFF", Position = UDim2.new(0, 12, 0, 10),
-        Size = UDim2.new(1, -24, 0, 18), TextSize = 13, Font = Enum.Font.GothamBold, Color = theme.danger,
+        Size = UDim2.new(1, -120, 0, 18), TextSize = 13, Font = Enum.Font.GothamBold, Color = theme.danger,
+    })
+
+    local statusBadge = Instance.new("Frame")
+    statusBadge.Size = UDim2.new(0, 88, 0, 20)
+    statusBadge.Position = UDim2.new(1, -96, 0, 10)
+    statusBadge.BackgroundColor3 = theme.panel2
+    statusBadge.BorderSizePixel = 0
+    statusBadge.Parent = overviewTab
+    shared.corner(statusBadge, UDim.new(0, 10))
+    shared.stroke(statusBadge, theme.divider or theme.panel2, 1, 0.5)
+
+    label({
+        Parent = statusBadge, Text = "LIVE", Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(1, 0, 1, 0), TextSize = 9, Font = Enum.Font.GothamBold,
+        Color = theme.accent2, TextXAlignment = Enum.TextXAlignment.Center,
     })
 
     label({
@@ -335,9 +365,18 @@ return function(config, components)
     local totalHiveValue = makeStatCard("TOTAL HIVE", 4)
 
     -- Action counters section (fed by ctx.counts via core.lua updateStats)
+    local actionSection = Instance.new("Frame")
+    actionSection.Size = UDim2.new(1, -24, 0, 24)
+    actionSection.Position = UDim2.new(0, 12, 0, 206)
+    actionSection.BackgroundColor3 = theme.panel2
+    actionSection.BorderSizePixel = 0
+    actionSection.Parent = overviewTab
+    shared.corner(actionSection, UDim.new(0, 8))
+    shared.stroke(actionSection, theme.divider or theme.panel2, 1, 0.4)
+
     label({
-        Parent = overviewTab, Text = "ACTIONS PERFORMED", Position = UDim2.new(0, 12, 0, 210),
-        Size = UDim2.new(1, -24, 0, 14), TextSize = 9, Color = theme.dim, Font = Enum.Font.GothamBold,
+        Parent = actionSection, Text = "ACTIONS PERFORMED", Position = UDim2.new(0, 10, 0, 0),
+        Size = UDim2.new(1, -90, 1, 0), TextSize = 9, Color = theme.dim, Font = Enum.Font.GothamBold,
     })
 
     local resetCountersBtn = components.button({
@@ -760,7 +799,99 @@ return function(config, components)
     local miniAuroraVal = makeMiniCard("AURA", 3, miniActionCards)
     local miniBuySeedVal = makeMiniCard("SEED", 4, miniActionCards)
 
-    -- Wire tab clicks (core also binds these via gui.TabButtons — idempotent)
+    -- ═══════════════════════════════════════════
+    -- SETTINGS TAB
+    -- ═══════════════════════════════════════════
+    label({
+        Parent = settingsTab, Text = "Settings", Position = UDim2.new(0, 12, 0, 16),
+        Size = UDim2.new(1, -24, 0, 24), TextSize = 18, Font = Enum.Font.GothamBold, Color = theme.text,
+    })
+    label({
+        Parent = settingsTab, Text = "Customize the automation behavior.", Position = UDim2.new(0, 12, 0, 40),
+        Size = UDim2.new(1, -24, 0, 16), TextSize = 10, Color = theme.dim,
+    })
+
+    -- Theme selector
+    local themeCard = Instance.new("Frame")
+    themeCard.Size = UDim2.new(1, -24, 0, 70)
+    themeCard.Position = UDim2.new(0, 12, 0, 64)
+    themeCard.BackgroundColor3 = theme.panel
+    themeCard.BackgroundTransparency = 0.35
+    themeCard.BorderSizePixel = 0
+    themeCard.Parent = settingsTab
+    shared.corner(themeCard, UDim.new(0, 10))
+    shared.stroke(themeCard, theme.divider or theme.panel2, 1, 0.5)
+
+    label({
+        Parent = themeCard, Text = "Theme", Position = UDim2.new(0, 12, 0, 8),
+        Size = UDim2.new(1, -24, 0, 14), TextSize = 12, Font = Enum.Font.GothamBold, Color = theme.text,
+    })
+
+    local darkThemeBtn = components.button({
+        Parent = themeCard, Size = UDim2.fromOffset(80, 24), Position = UDim2.fromOffset(12, 28),
+        Text = "Dark (Default)", TextSize = 9, Color = theme.accent, TextColor = Color3.new(1, 1, 1),
+        HoverColor = theme.accent2, CornerRadius = UDim.new(0, 6), Glow = false,
+    })
+
+    local lightThemeBtn = components.button({
+        Parent = themeCard, Size = UDim2.fromOffset(80, 24), Position = UDim2.fromOffset(104, 28),
+        Text = "Light", TextSize = 9, Color = theme.panel2, TextColor = theme.dim,
+        HoverColor = theme.accent2, CornerRadius = UDim.new(0, 6), Glow = false,
+    })
+
+    -- Hotkey Settings
+    local hotkeyCard = Instance.new("Frame")
+    hotkeyCard.Size = UDim2.new(1, -24, 0, 140)
+    hotkeyCard.Position = UDim2.new(0, 12, 0, 142)
+    hotkeyCard.BackgroundColor3 = theme.panel
+    hotkeyCard.BackgroundTransparency = 0.35
+    hotkeyCard.BorderSizePixel = 0
+    hotkeyCard.Parent = settingsTab
+    shared.corner(hotkeyCard, UDim.new(0, 10))
+    shared.stroke(hotkeyCard, theme.divider or theme.panel2, 1, 0.5)
+
+    label({
+        Parent = hotkeyCard, Text = "Hotkeys", Position = UDim2.new(0, 12, 0, 8),
+        Size = UDim2.new(1, -24, 0, 14), TextSize = 12, Font = Enum.Font.GothamBold, Color = theme.text,
+    })
+
+    label({
+        Parent = hotkeyCard, Text = "Toggle UI [K]", Position = UDim2.new(0, 12, 0, 28),
+        Size = UDim2.new(1, -100, 0, 12), TextSize = 10, Color = theme.dim,
+    })
+    local toggleKeyInput = components.keybind({
+        Parent = hotkeyCard, Size = UDim2.fromOffset(80, 24), Position = UDim2.new(1, -92, 0, 24),
+        Default = "K",
+    })
+
+    label({
+        Parent = hotkeyCard, Text = "Collect [C]", Position = UDim2.new(0, 12, 0, 54),
+        Size = UDim2.new(1, -100, 0, 12), TextSize = 10, Color = theme.dim,
+    })
+    local collectKeyInput = components.keybind({
+        Parent = hotkeyCard, Size = UDim2.fromOffset(80, 24), Position = UDim2.new(1, -92, 0, 50),
+        Default = "C",
+    })
+
+    label({
+        Parent = hotkeyCard, Text = "Sell [X]", Position = UDim2.new(0, 12, 0, 80),
+        Size = UDim2.new(1, -100, 0, 12), TextSize = 10, Color = theme.dim,
+    })
+    local sellKeyInput = components.keybind({
+        Parent = hotkeyCard, Size = UDim2.fromOffset(80, 24), Position = UDim2.new(1, -92, 0, 76),
+        Default = "X",
+    })
+
+    label({
+        Parent = hotkeyCard, Text = "Aurora [Z]", Position = UDim2.new(0, 12, 0, 106),
+        Size = UDim2.new(1, -100, 0, 12), TextSize = 10, Color = theme.dim,
+    })
+    local auroraKeyInput = components.keybind({
+        Parent = hotkeyCard, Size = UDim2.fromOffset(80, 24), Position = UDim2.new(1, -92, 0, 102),
+        Default = "Z",
+    })
+
+    -- Wire tab clicks
     tabOverviewBtn.MouseButton1Click:Connect(function()
         setTab("Overview")
     end)
@@ -769,6 +900,9 @@ return function(config, components)
     end)
     tabBuyBtn.MouseButton1Click:Connect(function()
         setTab("Buy")
+    end)
+    tabSettingsBtn.MouseButton1Click:Connect(function()
+        setTab("Settings")
     end)
 
     setTab("Overview")
@@ -785,6 +919,7 @@ return function(config, components)
             Overview = tabOverviewBtn,
             Actions = tabActionsBtn,
             Buy = tabBuyBtn,
+            Settings = tabSettingsBtn,
         },
         MinBtn = minBtn.Instance,
         CloseBtn = closeBtn.Instance,

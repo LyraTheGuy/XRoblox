@@ -132,7 +132,7 @@ local components = {}
 local kitOk, kitErr = pcall(function()
     local shared = compile(fetch(LYRAHUB_URL .. "views/components/shared.lua", "shared.lua"), "shared.lua")()(config)
     components.shared = shared
-    for _, name in ipairs({ "button", "dropdown", "slider", "keybind", "toast", "updatecheck" }) do
+    for _, name in ipairs({ "button", "dropdown", "slider", "keybind", "toast", "updatecheck", "textinput" }) do
         local factory = compile(fetch(LYRAHUB_URL .. "views/components/" .. name .. ".lua", name), name)()
         components[name] = factory(config, shared)
     end
@@ -171,7 +171,7 @@ if not coreOk then
 end
 
 -- Load modules
-local modules = { "clicker", "stats", "ui" }
+local modules = { "clicker", "stats", "ui", "movement" }
 for _, name in ipairs(modules) do
     local ok, err = pcall(function()
         local modChunk = loadModule(name)

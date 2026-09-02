@@ -10,6 +10,13 @@ return {
         ToggleClicker = Enum.KeyCode.F,
         HideUI = Enum.KeyCode.K,
         PickPosition = Enum.KeyCode.P,
+        ESP = Enum.KeyCode.E,
+        Teleport = Enum.KeyCode.T,
+    },
+
+    Safety = {
+        AdminDetector = true,
+        NotifyOnStaffJoin = true,
     },
 
     Window = {

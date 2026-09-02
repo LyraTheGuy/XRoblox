@@ -1,63 +1,65 @@
-# Silent AutoClicker
+# Silent Hub — Autoclicker
 
-Universal, lightweight autoclicker for Roblox with VirtualInputManager support.
+Universal autoclicker for any Roblox game.
 
 ## Features
 
-- **Silent Click** — VirtualInputManager-based clicking with fallback support
-- **Click Modes** — Follow cursor or fixed position targeting
-- **CPS Control** — Adjustable 1-100 CPS with live feedback
-- **Stats** — Real-time clicks, CPS, FPS, and ping display
-- **Minimizable** — Compact pill mode while active
-- **Keybind Control** — Customizable F (toggle), P (target), K (hide/show)
+**● Auto Clicker**
+- Silent clicking via VirtualInputManager
+- Follow cursor or fixed position modes
+- Adjustable CPS (1-100) with slider and presets
+- Configurable click delay (1-360s)
+- Real-time stats: clicks, CPS, FPS, ping
+
+**🏃 Movement**
+- Fly — WASD + Space/Shift flight
+- NoClip — walk through walls
+- Infinite Jump — unlimited jumps
+
+**🛡️ Utility**
+- Anti AFK — prevent idle kicks
+- Anti Gameplay Pause — block pause notifications
+- Persistent Settings — save/load/reset to disk
 
 ## File Structure
 
 ```
+SilentAutoclick/
 ├── bootstrap.lua       # Loader
 ├── main.lua            # Entry point
-├── config.lua          # Settings and theme
-├── gui.lua             # UI components
-├── core.lua            # Click engine and state
+├── config.lua          # All settings
+├── gui.lua             # Single-page scrollable GUI
+├── core.lua            # Shared state, clicker, game interaction, persistence
 ├── modules/
-│   ├── clicker.lua     # Click mode, CPS, keybinds
-│   ├── stats.lua       # Performance metrics
-│   └── ui.lua          # Window controls
+│   ├── clicker.lua     # Auto clicker loop + timing
+│   ├── stats.lua       # Live stats + sparkline
+│   ├── ui.lua          # Window drag, minimize, hotkeys
+│   └── movement.lua    # Fly, NoClip, Infinite Jump
 └── README.md
 ```
 
 ## Usage
 
-1. Run `bootstrap.lua`
-2. Press `F` to toggle clicking
-3. Use mode dropdown to select **Follow Cursor** or **Fixed Position**
-4. Adjust CPS slider (1-100)
-5. Press `P` to pick target (Fixed Position only)
-6. Press `K` to hide/show UI
+1. Run `bootstrap.lua` with your script executor
+2. All features are visible on one scrollable page
+3. Press `K` to minimize/restore the UI
 
+## GUI Layout
 
-## Architecture
+Single-page scrollable design — no tabs, everything visible at once:
 
-Same modular `ctx` (context) pattern as IndoVoice/LyraHub, kept intentionally minimal since this is a single-purpose utility:
-
-1. `core.lua` creates a shared `ctx` table with mutable state and utility functions
-2. Each module in `modules/` receives `ctx` and adds its own functionality
-3. Modules read/write shared state through `ctx` (e.g., `ctx.clicking`, `ctx.clickCPS`)
-4. `main.lua` orchestrates loading: config → gui → core → modules
-
-## Usage
-
-Execute `bootstrap.lua` with your script executor. The GUI appears immediately — no login/gate required.
+| Section | Controls |
+|---------|----------|
+| ● Auto Clicker | Status, mode dropdown, toggle, keybind |
+| ◎ Click Timing | Delay input, CPS slider, presets |
+| 🏃 Movement | Fly, NoClip, Infinite Jump |
+| 🛡️ Utility | Anti-AFK, persistence (save/load/reset), unload, stats |
 
 ## Hotkeys
 
 | Key | Action |
 |-----|--------|
-| F | Toggle Auto Clicker (start/stop) |
-| P | Pick fixed target position (Fixed mode only) |
-| K | Hide / show UI |
-
-## Notes
-
-- "Silent" refers to the click method (`VirtualInputManager`), which avoids moving your real mouse cursor or triggering visible clicks — it does not bypass anti-cheat or hide the script's existence from server-side detection.
-- Works on any Roblox experience since it only interacts with client input, not game-specific remotes.
+| F | Toggle auto clicker |
+| P | Pick fixed target position |
+| K | Minimize / Restore UI |
+| WASD + Space/Shift | Fly movement |

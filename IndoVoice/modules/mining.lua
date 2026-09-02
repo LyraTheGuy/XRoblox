@@ -647,6 +647,10 @@ return function(ctx)
             gui.Mining.ToggleBtn.Text = "Auto Mine: OFF"
             gui.Mining.ToggleBtn.BackgroundColor3 = THEME.accent
         end
+        if gui.Toast and gui.Toast.show then
+            local msg = ctx.autoMineEnabled and "Auto Mine started" or "Auto Mine stopped"
+            gui.Toast.show({Text = msg, Variant = ctx.autoMineEnabled and "success" or "info", Duration = 1.5})
+        end
     end)
 
     -- Hotspot only toggle
@@ -666,6 +670,10 @@ return function(ctx)
         updateHotspotBtnUI()
         log("AutoMine: Hotspot Only " .. (ctx.autoMineHotspotOnly and "ON" or "OFF"),
             ctx.autoMineHotspotOnly and THEME.success or THEME.dim)
+        if gui.Toast and gui.Toast.show then
+            local msg = ctx.autoMineHotspotOnly and "Hotspot Only ON" or "Hotspot Only OFF"
+            gui.Toast.show({Text = msg, Variant = ctx.autoMineHotspotOnly and "success" or "info", Duration = 1.5})
+        end
     end)
 
     -- Auto TP toggle
@@ -688,6 +696,10 @@ return function(ctx)
         if ctx.autoMineTPEnabled then
             startStoneTPLoop()
         end
+        if gui.Toast and gui.Toast.show then
+            local msg = ctx.autoMineTPEnabled and "Auto TP to Stones ON" or "Auto TP to Stones OFF"
+            gui.Toast.show({Text = msg, Variant = ctx.autoMineTPEnabled and "success" or "info", Duration = 1.5})
+        end
     end)
 
     -- Hotspot ESP toggle
@@ -703,6 +715,10 @@ return function(ctx)
             log("AutoMine: Hotspot ESP OFF", THEME.dim)
         end
         refreshMineESP()
+        if gui.Toast and gui.Toast.show then
+            local msg = ctx.mineESPOn and "Hotspot ESP enabled" or "Hotspot ESP disabled"
+            gui.Toast.show({Text = msg, Variant = ctx.mineESPOn and "success" or "info", Duration = 1.5})
+        end
     end)
 
     -- ═══════════════════════════════════════════
@@ -899,6 +915,10 @@ return function(ctx)
             gui.Mining.AutoSellBtn.Text = "Auto Sell Ore: OFF"
             gui.Mining.AutoSellBtn.BackgroundColor3 = THEME.warn
             log("Auto Sell Ore: OFF", THEME.dim)
+        end
+        if gui.Toast and gui.Toast.show then
+            local msg = ctx.autoSellOreEnabled and "Auto Sell Ore started" or "Auto Sell Ore stopped"
+            gui.Toast.show({Text = msg, Variant = ctx.autoSellOreEnabled and "success" or "info", Duration = 1.5})
         end
     end)
 

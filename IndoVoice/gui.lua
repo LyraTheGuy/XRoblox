@@ -470,20 +470,74 @@ return function(config, components)
     AboutDesc.Parent = Tabs.About
 
     local AboutCreator = Instance.new("TextLabel")
-    AboutCreator.Size = UDim2.new(1, -20, 0, 40)
+    AboutCreator.Size = UDim2.new(1, -20, 0, 36)
     AboutCreator.Position = UDim2.new(0, 10, 0, 230)
     AboutCreator.BackgroundTransparency = 1
     AboutCreator.Text = "Created By: Ahzencal\nLyraHub est. 2026"
     AboutCreator.TextColor3 = LYRA.dim
     AboutCreator.Font = Enum.Font.Gotham
-    AboutCreator.TextSize = 12
+    AboutCreator.TextSize = 11
     AboutCreator.TextXAlignment = Enum.TextXAlignment.Left
     AboutCreator.TextYAlignment = Enum.TextYAlignment.Top
     AboutCreator.Parent = Tabs.About
 
+    -- ── Session Stats Dashboard ──
+    local DashboardCard = Instance.new("Frame")
+    DashboardCard.Size = UDim2.new(1, -20, 0, 70)
+    DashboardCard.Position = UDim2.new(0, 10, 0, 270)
+    DashboardCard.BackgroundColor3 = LYRA.bg2
+    DashboardCard.BorderSizePixel = 0
+    DashboardCard.Parent = Tabs.About
+    shared.corner(DashboardCard, UDim.new(0, 8))
+    shared.stroke(DashboardCard, LYRA.divider, 1, 0)
+
+    local DashTitle = Instance.new("TextLabel")
+    DashTitle.Size = UDim2.new(1, -16, 0, 18)
+    DashTitle.Position = UDim2.new(0, 8, 0, 6)
+    DashTitle.BackgroundTransparency = 1
+    DashTitle.Text = "📊 Session Overview"
+    DashTitle.TextColor3 = LYRA.accentGlow
+    DashTitle.Font = Enum.Font.GothamBold
+    DashTitle.TextSize = 11
+    DashTitle.TextXAlignment = Enum.TextXAlignment.Left
+    DashTitle.Parent = DashboardCard
+
+    local DashEarnings = Instance.new("TextLabel")
+    DashEarnings.Size = UDim2.new(0.5, -8, 0, 16)
+    DashEarnings.Position = UDim2.new(0, 8, 0, 26)
+    DashEarnings.BackgroundTransparency = 1
+    DashEarnings.Text = "Ropiah Earned: 0"
+    DashEarnings.TextColor3 = LYRA.text
+    DashEarnings.Font = Enum.Font.Gotham
+    DashEarnings.TextSize = 10
+    DashEarnings.TextXAlignment = Enum.TextXAlignment.Left
+    DashEarnings.Parent = DashboardCard
+
+    local DashSessionTime = Instance.new("TextLabel")
+    DashSessionTime.Size = UDim2.new(0.5, -8, 0, 16)
+    DashSessionTime.Position = UDim2.new(0.5, 0, 0, 26)
+    DashSessionTime.BackgroundTransparency = 1
+    DashSessionTime.Text = "Uptime: 00:00:00"
+    DashSessionTime.TextColor3 = LYRA.dim
+    DashSessionTime.Font = Enum.Font.Gotham
+    DashSessionTime.TextSize = 10
+    DashSessionTime.TextXAlignment = Enum.TextXAlignment.Left
+    DashSessionTime.Parent = DashboardCard
+
+    local DashActions = Instance.new("TextLabel")
+    DashActions.Size = UDim2.new(1, -16, 0, 16)
+    DashActions.Position = UDim2.new(0, 8, 0, 46)
+    DashActions.BackgroundTransparency = 1
+    DashActions.Text = "Catches: 0  |  Mined: 0  |  Gachas: 0"
+    DashActions.TextColor3 = LYRA.dim
+    DashActions.Font = Enum.Font.Gotham
+    DashActions.TextSize = 10
+    DashActions.TextXAlignment = Enum.TextXAlignment.Left
+    DashActions.Parent = DashboardCard
+
     local AboutVersion = Instance.new("TextLabel")
     AboutVersion.Size = UDim2.new(1, -20, 0, 20)
-    AboutVersion.Position = UDim2.new(0, 10, 1, -30)
+    AboutVersion.Position = UDim2.new(0, 10, 1, -24)
     AboutVersion.BackgroundTransparency = 1
     AboutVersion.Text = "v1.2 | LyraHub UI"
     AboutVersion.TextColor3 = LYRA.dim
@@ -558,18 +612,47 @@ return function(config, components)
     FishScroll.CanvasSize = UDim2.new(0, 0, 0, 620)
     FishScroll.Parent = Tabs.Fishing
 
+    local FishingTitle = Instance.new("TextLabel")
+    FishingTitle.Size = UDim2.new(1, -100, 0, 16)
+    FishingTitle.Position = UDim2.new(0, 10, 0, 8)
+    FishingTitle.BackgroundTransparency = 1
+    FishingTitle.Text = "🎣 Auto Fishing"
+    FishingTitle.TextColor3 = LYRA.accentGlow
+    FishingTitle.Font = Enum.Font.GothamBold
+    FishingTitle.TextSize = 11
+    FishingTitle.TextXAlignment = Enum.TextXAlignment.Left
+    FishingTitle.Parent = FishScroll
+
+    local FishingBadge = Instance.new("Frame")
+    FishingBadge.Size = UDim2.new(0, 68, 0, 18)
+    FishingBadge.Position = UDim2.new(1, -78, 0, 8)
+    FishingBadge.BackgroundColor3 = LYRA.panel2
+    FishingBadge.BorderSizePixel = 0
+    FishingBadge.Parent = FishScroll
+    shared.corner(FishingBadge, UDim.new(0, 9))
+    shared.stroke(FishingBadge, LYRA.divider, 1, 0.5)
+
+    local FishingBadgeText = Instance.new("TextLabel")
+    FishingBadgeText.Size = UDim2.new(1, 0, 1, 0)
+    FishingBadgeText.BackgroundTransparency = 1
+    FishingBadgeText.Text = "LIVE"
+    FishingBadgeText.TextColor3 = LYRA.accentGlow
+    FishingBadgeText.Font = Enum.Font.GothamBold
+    FishingBadgeText.TextSize = 9
+    FishingBadgeText.Parent = FishingBadge
+
     -- Buttons
-    local ZoneESPBtn = makeActionButton(FishScroll, "FishZone ESP: OFF", 8, LYRA.accent)
-    local AutoTPBtn = makeActionButton(FishScroll, "Auto TP Active FishZone: OFF", 42, LYRA.tp)
-    local AutoFishToggleBtn = makeActionButton(FishScroll, "Auto Fish: OFF", 76, LYRA.success)
-    local AutoSellBtn = makeActionButton(FishScroll, "Auto Sell Fish: OFF", 110, LYRA.warn)
-    local SellNowBtn = makeActionButton(FishScroll, "Sell All Now", 144, LYRA.accent)
-    local RefreshCharBtn = makeActionButton(FishScroll, "Refresh Character", 178, LYRA.danger)
+    local ZoneESPBtn = makeActionButton(FishScroll, "FishZone ESP: OFF", 34, LYRA.accent)
+    local AutoTPBtn = makeActionButton(FishScroll, "Auto TP Active FishZone: OFF", 68, LYRA.tp)
+    local AutoFishToggleBtn = makeActionButton(FishScroll, "Auto Fish: OFF", 102, LYRA.success)
+    local AutoSellBtn = makeActionButton(FishScroll, "Auto Sell Fish: OFF", 136, LYRA.warn)
+    local SellNowBtn = makeActionButton(FishScroll, "Sell All Now", 170, LYRA.accent)
+    local RefreshCharBtn = makeActionButton(FishScroll, "Refresh Character", 204, LYRA.danger)
 
     -- AutoFish Status
     local AutoFishStatus = Instance.new("TextLabel")
     AutoFishStatus.Size = UDim2.new(1, -20, 0, 18)
-    AutoFishStatus.Position = UDim2.new(0, 10, 0, 216)
+    AutoFishStatus.Position = UDim2.new(0, 10, 0, 242)
     AutoFishStatus.BackgroundTransparency = 1
     AutoFishStatus.TextColor3 = LYRA.dim
     AutoFishStatus.Text = "Fish: Idle"
@@ -580,7 +663,7 @@ return function(config, components)
 
     local AutoFishLastCatch = Instance.new("TextLabel")
     AutoFishLastCatch.Size = UDim2.new(1, -20, 0, 16)
-    AutoFishLastCatch.Position = UDim2.new(0, 10, 0, 236)
+    AutoFishLastCatch.Position = UDim2.new(0, 10, 0, 262)
     AutoFishLastCatch.BackgroundTransparency = 1
     AutoFishLastCatch.TextColor3 = LYRA.dim
     AutoFishLastCatch.Text = "Last: -"
@@ -592,7 +675,7 @@ return function(config, components)
     -- Zone Status
     local ZoneStatus = Instance.new("TextLabel")
     ZoneStatus.Size = UDim2.new(1, -20, 0, 16)
-    ZoneStatus.Position = UDim2.new(0, 10, 0, 254)
+    ZoneStatus.Position = UDim2.new(0, 10, 0, 280)
     ZoneStatus.BackgroundTransparency = 1
     ZoneStatus.TextColor3 = LYRA.text
     ZoneStatus.Text = "Zone: Idle"
@@ -604,7 +687,7 @@ return function(config, components)
     -- Separator
     local FishSep1 = Instance.new("Frame")
     FishSep1.Size = UDim2.new(1, -20, 0, 1)
-    FishSep1.Position = UDim2.new(0, 10, 0, 278)
+    FishSep1.Position = UDim2.new(0, 10, 0, 304)
     FishSep1.BackgroundColor3 = LYRA.panel2
     FishSep1.BorderSizePixel = 0
     FishSep1.Parent = FishScroll
@@ -612,7 +695,7 @@ return function(config, components)
     -- Config section
     local SellIntervalLbl = Instance.new("TextLabel")
     SellIntervalLbl.Size = UDim2.new(0, 100, 0, 20)
-    SellIntervalLbl.Position = UDim2.new(0, 10, 0, 286)
+    SellIntervalLbl.Position = UDim2.new(0, 10, 0, 312)
     SellIntervalLbl.BackgroundTransparency = 1
     SellIntervalLbl.Text = "Sell Interval (s):"
     SellIntervalLbl.TextColor3 = LYRA.dim
@@ -623,7 +706,7 @@ return function(config, components)
 
     local SellIntervalInput = Instance.new("TextBox")
     SellIntervalInput.Size = UDim2.new(0, 60, 0, 20)
-    SellIntervalInput.Position = UDim2.new(0, 112, 0, 286)
+    SellIntervalInput.Position = UDim2.new(0, 112, 0, 312)
     SellIntervalInput.BackgroundColor3 = LYRA.bg2
     SellIntervalInput.TextColor3 = LYRA.text
     SellIntervalInput.Text = tostring(config.AutoSell and config.AutoSell.Interval or 3600)
@@ -637,7 +720,7 @@ return function(config, components)
     -- Sell Rarity selection (moved from Settings)
     local SellRarityTitle = Instance.new("TextLabel")
     SellRarityTitle.Size = UDim2.new(1, -20, 0, 16)
-    SellRarityTitle.Position = UDim2.new(0, 10, 0, 314)
+    SellRarityTitle.Position = UDim2.new(0, 10, 0, 340)
     SellRarityTitle.BackgroundTransparency = 1
     SellRarityTitle.Text = "Sell Rarities:"
     SellRarityTitle.TextColor3 = LYRA.dim
@@ -652,7 +735,7 @@ return function(config, components)
         local btn = Instance.new("TextButton")
         btn.Text = rarity
         btn.Size = UDim2.new(0, 56, 0, 20)
-        btn.Position = UDim2.new(0, 10 + ((i - 1) % 5) * 62, 0, 334 + math.floor((i - 1) / 5) * 26)
+        btn.Position = UDim2.new(0, 10 + ((i - 1) % 5) * 62, 0, 360 + math.floor((i - 1) / 5) * 26)
         btn.BackgroundColor3 = LYRA.success
         btn.BackgroundTransparency = 0.2
         btn.TextColor3 = Color3.new(1, 1, 1)
@@ -667,7 +750,7 @@ return function(config, components)
     -- Separator 2
     local FishSep2 = Instance.new("Frame")
     FishSep2.Size = UDim2.new(1, -20, 0, 1)
-    FishSep2.Position = UDim2.new(0, 10, 0, 392)
+    FishSep2.Position = UDim2.new(0, 10, 0, 418)
     FishSep2.BackgroundColor3 = LYRA.panel2
     FishSep2.BorderSizePixel = 0
     FishSep2.Parent = FishScroll
@@ -675,7 +758,7 @@ return function(config, components)
     -- Fish Caught Stats
     local FishStatsTitle = Instance.new("TextLabel")
     FishStatsTitle.Size = UDim2.new(1, -20, 0, 18)
-    FishStatsTitle.Position = UDim2.new(0, 10, 0, 400)
+    FishStatsTitle.Position = UDim2.new(0, 10, 0, 426)
     FishStatsTitle.BackgroundTransparency = 1
     FishStatsTitle.Text = "📊 Catch Stats"
     FishStatsTitle.TextColor3 = LYRA.accentGlow
@@ -686,7 +769,7 @@ return function(config, components)
 
     local FishTotalLbl = Instance.new("TextLabel")
     FishTotalLbl.Size = UDim2.new(1, -20, 0, 16)
-    FishTotalLbl.Position = UDim2.new(0, 10, 0, 422)
+    FishTotalLbl.Position = UDim2.new(0, 10, 0, 448)
     FishTotalLbl.BackgroundTransparency = 1
     FishTotalLbl.Text = "Total Fish: 0"
     FishTotalLbl.TextColor3 = LYRA.text
@@ -697,7 +780,7 @@ return function(config, components)
 
     local FishRarityStats = Instance.new("TextLabel")
     FishRarityStats.Size = UDim2.new(1, -20, 0, 100)
-    FishRarityStats.Position = UDim2.new(0, 10, 0, 442)
+    FishRarityStats.Position = UDim2.new(0, 10, 0, 468)
     FishRarityStats.BackgroundTransparency = 1
     FishRarityStats.TextColor3 = LYRA.dim
     FishRarityStats.Text = "Mythic: 0 | Legend: 0 | Epic: 0\nRare: 0 | Uncommon: 0 | Common: 0"
@@ -725,18 +808,47 @@ return function(config, components)
     MiningScroll.CanvasSize = UDim2.new(0, 0, 0, 520)
     MiningScroll.Parent = Tabs.Mining
 
+    local MiningTitle = Instance.new("TextLabel")
+    MiningTitle.Size = UDim2.new(1, -100, 0, 16)
+    MiningTitle.Position = UDim2.new(0, 10, 0, 8)
+    MiningTitle.BackgroundTransparency = 1
+    MiningTitle.Text = "⛏ Auto Mining"
+    MiningTitle.TextColor3 = LYRA.accentGlow
+    MiningTitle.Font = Enum.Font.GothamBold
+    MiningTitle.TextSize = 11
+    MiningTitle.TextXAlignment = Enum.TextXAlignment.Left
+    MiningTitle.Parent = MiningScroll
+
+    local MiningBadge = Instance.new("Frame")
+    MiningBadge.Size = UDim2.new(0, 68, 0, 18)
+    MiningBadge.Position = UDim2.new(1, -78, 0, 8)
+    MiningBadge.BackgroundColor3 = LYRA.panel2
+    MiningBadge.BorderSizePixel = 0
+    MiningBadge.Parent = MiningScroll
+    shared.corner(MiningBadge, UDim.new(0, 9))
+    shared.stroke(MiningBadge, LYRA.divider, 1, 0.5)
+
+    local MiningBadgeText = Instance.new("TextLabel")
+    MiningBadgeText.Size = UDim2.new(1, 0, 1, 0)
+    MiningBadgeText.BackgroundTransparency = 1
+    MiningBadgeText.Text = "LIVE"
+    MiningBadgeText.TextColor3 = LYRA.accentGlow
+    MiningBadgeText.Font = Enum.Font.GothamBold
+    MiningBadgeText.TextSize = 9
+    MiningBadgeText.Parent = MiningBadge
+
     -- Buttons (same style as fishing)
-    local AutoMineESPBtn = makeActionButton(MiningScroll, "Hotspot ESP: OFF", 8, LYRA.warn)
-    local AutoMineTPBtn = makeActionButton(MiningScroll, "Auto TP to Stones: OFF", 42, LYRA.tp)
-    local AutoMineToggleBtn = makeActionButton(MiningScroll, "Auto Mine: OFF", 76, LYRA.success)
-    local AutoSellOreBtn = makeActionButton(MiningScroll, "Auto Sell Ore: OFF", 110, LYRA.warn)
-    local SellOreNowBtn = makeActionButton(MiningScroll, "Sell Ore Now", 144, LYRA.accent)
-    local AutoMineHotspotBtn = makeActionButton(MiningScroll, "Hotspot Only: OFF", 178, LYRA.tp)
+    local AutoMineESPBtn = makeActionButton(MiningScroll, "Hotspot ESP: OFF", 34, LYRA.warn)
+    local AutoMineTPBtn = makeActionButton(MiningScroll, "Auto TP to Stones: OFF", 68, LYRA.tp)
+    local AutoMineToggleBtn = makeActionButton(MiningScroll, "Auto Mine: OFF", 102, LYRA.success)
+    local AutoSellOreBtn = makeActionButton(MiningScroll, "Auto Sell Ore: OFF", 136, LYRA.warn)
+    local SellOreNowBtn = makeActionButton(MiningScroll, "Sell Ore Now", 170, LYRA.accent)
+    local AutoMineHotspotBtn = makeActionButton(MiningScroll, "Hotspot Only: OFF", 204, LYRA.tp)
 
     -- Status labels
     local AutoMineStatus = Instance.new("TextLabel")
     AutoMineStatus.Size = UDim2.new(1, -20, 0, 18)
-    AutoMineStatus.Position = UDim2.new(0, 10, 0, 216)
+    AutoMineStatus.Position = UDim2.new(0, 10, 0, 242)
     AutoMineStatus.BackgroundTransparency = 1
     AutoMineStatus.TextColor3 = LYRA.dim
     AutoMineStatus.Text = "Mine: Idle"
@@ -747,7 +859,7 @@ return function(config, components)
 
     local AutoMineLastOre = Instance.new("TextLabel")
     AutoMineLastOre.Size = UDim2.new(1, -20, 0, 16)
-    AutoMineLastOre.Position = UDim2.new(0, 10, 0, 236)
+    AutoMineLastOre.Position = UDim2.new(0, 10, 0, 262)
     AutoMineLastOre.BackgroundTransparency = 1
     AutoMineLastOre.TextColor3 = LYRA.dim
     AutoMineLastOre.Text = "Last: —"
@@ -759,7 +871,7 @@ return function(config, components)
     -- Separator
     local MineSep1 = Instance.new("Frame")
     MineSep1.Size = UDim2.new(1, -20, 0, 1)
-    MineSep1.Position = UDim2.new(0, 10, 0, 260)
+    MineSep1.Position = UDim2.new(0, 10, 0, 286)
     MineSep1.BackgroundColor3 = LYRA.panel2
     MineSep1.BorderSizePixel = 0
     MineSep1.Parent = MiningScroll
@@ -767,7 +879,7 @@ return function(config, components)
     -- Sell interval
     local OreSellIntervalLbl = Instance.new("TextLabel")
     OreSellIntervalLbl.Size = UDim2.new(0, 100, 0, 20)
-    OreSellIntervalLbl.Position = UDim2.new(0, 10, 0, 268)
+    OreSellIntervalLbl.Position = UDim2.new(0, 10, 0, 294)
     OreSellIntervalLbl.BackgroundTransparency = 1
     OreSellIntervalLbl.Text = "Sell Interval (s):"
     OreSellIntervalLbl.TextColor3 = LYRA.dim
@@ -778,7 +890,7 @@ return function(config, components)
 
     local OreSellIntervalInput = Instance.new("TextBox")
     OreSellIntervalInput.Size = UDim2.new(0, 60, 0, 20)
-    OreSellIntervalInput.Position = UDim2.new(0, 112, 0, 268)
+    OreSellIntervalInput.Position = UDim2.new(0, 112, 0, 294)
     OreSellIntervalInput.BackgroundColor3 = LYRA.bg2
     OreSellIntervalInput.TextColor3 = LYRA.text
     OreSellIntervalInput.Text = "3600"
@@ -792,7 +904,7 @@ return function(config, components)
     -- Sell Rarities
     local OreSellRarityTitle = Instance.new("TextLabel")
     OreSellRarityTitle.Size = UDim2.new(1, -20, 0, 16)
-    OreSellRarityTitle.Position = UDim2.new(0, 10, 0, 296)
+    OreSellRarityTitle.Position = UDim2.new(0, 10, 0, 322)
     OreSellRarityTitle.BackgroundTransparency = 1
     OreSellRarityTitle.Text = "Sell Rarities:"
     OreSellRarityTitle.TextColor3 = LYRA.dim
@@ -807,7 +919,7 @@ return function(config, components)
         local btn = Instance.new("TextButton")
         btn.Text = rarity
         btn.Size = UDim2.new(0, 56, 0, 20)
-        btn.Position = UDim2.new(0, 10 + ((i - 1) % 5) * 62, 0, 316 + math.floor((i - 1) / 5) * 26)
+        btn.Position = UDim2.new(0, 10 + ((i - 1) % 5) * 62, 0, 342 + math.floor((i - 1) / 5) * 26)
         btn.BackgroundColor3 = LYRA.success
         btn.BackgroundTransparency = 0.2
         btn.TextColor3 = Color3.new(1, 1, 1)
@@ -822,7 +934,7 @@ return function(config, components)
     -- Separator 2
     local MineSep2 = Instance.new("Frame")
     MineSep2.Size = UDim2.new(1, -20, 0, 1)
-    MineSep2.Position = UDim2.new(0, 10, 0, 374)
+    MineSep2.Position = UDim2.new(0, 10, 0, 400)
     MineSep2.BackgroundColor3 = LYRA.panel2
     MineSep2.BorderSizePixel = 0
     MineSep2.Parent = MiningScroll
@@ -830,7 +942,7 @@ return function(config, components)
     -- Mine Stats
     local MineStatsTitle = Instance.new("TextLabel")
     MineStatsTitle.Size = UDim2.new(1, -20, 0, 18)
-    MineStatsTitle.Position = UDim2.new(0, 10, 0, 382)
+    MineStatsTitle.Position = UDim2.new(0, 10, 0, 408)
     MineStatsTitle.BackgroundTransparency = 1
     MineStatsTitle.Text = "📊 Mine Stats"
     MineStatsTitle.TextColor3 = LYRA.accentGlow
@@ -841,7 +953,7 @@ return function(config, components)
 
     local MineOreStats = Instance.new("TextLabel")
     MineOreStats.Size = UDim2.new(1, -20, 0, 100)
-    MineOreStats.Position = UDim2.new(0, 10, 0, 404)
+    MineOreStats.Position = UDim2.new(0, 10, 0, 430)
     MineOreStats.BackgroundTransparency = 1
     MineOreStats.TextColor3 = LYRA.dim
     MineOreStats.Text = "Total Mined: 0"
@@ -866,7 +978,7 @@ return function(config, components)
 
     -- ── Auto Clicker Section ──
     local ClickerTitle = Instance.new("TextLabel")
-    ClickerTitle.Size = UDim2.new(1, -20, 0, 16)
+    ClickerTitle.Size = UDim2.new(1, -100, 0, 16)
     ClickerTitle.Position = UDim2.new(0, 10, 0, 8)
     ClickerTitle.BackgroundTransparency = 1
     ClickerTitle.Text = "🖱 Auto Clicker"
@@ -875,6 +987,24 @@ return function(config, components)
     ClickerTitle.TextSize = 11
     ClickerTitle.TextXAlignment = Enum.TextXAlignment.Left
     ClickerTitle.Parent = FunScroll
+
+    local ClickerBadge = Instance.new("Frame")
+    ClickerBadge.Size = UDim2.new(0, 68, 0, 18)
+    ClickerBadge.Position = UDim2.new(1, -78, 0, 8)
+    ClickerBadge.BackgroundColor3 = LYRA.panel2
+    ClickerBadge.BorderSizePixel = 0
+    ClickerBadge.Parent = FunScroll
+    shared.corner(ClickerBadge, UDim.new(0, 9))
+    shared.stroke(ClickerBadge, LYRA.divider, 1, 0.5)
+
+    local ClickerBadgeText = Instance.new("TextLabel")
+    ClickerBadgeText.Size = UDim2.new(1, 0, 1, 0)
+    ClickerBadgeText.BackgroundTransparency = 1
+    ClickerBadgeText.Text = "LIVE"
+    ClickerBadgeText.TextColor3 = LYRA.accentGlow
+    ClickerBadgeText.Font = Enum.Font.GothamBold
+    ClickerBadgeText.TextSize = 9
+    ClickerBadgeText.Parent = ClickerBadge
 
     -- Row: Status + Mode
     local StatusLbl = Instance.new("TextLabel")
@@ -1375,7 +1505,7 @@ return function(config, components)
     SettingsScroll.BackgroundTransparency = 1
     SettingsScroll.BorderSizePixel = 0
     SettingsScroll.ScrollBarThickness = 3
-    SettingsScroll.CanvasSize = UDim2.new(0, 0, 0, 590)
+    SettingsScroll.CanvasSize = UDim2.new(0, 0, 0, 680)
     SettingsScroll.Parent = Tabs.Settings
 
     local HideKeyLbl = Instance.new("TextLabel")
@@ -1389,30 +1519,67 @@ return function(config, components)
     HideKeyLbl.TextXAlignment = Enum.TextXAlignment.Left
     HideKeyLbl.Parent = SettingsScroll
 
-    local UnloadBtn = makeActionButton(SettingsScroll, "Unload Script", 40, LYRA.danger)
-    local AutoClaimDailyRewardBtn = makeActionButton(SettingsScroll, "Auto Claim Daily Reward: OFF", 80, LYRA.accent)
-    local AutoClaimSessionRewardBtn = makeActionButton(SettingsScroll, "Auto Claim Session Reward: OFF", 120, LYRA.tp)
+    -- ──── Hotkeys Customization ────
+    local HotkeysTitle = Instance.new("TextLabel")
+    HotkeysTitle.Size = UDim2.new(1, -20, 0, 18)
+    HotkeysTitle.Position = UDim2.new(0, 10, 0, 38)
+    HotkeysTitle.BackgroundTransparency = 1
+    HotkeysTitle.Text = "🔑 Hotkeys"
+    HotkeysTitle.TextColor3 = LYRA.accentGlow
+    HotkeysTitle.Font = Enum.Font.GothamBold
+    HotkeysTitle.TextSize = 13
+    HotkeysTitle.TextXAlignment = Enum.TextXAlignment.Left
+    HotkeysTitle.Parent = SettingsScroll
+
+    local function makeHotkeyRow(label, y, default)
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(0.6, -10, 0, 14)
+        lbl.Position = UDim2.new(0, 10, 0, y)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = label
+        lbl.TextColor3 = LYRA.dim
+        lbl.Font = Enum.Font.Gotham
+        lbl.TextSize = 10
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.Parent = SettingsScroll
+
+        local keybind = components.keybind({
+            Parent = SettingsScroll,
+            Size = UDim2.fromOffset(70, 22),
+            Position = UDim2.new(1, -80, 0, y - 2),
+            Default = default,
+        })
+        return keybind
+    end
+
+    local hideUIKey = makeHotkeyRow("Toggle UI", 58, config.Keys.HideUI:gsub("Enum.KeyCode.", "") or "K")
+    local espKey = makeHotkeyRow("Toggle ESP", 76, config.Keys.ESP or "E")
+    local tpKey = makeHotkeyRow("Teleport", 94, config.Keys.Teleport or "T")
+
+    local UnloadBtn = makeActionButton(SettingsScroll, "Unload Script", 120, LYRA.danger)
+    local AutoClaimDailyRewardBtn = makeActionButton(SettingsScroll, "Auto Claim Daily Reward: OFF", 160, LYRA.accent)
+    local AutoClaimSessionRewardBtn = makeActionButton(SettingsScroll, "Auto Claim Session Reward: OFF", 200, LYRA.tp)
     -- Anti Idle (Roblox platform 20-min disconnect) and Anti AFK (the game's
     -- own "Still There?" prompt) share a row to avoid shifting the layout.
-    local AntiIdleBtn = makeActionButton(SettingsScroll, "Anti Idle: OFF", 160, LYRA.warn)
+    local AntiIdleBtn = makeActionButton(SettingsScroll, "Anti Idle: OFF", 240, LYRA.warn)
     AntiIdleBtn.Size = UDim2.new(0.48, -10, 0, 30)
-    AntiIdleBtn.Position = UDim2.new(0, 10, 0, 160)
+    AntiIdleBtn.Position = UDim2.new(0, 10, 0, 240)
 
-    local AntiAfkBtn = makeActionButton(SettingsScroll, "Anti AFK: OFF", 160, LYRA.warn)
+    local AntiAfkBtn = makeActionButton(SettingsScroll, "Anti AFK: OFF", 240, LYRA.warn)
     AntiAfkBtn.Size = UDim2.new(0.48, -10, 0, 30)
-    AntiAfkBtn.Position = UDim2.new(0.5, 5, 0, 160)
+    AntiAfkBtn.Position = UDim2.new(0.5, 5, 0, 240)
 
     -- ── Webhook Section ──
     local WebhookSep = Instance.new("Frame")
     WebhookSep.Size = UDim2.new(1, -20, 0, 1)
-    WebhookSep.Position = UDim2.new(0, 10, 0, 200)
+    WebhookSep.Position = UDim2.new(0, 10, 0, 280)
     WebhookSep.BackgroundColor3 = LYRA.panel2
     WebhookSep.BorderSizePixel = 0
     WebhookSep.Parent = SettingsScroll
 
     local WebhookTitle = Instance.new("TextLabel")
     WebhookTitle.Size = UDim2.new(1, -20, 0, 18)
-    WebhookTitle.Position = UDim2.new(0, 10, 0, 208)
+    WebhookTitle.Position = UDim2.new(0, 10, 0, 288)
     WebhookTitle.BackgroundTransparency = 1
     WebhookTitle.Text = "Webhook (Fish Caught)"
     WebhookTitle.TextColor3 = LYRA.text
@@ -1423,7 +1590,7 @@ return function(config, components)
 
     local WebhookURLLabel = Instance.new("TextLabel")
     WebhookURLLabel.Size = UDim2.new(0, 34, 0, 22)
-    WebhookURLLabel.Position = UDim2.new(0, 10, 0, 230)
+    WebhookURLLabel.Position = UDim2.new(0, 10, 0, 310)
     WebhookURLLabel.BackgroundTransparency = 1
     WebhookURLLabel.Text = "URL:"
     WebhookURLLabel.TextColor3 = LYRA.dim
@@ -1434,7 +1601,7 @@ return function(config, components)
 
     local WebhookInput = Instance.new("TextBox")
     WebhookInput.Size = UDim2.new(1, -60, 0, 22)
-    WebhookInput.Position = UDim2.new(0, 46, 0, 230)
+    WebhookInput.Position = UDim2.new(0, 46, 0, 310)
     WebhookInput.BackgroundColor3 = LYRA.bg2
     WebhookInput.TextColor3 = LYRA.text
     WebhookInput.PlaceholderText = "https://discord.com/api/webhooks/..."
@@ -1454,7 +1621,7 @@ return function(config, components)
     -- Webhook rarity filter
     local WebhookRarityTitle = Instance.new("TextLabel")
     WebhookRarityTitle.Size = UDim2.new(1, -20, 0, 16)
-    WebhookRarityTitle.Position = UDim2.new(0, 10, 0, 258)
+    WebhookRarityTitle.Position = UDim2.new(0, 10, 0, 338)
     WebhookRarityTitle.BackgroundTransparency = 1
     WebhookRarityTitle.Text = "Log Rarities (tap to toggle)"
     WebhookRarityTitle.TextColor3 = LYRA.dim
@@ -1468,7 +1635,7 @@ return function(config, components)
         local btn = Instance.new("TextButton")
         btn.Text = rarity
         btn.Size = UDim2.new(0, 62, 0, 22)
-        btn.Position = UDim2.new(0, 10 + ((i - 1) % 4) * 68, 0, 278 + math.floor((i - 1) / 4) * 28)
+        btn.Position = UDim2.new(0, 10 + ((i - 1) % 4) * 68, 0, 358 + math.floor((i - 1) / 4) * 28)
         btn.BackgroundColor3 = LYRA.panel2
         btn.BackgroundTransparency = 0.4
         btn.TextColor3 = LYRA.dim
@@ -1481,21 +1648,21 @@ return function(config, components)
     end
 
     -- Buttons row: Toggle + Test + Save
-    local WebhookToggleBtn = makeActionButton(SettingsScroll, "Webhook: OFF", 340, LYRA.panel2)
+    local WebhookToggleBtn = makeActionButton(SettingsScroll, "Webhook: OFF", 420, LYRA.panel2)
     WebhookToggleBtn.Size = UDim2.new(0.48, -10, 0, 28)
-    WebhookToggleBtn.Position = UDim2.new(0, 10, 0, 340)
+    WebhookToggleBtn.Position = UDim2.new(0, 10, 0, 420)
 
-    local WebhookTestBtn = makeActionButton(SettingsScroll, "Test Webhook", 340, LYRA.warn)
+    local WebhookTestBtn = makeActionButton(SettingsScroll, "Test Webhook", 420, LYRA.warn)
     WebhookTestBtn.Size = UDim2.new(0.48, -10, 0, 28)
-    WebhookTestBtn.Position = UDim2.new(0.5, 5, 0, 340)
+    WebhookTestBtn.Position = UDim2.new(0.5, 5, 0, 420)
 
-    local SaveSettingsBtn = makeActionButton(SettingsScroll, "Save All Settings", 378, LYRA.success)
+    local SaveSettingsBtn = makeActionButton(SettingsScroll, "Save All Settings", 458, LYRA.success)
     SaveSettingsBtn.Size = UDim2.new(0.48, -10, 0, 30)
-    SaveSettingsBtn.Position = UDim2.new(0, 10, 0, 378)
+    SaveSettingsBtn.Position = UDim2.new(0, 10, 0, 458)
 
-    local LoadSettingsBtn = makeActionButton(SettingsScroll, "Load Config", 378, LYRA.tp)
+    local LoadSettingsBtn = makeActionButton(SettingsScroll, "Load Config", 458, LYRA.tp)
     LoadSettingsBtn.Size = UDim2.new(0.48, -10, 0, 30)
-    LoadSettingsBtn.Position = UDim2.new(0.5, 5, 0, 378)
+    LoadSettingsBtn.Position = UDim2.new(0.5, 5, 0, 458)
 
     local SaveStatus = Instance.new("TextLabel")
     SaveStatus.Size = UDim2.new(1, -20, 0, 18)
@@ -1511,14 +1678,14 @@ return function(config, components)
     -- ── Theme section (Dark / Light) ──
     local ThemeSep = Instance.new("Frame")
     ThemeSep.Size = UDim2.new(1, -20, 0, 1)
-    ThemeSep.Position = UDim2.new(0, 10, 0, 474)
+    ThemeSep.Position = UDim2.new(0, 10, 0, 554)
     ThemeSep.BackgroundColor3 = LYRA.panel2
     ThemeSep.BorderSizePixel = 0
     ThemeSep.Parent = SettingsScroll
 
     local ColorTitle = Instance.new("TextLabel")
     ColorTitle.Size = UDim2.new(1, -20, 0, 18)
-    ColorTitle.Position = UDim2.new(0, 10, 0, 482)
+    ColorTitle.Position = UDim2.new(0, 10, 0, 562)
     ColorTitle.BackgroundTransparency = 1
     ColorTitle.Text = "Theme"
     ColorTitle.TextColor3 = LYRA.text
@@ -1529,7 +1696,7 @@ return function(config, components)
 
     local AccentPreview = Instance.new("Frame")
     AccentPreview.Size = UDim2.new(0, 18, 0, 18)
-    AccentPreview.Position = UDim2.new(1, -30, 0, 482)
+    AccentPreview.Position = UDim2.new(1, -30, 0, 562)
     AccentPreview.BackgroundColor3 = LYRA.accent
     AccentPreview.BorderSizePixel = 0
     AccentPreview.Parent = SettingsScroll
@@ -1538,7 +1705,7 @@ return function(config, components)
     local DarkThemeBtn = Instance.new("TextButton")
     DarkThemeBtn.Text = "Dark (Lyra)"
     DarkThemeBtn.Size = UDim2.new(0.48, -10, 0, 28)
-    DarkThemeBtn.Position = UDim2.new(0, 10, 0, 506)
+    DarkThemeBtn.Position = UDim2.new(0, 10, 0, 586)
     DarkThemeBtn.BackgroundColor3 = LYRA.accent
     DarkThemeBtn.TextColor3 = Color3.new(1, 1, 1)
     DarkThemeBtn.Font = Enum.Font.GothamBold
@@ -1550,7 +1717,7 @@ return function(config, components)
     local LightThemeBtn = Instance.new("TextButton")
     LightThemeBtn.Text = "Light (Lyra)"
     LightThemeBtn.Size = UDim2.new(0.48, -10, 0, 28)
-    LightThemeBtn.Position = UDim2.new(0.5, 5, 0, 506)
+    LightThemeBtn.Position = UDim2.new(0.5, 5, 0, 586)
     LightThemeBtn.BackgroundColor3 = LYRA.panel2
     LightThemeBtn.TextColor3 = LYRA.dim
     LightThemeBtn.Font = Enum.Font.GothamBold
@@ -1563,7 +1730,7 @@ return function(config, components)
 
     local SettingsInfo = Instance.new("TextLabel")
     SettingsInfo.Size = UDim2.new(1, -20, 0, 30)
-    SettingsInfo.Position = UDim2.new(0, 10, 0, 544)
+    SettingsInfo.Position = UDim2.new(0, 10, 0, 624)
     SettingsInfo.BackgroundTransparency = 1
     SettingsInfo.Text = "Settings are saved locally and auto-loaded on next run."
     SettingsInfo.TextColor3 = LYRA.dim
@@ -1638,6 +1805,9 @@ return function(config, components)
         Tabs = Tabs,
         About = {
             CopySaweriaBtn = CopySaweriaBtn,
+            DashEarnings = DashEarnings,
+            DashSessionTime = DashSessionTime,
+            DashActions = DashActions,
         },
         Players = {
             SearchBox = SearchBox,
@@ -1710,6 +1880,9 @@ return function(config, components)
         },
         Settings = {
             HideKeyLbl = HideKeyLbl,
+            HideUIKeybind = hideUIKey,
+            ESPKeybind = espKey,
+            TPKeybind = tpKey,
             UnloadBtn = UnloadBtn,
             AutoClaimDailyRewardBtn = AutoClaimDailyRewardBtn,
             AutoClaimSessionRewardBtn = AutoClaimSessionRewardBtn,

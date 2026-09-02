@@ -507,6 +507,13 @@ return function(gui, config)
 			table.clear(ctx.counts)
 			saveCounters() -- zero the persisted file too, so a reload starts fresh
 			updateStats()
+			if gui.Toast and gui.Toast.show then
+				gui.Toast.show({
+					Text = "Counters reset",
+					Variant = "info",
+					Duration = 1.5,
+				})
+			end
 		end)
 	end
 

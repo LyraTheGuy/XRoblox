@@ -1,10 +1,10 @@
--- BuildABeehive/bootstrap.lua
+-- DeepFishing/bootstrap.lua
 -- Branch-specific tiny loader
 
 local USER = "LyraTheGuy"
 local REPO = "XRoblox"
-local FOLDER = "BuildABeehive"
-local BRANCH = "staging" -- change to "staging" in staging branch copy only
+local FOLDER = "DeepFishing"
+local BRANCH = "staging" -- Change this to "main" for the main branch
 
 local BASE_URL = ("https://raw.githubusercontent.com/%s/%s/%s/%s/"):format(USER, REPO, BRANCH, FOLDER)
 

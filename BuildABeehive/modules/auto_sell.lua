@@ -11,6 +11,14 @@ return function(ctx)
         ctx.AutoSell = not ctx.AutoSell
         ctx.setButtonState(ctx.gui.SellButton, ctx.AutoSell, "Sell")
         ctx.updateStatus()
+        if ctx.gui.Toast and ctx.gui.Toast.show then
+            local msg = ctx.AutoSell and "Auto Sell enabled" or "Auto Sell disabled"
+            ctx.gui.Toast.show({
+                Text = msg,
+                Variant = ctx.AutoSell and "success" or "info",
+                Duration = 1.5,
+            })
+        end
     end)
 
     task.spawn(function()
