@@ -101,6 +101,7 @@ return function(ctx)
             end
 
             autoGachaRolls = autoGachaRolls + 10
+            ctx.perfGachaCount = (ctx.perfGachaCount or 0) + 10
             gui.Gacha.Status.Text = "Status: Running | Rolls: " .. autoGachaRolls
 
             -- Destroy blind box animation/UI

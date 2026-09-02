@@ -592,6 +592,7 @@ return function(ctx)
             log("AutoMine: Mined " .. oreName .. " (" .. oreRarity .. ")", THEME.success)
 
             autoMineCounts[oreRarity] = (autoMineCounts[oreRarity] or 0) + 1
+            ctx.perfMinedCount = (ctx.perfMinedCount or 0) + 1
             if orePrice and tonumber(orePrice) then
                 ctx.perfTotalEarnings = ctx.perfTotalEarnings + tonumber(orePrice)
             end
