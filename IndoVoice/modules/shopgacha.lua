@@ -134,6 +134,7 @@ return function(ctx)
             end
 
             shopGachaRolls = shopGachaRolls + 10
+            ctx.perfGachaCount = (ctx.perfGachaCount or 0) + 10
             gui.ShopGacha.Status.Text = "Status: Running | Rolls: " .. shopGachaRolls
             gui.ShopGacha.Status.TextColor3 = THEME.success
 

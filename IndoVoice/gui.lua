@@ -1556,8 +1556,6 @@ return function(config, components)
     end
 
     local hideUIKey = makeHotkeyRow("Toggle UI", 58, tostring(config.Keys.HideUI):gsub("Enum.KeyCode.", "") or "K")
-    local espKey = makeHotkeyRow("Toggle ESP", 76, config.Keys.ESP or "E")
-    local tpKey = makeHotkeyRow("Teleport", 94, config.Keys.Teleport or "T")
 
     local UnloadBtn = makeActionButton(SettingsScroll, "Unload Script", 120, LYRA.danger)
     local AutoClaimDailyRewardBtn = makeActionButton(SettingsScroll, "Auto Claim Daily Reward: OFF", 160, LYRA.accent)
@@ -1884,8 +1882,6 @@ return function(config, components)
         Settings = {
             HideKeyLbl = HideKeyLbl,
             HideUIKeybind = hideUIKey,
-            ESPKeybind = espKey,
-            TPKeybind = tpKey,
             UnloadBtn = UnloadBtn,
             AutoClaimDailyRewardBtn = AutoClaimDailyRewardBtn,
             AutoClaimSessionRewardBtn = AutoClaimSessionRewardBtn,

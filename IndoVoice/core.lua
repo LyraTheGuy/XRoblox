@@ -94,6 +94,9 @@ return function(gui, config)
     ctx.perfRarityCounts = {}
     ctx.perfTotalSellValue = 0
     ctx.perfTotalEarnings = 0
+    ctx.perfCatchCount = 0
+    ctx.perfMinedCount = 0
+    ctx.perfGachaCount = 0
     ctx.webhookSellEnabled = false
 
     -- Collections
@@ -1546,13 +1549,14 @@ return function(gui, config)
             -- Custom Hotkeys
             keys = {
                 HideUI = ctx.config.Keys.HideUI and tostring(ctx.config.Keys.HideUI):gsub("Enum.KeyCode.", "") or "K",
-                ESP = ctx.config.Keys.ESP and tostring(ctx.config.Keys.ESP):gsub("Enum.KeyCode.", "") or "E",
-                Teleport = ctx.config.Keys.Teleport and tostring(ctx.config.Keys.Teleport):gsub("Enum.KeyCode.", "") or "T",
             },
 
-            -- Fishing/mining stats persistence
+            -- Fishing/mining/gacha stats persistence
             perfRarityCounts = ctx.perfRarityCounts,
             perfTotalEarnings = ctx.perfTotalEarnings,
+            perfCatchCount = ctx.perfCatchCount,
+            perfMinedCount = ctx.perfMinedCount,
+            perfGachaCount = ctx.perfGachaCount,
         }
         local ok, err = pcall(function()
             local HttpService = game:GetService("HttpService")
@@ -1654,15 +1658,10 @@ return function(gui, config)
             if result.keys and type(result.keys) == "table" then
                 if result.keys.HideUI and Enum.KeyCode[result.keys.HideUI] then
                     ctx.config.Keys.HideUI = Enum.KeyCode[result.keys.HideUI]
+                    ctx.HIDE_KEY = Enum.KeyCode[result.keys.HideUI]
                     if gui.Settings.HideKeyLbl then
                         gui.Settings.HideKeyLbl.Text = "Hide/Show UI: " .. result.keys.HideUI
                     end
-                end
-                if result.keys.ESP and Enum.KeyCode[result.keys.ESP] then
-                    ctx.config.Keys.ESP = Enum.KeyCode[result.keys.ESP]
-                end
-                if result.keys.Teleport and Enum.KeyCode[result.keys.Teleport] then
-                    ctx.config.Keys.Teleport = Enum.KeyCode[result.keys.Teleport]
                 end
             end
 
@@ -1727,6 +1726,15 @@ return function(gui, config)
             if result.perfTotalEarnings then
                 ctx.perfTotalEarnings = tonumber(result.perfTotalEarnings) or 0
             end
+            if result.perfCatchCount then
+                ctx.perfCatchCount = tonumber(result.perfCatchCount) or 0
+            end
+            if result.perfMinedCount then
+                ctx.perfMinedCount = tonumber(result.perfMinedCount) or 0
+            end
+            if result.perfGachaCount then
+                ctx.perfGachaCount = tonumber(result.perfGachaCount) or 0
+            end
             gui.Settings.WebhookToggleBtn.Text = ctx.webhookEnabled and "Webhook: ON" or "Webhook: OFF"
             gui.Settings.WebhookToggleBtn.BackgroundColor3 = ctx.webhookEnabled and THEME.success or THEME.panel2
             updateSellRarityUI()
@@ -1784,30 +1792,6 @@ return function(gui, config)
                 saveSettings()
                 if gui.Toast and gui.Toast.show then
                     gui.Toast.show({Text = "Hide UI key bound to " .. keyName, Variant = "success", Duration = 1.5})
-                end
-            end
-        end)
-    end
-    if gui.Settings.ESPKeybind and gui.Settings.ESPKeybind.OnChanged then
-        gui.Settings.ESPKeybind.OnChanged(function(keyCode)
-            if typeof(keyCode) == "EnumItem" then
-                ctx.config.Keys.ESP = keyCode
-                local keyName = tostring(keyCode):gsub("Enum.KeyCode.", "")
-                saveSettings()
-                if gui.Toast and gui.Toast.show then
-                    gui.Toast.show({Text = "ESP key bound to " .. keyName, Variant = "success", Duration = 1.5})
-                end
-            end
-        end)
-    end
-    if gui.Settings.TPKeybind and gui.Settings.TPKeybind.OnChanged then
-        gui.Settings.TPKeybind.OnChanged(function(keyCode)
-            if typeof(keyCode) == "EnumItem" then
-                ctx.config.Keys.Teleport = keyCode
-                local keyName = tostring(keyCode):gsub("Enum.KeyCode.", "")
-                saveSettings()
-                if gui.Toast and gui.Toast.show then
-                    gui.Toast.show({Text = "TP key bound to " .. keyName, Variant = "success", Duration = 1.5})
                 end
             end
         end)

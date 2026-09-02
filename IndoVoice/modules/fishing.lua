@@ -268,6 +268,7 @@ return function(ctx)
                     catchRemote:FireServer(true)
                 end)
                 autoFishCaught = autoFishCaught + 1
+                ctx.perfCatchCount = (ctx.perfCatchCount or 0) + 1
 
                 local fishName = caughtFishData and caughtFishData.FishName or "Unknown"
                 local fishRarity = caughtFishData and caughtFishData.Rarity or "?"
