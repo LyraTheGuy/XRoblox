@@ -725,13 +725,26 @@ return function(ctx)
                 local targetVel = (targetHRP.AssemblyLinearVelocity or Vector3.zero).Magnitude
                 local dist = (targetHRP.Position - hrp.Position).Magnitude
                 local moving = targetVel > 1.5 or targetHum.MoveDirection.Magnitude > 0.1
+                local alreadyFrozen = ctx.frozenAnchor and ctx.frozenAnchor.Parent
                 if moving and dist > 3 then
-                    ctx.tpToPlayer(ctx.mineFollowTarget)
-                    task.wait(0.05)
-                    ctx.freezeAt(targetHRP.Position + Vector3.new(0, 0, 5))
+                    if not alreadyFrozen or dist > 10 then
+                        -- First time or drifted too far — TP and create freeze
+                        ctx.tpToPlayer(ctx.mineFollowTarget)
+                        task.wait(0.05)
+                        ctx.freezeAt(targetHRP.Position + Vector3.new(0, 0, 5))
+                    else
+                        -- Already frozen — just update the anchor position (no destroy/recreate)
+                        local behindTarget = targetHRP.Position + Vector3.new(0, 0, 5)
+                        ctx.frozenAnchor.Position = behindTarget
+                        if ctx.frozenGyro and ctx.frozenGyro.Parent then
+                            ctx.frozenGyro.CFrame = CFrame.new(behindTarget, targetHRP.Position)
+                        end
+                    end
                 elseif not moving and dist <= 6 then
-                    -- Target standing still and we're close enough — release freeze so we can interact
-                    unfreezeCharacter()
+                    -- Target stopped and close — stay frozen for stable camera (like Auto Fish TP)
+                    if not alreadyFrozen then
+                        ctx.freezeAt(hrp.Position)
+                    end
                 end
                 gui.Mining.FollowSelectedLbl.Text = "Following: " .. ctx.mineFollowTargetName .. " (" .. math.floor(dist) .. "m)"
                 gui.Mining.FollowSelectedLbl.TextColor3 = (moving and dist > 3) or dist <= 6 and THEME.success or THEME.accentGlow
