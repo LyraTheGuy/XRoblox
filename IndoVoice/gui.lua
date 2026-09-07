@@ -609,7 +609,7 @@ return function(config, components)
     FishScroll.BackgroundTransparency = 1
     FishScroll.BorderSizePixel = 0
     FishScroll.ScrollBarThickness = 3
-    FishScroll.CanvasSize = UDim2.new(0, 0, 0, 620)
+    FishScroll.CanvasSize = UDim2.new(0, 0, 0, 760)
     FishScroll.Parent = Tabs.Fishing
 
     local FishingTitle = Instance.new("TextLabel")
@@ -647,12 +647,55 @@ return function(config, components)
     local AutoFishToggleBtn = makeActionButton(FishScroll, "Auto Fish: OFF", 102, LYRA.success)
     local AutoSellBtn = makeActionButton(FishScroll, "Auto Sell Fish: OFF", 136, LYRA.warn)
     local SellNowBtn = makeActionButton(FishScroll, "Sell All Now", 170, LYRA.accent)
-    local RefreshCharBtn = makeActionButton(FishScroll, "Refresh Character", 204, LYRA.danger)
+    local FollowBtn = makeActionButton(FishScroll, "Follow: OFF", 204, LYRA.danger)
+
+    -- Follow player dropdown container
+    local FollowDropdownFrame = Instance.new("Frame")
+    FollowDropdownFrame.Size = UDim2.new(1, -20, 0, 120)
+    FollowDropdownFrame.Position = UDim2.new(0, 10, 0, 238)
+    FollowDropdownFrame.BackgroundColor3 = LYRA.bg2
+    FollowDropdownFrame.BorderSizePixel = 0
+    FollowDropdownFrame.ClipsDescendants = true
+    FollowDropdownFrame.Parent = FishScroll
+    shared.corner(FollowDropdownFrame, UDim.new(0, 8))
+    shared.stroke(FollowDropdownFrame, LYRA.panel2, 1, 0.5)
+
+    local FollowDropdownLabel = Instance.new("TextLabel")
+    FollowDropdownLabel.Size = UDim2.new(1, 0, 0, 20)
+    FollowDropdownLabel.Position = UDim2.new(0, 0, 0, 0)
+    FollowDropdownLabel.BackgroundTransparency = 1
+    FollowDropdownLabel.Text = "Select Player:"
+    FollowDropdownLabel.TextColor3 = LYRA.dim
+    FollowDropdownLabel.Font = Enum.Font.GothamBold
+    FollowDropdownLabel.TextSize = 10
+    FollowDropdownLabel.Parent = FollowDropdownFrame
+
+    local FollowPlayerList = Instance.new("ScrollingFrame")
+    FollowPlayerList.Size = UDim2.new(1, -8, 1, -22)
+    FollowPlayerList.Position = UDim2.new(0, 4, 0, 20)
+    FollowPlayerList.BackgroundTransparency = 1
+    FollowPlayerList.BorderSizePixel = 0
+    FollowPlayerList.ScrollBarThickness = 3
+    FollowPlayerList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    FollowPlayerList.Parent = FollowDropdownFrame
+    Instance.new("UIListLayout", FollowPlayerList).Padding = UDim.new(0, 2)
+
+    -- Follow selected player label
+    local FollowSelectedLbl = Instance.new("TextLabel")
+    FollowSelectedLbl.Size = UDim2.new(1, -20, 0, 14)
+    FollowSelectedLbl.Position = UDim2.new(0, 10, 0, 362)
+    FollowSelectedLbl.BackgroundTransparency = 1
+    FollowSelectedLbl.Text = "Following: None"
+    FollowSelectedLbl.TextColor3 = LYRA.warn
+    FollowSelectedLbl.Font = Enum.Font.GothamBold
+    FollowSelectedLbl.TextSize = 10
+    FollowSelectedLbl.TextXAlignment = Enum.TextXAlignment.Left
+    FollowSelectedLbl.Parent = FishScroll
 
     -- AutoFish Status
     local AutoFishStatus = Instance.new("TextLabel")
     AutoFishStatus.Size = UDim2.new(1, -20, 0, 18)
-    AutoFishStatus.Position = UDim2.new(0, 10, 0, 242)
+    AutoFishStatus.Position = UDim2.new(0, 10, 0, 380)
     AutoFishStatus.BackgroundTransparency = 1
     AutoFishStatus.TextColor3 = LYRA.dim
     AutoFishStatus.Text = "Fish: Idle"
@@ -663,7 +706,7 @@ return function(config, components)
 
     local AutoFishLastCatch = Instance.new("TextLabel")
     AutoFishLastCatch.Size = UDim2.new(1, -20, 0, 16)
-    AutoFishLastCatch.Position = UDim2.new(0, 10, 0, 262)
+    AutoFishLastCatch.Position = UDim2.new(0, 10, 0, 400)
     AutoFishLastCatch.BackgroundTransparency = 1
     AutoFishLastCatch.TextColor3 = LYRA.dim
     AutoFishLastCatch.Text = "Last: -"
@@ -675,7 +718,7 @@ return function(config, components)
     -- Zone Status
     local ZoneStatus = Instance.new("TextLabel")
     ZoneStatus.Size = UDim2.new(1, -20, 0, 16)
-    ZoneStatus.Position = UDim2.new(0, 10, 0, 280)
+    ZoneStatus.Position = UDim2.new(0, 10, 0, 418)
     ZoneStatus.BackgroundTransparency = 1
     ZoneStatus.TextColor3 = LYRA.text
     ZoneStatus.Text = "Zone: Idle"
@@ -687,7 +730,7 @@ return function(config, components)
     -- Separator
     local FishSep1 = Instance.new("Frame")
     FishSep1.Size = UDim2.new(1, -20, 0, 1)
-    FishSep1.Position = UDim2.new(0, 10, 0, 304)
+    FishSep1.Position = UDim2.new(0, 10, 0, 442)
     FishSep1.BackgroundColor3 = LYRA.panel2
     FishSep1.BorderSizePixel = 0
     FishSep1.Parent = FishScroll
@@ -695,7 +738,7 @@ return function(config, components)
     -- Config section
     local SellIntervalLbl = Instance.new("TextLabel")
     SellIntervalLbl.Size = UDim2.new(0, 100, 0, 20)
-    SellIntervalLbl.Position = UDim2.new(0, 10, 0, 312)
+    SellIntervalLbl.Position = UDim2.new(0, 10, 0, 450)
     SellIntervalLbl.BackgroundTransparency = 1
     SellIntervalLbl.Text = "Sell Interval (s):"
     SellIntervalLbl.TextColor3 = LYRA.dim
@@ -706,7 +749,7 @@ return function(config, components)
 
     local SellIntervalInput = Instance.new("TextBox")
     SellIntervalInput.Size = UDim2.new(0, 60, 0, 20)
-    SellIntervalInput.Position = UDim2.new(0, 112, 0, 312)
+    SellIntervalInput.Position = UDim2.new(0, 112, 0, 450)
     SellIntervalInput.BackgroundColor3 = LYRA.bg2
     SellIntervalInput.TextColor3 = LYRA.text
     SellIntervalInput.Text = tostring(config.AutoSell and config.AutoSell.Interval or 3600)
@@ -720,7 +763,7 @@ return function(config, components)
     -- Sell Rarity selection (moved from Settings)
     local SellRarityTitle = Instance.new("TextLabel")
     SellRarityTitle.Size = UDim2.new(1, -20, 0, 16)
-    SellRarityTitle.Position = UDim2.new(0, 10, 0, 340)
+    SellRarityTitle.Position = UDim2.new(0, 10, 0, 478)
     SellRarityTitle.BackgroundTransparency = 1
     SellRarityTitle.Text = "Sell Rarities:"
     SellRarityTitle.TextColor3 = LYRA.dim
@@ -735,7 +778,7 @@ return function(config, components)
         local btn = Instance.new("TextButton")
         btn.Text = rarity
         btn.Size = UDim2.new(0, 56, 0, 20)
-        btn.Position = UDim2.new(0, 10 + ((i - 1) % 5) * 62, 0, 360 + math.floor((i - 1) / 5) * 26)
+        btn.Position = UDim2.new(0, 10 + ((i - 1) % 5) * 62, 0, 498 + math.floor((i - 1) / 5) * 26)
         btn.BackgroundColor3 = LYRA.success
         btn.BackgroundTransparency = 0.2
         btn.TextColor3 = Color3.new(1, 1, 1)
@@ -750,7 +793,7 @@ return function(config, components)
     -- Separator 2
     local FishSep2 = Instance.new("Frame")
     FishSep2.Size = UDim2.new(1, -20, 0, 1)
-    FishSep2.Position = UDim2.new(0, 10, 0, 418)
+    FishSep2.Position = UDim2.new(0, 10, 0, 556)
     FishSep2.BackgroundColor3 = LYRA.panel2
     FishSep2.BorderSizePixel = 0
     FishSep2.Parent = FishScroll
@@ -758,7 +801,7 @@ return function(config, components)
     -- Fish Caught Stats
     local FishStatsTitle = Instance.new("TextLabel")
     FishStatsTitle.Size = UDim2.new(1, -20, 0, 18)
-    FishStatsTitle.Position = UDim2.new(0, 10, 0, 426)
+    FishStatsTitle.Position = UDim2.new(0, 10, 0, 564)
     FishStatsTitle.BackgroundTransparency = 1
     FishStatsTitle.Text = "📊 Catch Stats"
     FishStatsTitle.TextColor3 = LYRA.accentGlow
@@ -769,7 +812,7 @@ return function(config, components)
 
     local FishTotalLbl = Instance.new("TextLabel")
     FishTotalLbl.Size = UDim2.new(1, -20, 0, 16)
-    FishTotalLbl.Position = UDim2.new(0, 10, 0, 448)
+    FishTotalLbl.Position = UDim2.new(0, 10, 0, 586)
     FishTotalLbl.BackgroundTransparency = 1
     FishTotalLbl.Text = "Total Fish: 0"
     FishTotalLbl.TextColor3 = LYRA.text
@@ -780,7 +823,7 @@ return function(config, components)
 
     local FishRarityStats = Instance.new("TextLabel")
     FishRarityStats.Size = UDim2.new(1, -20, 0, 100)
-    FishRarityStats.Position = UDim2.new(0, 10, 0, 468)
+    FishRarityStats.Position = UDim2.new(0, 10, 0, 606)
     FishRarityStats.BackgroundTransparency = 1
     FishRarityStats.TextColor3 = LYRA.dim
     FishRarityStats.Text = "Mythic: 0 | Legend: 0 | Epic: 0\nRare: 0 | Uncommon: 0 | Common: 0"
@@ -805,7 +848,7 @@ return function(config, components)
     MiningScroll.BackgroundTransparency = 1
     MiningScroll.BorderSizePixel = 0
     MiningScroll.ScrollBarThickness = 3
-    MiningScroll.CanvasSize = UDim2.new(0, 0, 0, 520)
+    MiningScroll.CanvasSize = UDim2.new(0, 0, 0, 658)
     MiningScroll.Parent = Tabs.Mining
 
     local MiningTitle = Instance.new("TextLabel")
@@ -839,16 +882,59 @@ return function(config, components)
 
     -- Buttons (same style as fishing)
     local AutoMineESPBtn = makeActionButton(MiningScroll, "Hotspot ESP: OFF", 34, LYRA.warn)
-    local AutoMineTPBtn = makeActionButton(MiningScroll, "Auto TP to Stones: OFF", 68, LYRA.tp)
+    local AutoMineTPBtn = makeActionButton(MiningScroll, "Auto TP Stone Hotspot: OFF", 68, LYRA.tp)
     local AutoMineToggleBtn = makeActionButton(MiningScroll, "Auto Mine: OFF", 102, LYRA.success)
     local AutoSellOreBtn = makeActionButton(MiningScroll, "Auto Sell Ore: OFF", 136, LYRA.warn)
     local SellOreNowBtn = makeActionButton(MiningScroll, "Sell Ore Now", 170, LYRA.accent)
-    local AutoMineHotspotBtn = makeActionButton(MiningScroll, "Hotspot Only: OFF", 204, LYRA.tp)
+    local MineFollowBtn = makeActionButton(MiningScroll, "Follow: OFF", 204, LYRA.danger)
+
+    -- Follow player dropdown container (mining)
+    local MineFollowDropdownFrame = Instance.new("Frame")
+    MineFollowDropdownFrame.Size = UDim2.new(1, -20, 0, 120)
+    MineFollowDropdownFrame.Position = UDim2.new(0, 10, 0, 238)
+    MineFollowDropdownFrame.BackgroundColor3 = LYRA.bg2
+    MineFollowDropdownFrame.BorderSizePixel = 0
+    MineFollowDropdownFrame.ClipsDescendants = true
+    MineFollowDropdownFrame.Parent = MiningScroll
+    shared.corner(MineFollowDropdownFrame, UDim.new(0, 8))
+    shared.stroke(MineFollowDropdownFrame, LYRA.panel2, 1, 0.5)
+
+    local MineFollowDropdownLabel = Instance.new("TextLabel")
+    MineFollowDropdownLabel.Size = UDim2.new(1, 0, 0, 20)
+    MineFollowDropdownLabel.Position = UDim2.new(0, 0, 0, 0)
+    MineFollowDropdownLabel.BackgroundTransparency = 1
+    MineFollowDropdownLabel.Text = "Select Player:"
+    MineFollowDropdownLabel.TextColor3 = LYRA.dim
+    MineFollowDropdownLabel.Font = Enum.Font.GothamBold
+    MineFollowDropdownLabel.TextSize = 10
+    MineFollowDropdownLabel.Parent = MineFollowDropdownFrame
+
+    local MineFollowPlayerList = Instance.new("ScrollingFrame")
+    MineFollowPlayerList.Size = UDim2.new(1, -8, 1, -22)
+    MineFollowPlayerList.Position = UDim2.new(0, 4, 0, 20)
+    MineFollowPlayerList.BackgroundTransparency = 1
+    MineFollowPlayerList.BorderSizePixel = 0
+    MineFollowPlayerList.ScrollBarThickness = 3
+    MineFollowPlayerList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    MineFollowPlayerList.Parent = MineFollowDropdownFrame
+    Instance.new("UIListLayout", MineFollowPlayerList).Padding = UDim.new(0, 2)
+
+    -- Follow selected player label (mining)
+    local MineFollowSelectedLbl = Instance.new("TextLabel")
+    MineFollowSelectedLbl.Size = UDim2.new(1, -20, 0, 14)
+    MineFollowSelectedLbl.Position = UDim2.new(0, 10, 0, 362)
+    MineFollowSelectedLbl.BackgroundTransparency = 1
+    MineFollowSelectedLbl.Text = "Following: None"
+    MineFollowSelectedLbl.TextColor3 = LYRA.warn
+    MineFollowSelectedLbl.Font = Enum.Font.GothamBold
+    MineFollowSelectedLbl.TextSize = 10
+    MineFollowSelectedLbl.TextXAlignment = Enum.TextXAlignment.Left
+    MineFollowSelectedLbl.Parent = MiningScroll
 
     -- Status labels
     local AutoMineStatus = Instance.new("TextLabel")
     AutoMineStatus.Size = UDim2.new(1, -20, 0, 18)
-    AutoMineStatus.Position = UDim2.new(0, 10, 0, 242)
+    AutoMineStatus.Position = UDim2.new(0, 10, 0, 380)
     AutoMineStatus.BackgroundTransparency = 1
     AutoMineStatus.TextColor3 = LYRA.dim
     AutoMineStatus.Text = "Mine: Idle"
@@ -859,7 +945,7 @@ return function(config, components)
 
     local AutoMineLastOre = Instance.new("TextLabel")
     AutoMineLastOre.Size = UDim2.new(1, -20, 0, 16)
-    AutoMineLastOre.Position = UDim2.new(0, 10, 0, 262)
+    AutoMineLastOre.Position = UDim2.new(0, 10, 0, 400)
     AutoMineLastOre.BackgroundTransparency = 1
     AutoMineLastOre.TextColor3 = LYRA.dim
     AutoMineLastOre.Text = "Last: —"
@@ -871,7 +957,7 @@ return function(config, components)
     -- Separator
     local MineSep1 = Instance.new("Frame")
     MineSep1.Size = UDim2.new(1, -20, 0, 1)
-    MineSep1.Position = UDim2.new(0, 10, 0, 286)
+    MineSep1.Position = UDim2.new(0, 10, 0, 424)
     MineSep1.BackgroundColor3 = LYRA.panel2
     MineSep1.BorderSizePixel = 0
     MineSep1.Parent = MiningScroll
@@ -879,7 +965,7 @@ return function(config, components)
     -- Sell interval
     local OreSellIntervalLbl = Instance.new("TextLabel")
     OreSellIntervalLbl.Size = UDim2.new(0, 100, 0, 20)
-    OreSellIntervalLbl.Position = UDim2.new(0, 10, 0, 294)
+    OreSellIntervalLbl.Position = UDim2.new(0, 10, 0, 432)
     OreSellIntervalLbl.BackgroundTransparency = 1
     OreSellIntervalLbl.Text = "Sell Interval (s):"
     OreSellIntervalLbl.TextColor3 = LYRA.dim
@@ -890,7 +976,7 @@ return function(config, components)
 
     local OreSellIntervalInput = Instance.new("TextBox")
     OreSellIntervalInput.Size = UDim2.new(0, 60, 0, 20)
-    OreSellIntervalInput.Position = UDim2.new(0, 112, 0, 294)
+    OreSellIntervalInput.Position = UDim2.new(0, 112, 0, 432)
     OreSellIntervalInput.BackgroundColor3 = LYRA.bg2
     OreSellIntervalInput.TextColor3 = LYRA.text
     OreSellIntervalInput.Text = "3600"
@@ -904,7 +990,7 @@ return function(config, components)
     -- Sell Rarities
     local OreSellRarityTitle = Instance.new("TextLabel")
     OreSellRarityTitle.Size = UDim2.new(1, -20, 0, 16)
-    OreSellRarityTitle.Position = UDim2.new(0, 10, 0, 322)
+    OreSellRarityTitle.Position = UDim2.new(0, 10, 0, 460)
     OreSellRarityTitle.BackgroundTransparency = 1
     OreSellRarityTitle.Text = "Sell Rarities:"
     OreSellRarityTitle.TextColor3 = LYRA.dim
@@ -919,7 +1005,7 @@ return function(config, components)
         local btn = Instance.new("TextButton")
         btn.Text = rarity
         btn.Size = UDim2.new(0, 56, 0, 20)
-        btn.Position = UDim2.new(0, 10 + ((i - 1) % 5) * 62, 0, 342 + math.floor((i - 1) / 5) * 26)
+        btn.Position = UDim2.new(0, 10 + ((i - 1) % 5) * 62, 0, 480 + math.floor((i - 1) / 5) * 26)
         btn.BackgroundColor3 = LYRA.success
         btn.BackgroundTransparency = 0.2
         btn.TextColor3 = Color3.new(1, 1, 1)
@@ -934,7 +1020,7 @@ return function(config, components)
     -- Separator 2
     local MineSep2 = Instance.new("Frame")
     MineSep2.Size = UDim2.new(1, -20, 0, 1)
-    MineSep2.Position = UDim2.new(0, 10, 0, 400)
+    MineSep2.Position = UDim2.new(0, 10, 0, 538)
     MineSep2.BackgroundColor3 = LYRA.panel2
     MineSep2.BorderSizePixel = 0
     MineSep2.Parent = MiningScroll
@@ -942,7 +1028,7 @@ return function(config, components)
     -- Mine Stats
     local MineStatsTitle = Instance.new("TextLabel")
     MineStatsTitle.Size = UDim2.new(1, -20, 0, 18)
-    MineStatsTitle.Position = UDim2.new(0, 10, 0, 408)
+    MineStatsTitle.Position = UDim2.new(0, 10, 0, 546)
     MineStatsTitle.BackgroundTransparency = 1
     MineStatsTitle.Text = "📊 Mine Stats"
     MineStatsTitle.TextColor3 = LYRA.accentGlow
@@ -953,7 +1039,7 @@ return function(config, components)
 
     local MineOreStats = Instance.new("TextLabel")
     MineOreStats.Size = UDim2.new(1, -20, 0, 100)
-    MineOreStats.Position = UDim2.new(0, 10, 0, 430)
+    MineOreStats.Position = UDim2.new(0, 10, 0, 568)
     MineOreStats.BackgroundTransparency = 1
     MineOreStats.TextColor3 = LYRA.dim
     MineOreStats.Text = "Total Mined: 0"
@@ -1818,7 +1904,10 @@ return function(config, components)
         FishZone = {
             ZoneESPBtn = ZoneESPBtn,
             AutoTPBtn = AutoTPBtn,
-            RefreshCharBtn = RefreshCharBtn,
+            FollowBtn = FollowBtn,
+            FollowPlayerList = FollowPlayerList,
+            FollowSelectedLbl = FollowSelectedLbl,
+            FollowDropdownFrame = FollowDropdownFrame,
             AutoSellBtn = AutoSellBtn,
             SellNowBtn = SellNowBtn,
             ZoneStatus = ZoneStatus,
@@ -1870,7 +1959,10 @@ return function(config, components)
             ToggleBtn = AutoMineToggleBtn,
             Status = AutoMineStatus,
             LastOre = AutoMineLastOre,
-            HotspotBtn = AutoMineHotspotBtn,
+            FollowBtn = MineFollowBtn,
+            FollowPlayerList = MineFollowPlayerList,
+            FollowSelectedLbl = MineFollowSelectedLbl,
+            FollowDropdownFrame = MineFollowDropdownFrame,
             TPBtn = AutoMineTPBtn,
             ESPBtn = AutoMineESPBtn,
             OreStats = MineOreStats,

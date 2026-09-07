@@ -3,7 +3,7 @@
 
 return {
     Gate = {
-        Password = "S0VZLUpVTFktQVVHVVNU", -- base64 encoded password
+        Password = "U0VQVEVNQkVSQ0VSSUE=", -- base64 encoded password
     },
 
     Keys = {
@@ -11,7 +11,6 @@ return {
         HideUI = Enum.KeyCode.K,
         PickPosition = Enum.KeyCode.P,
         ESP = Enum.KeyCode.E,
-        Teleport = Enum.KeyCode.T,
     },
 
     Safety = {

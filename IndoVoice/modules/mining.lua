@@ -654,36 +654,13 @@ return function(ctx)
         end
     end)
 
-    -- Hotspot only toggle
-    local function updateHotspotBtnUI()
-        if ctx.autoMineHotspotOnly then
-            gui.Mining.HotspotBtn.Text = "Hotspot Only: ON"
-            gui.Mining.HotspotBtn.BackgroundColor3 = THEME.success
-        else
-            gui.Mining.HotspotBtn.Text = "Hotspot Only: OFF"
-            gui.Mining.HotspotBtn.BackgroundColor3 = THEME.tp
-        end
-    end
-    ctx.updateHotspotBtnUI = updateHotspotBtnUI
-
-    bind(gui.Mining.HotspotBtn.MouseButton1Click, function()
-        ctx.autoMineHotspotOnly = not ctx.autoMineHotspotOnly
-        updateHotspotBtnUI()
-        log("AutoMine: Hotspot Only " .. (ctx.autoMineHotspotOnly and "ON" or "OFF"),
-            ctx.autoMineHotspotOnly and THEME.success or THEME.dim)
-        if gui.Toast and gui.Toast.show then
-            local msg = ctx.autoMineHotspotOnly and "Hotspot Only ON" or "Hotspot Only OFF"
-            gui.Toast.show({Text = msg, Variant = ctx.autoMineHotspotOnly and "success" or "info", Duration = 1.5})
-        end
-    end)
-
     -- Auto TP toggle
     local function updateMineTPBtnUI()
         if ctx.autoMineTPEnabled then
-            gui.Mining.TPBtn.Text = "Auto TP to Stones: ON"
+            gui.Mining.TPBtn.Text = "Auto TP Stone Hotspot: ON"
             gui.Mining.TPBtn.BackgroundColor3 = THEME.success
         else
-            gui.Mining.TPBtn.Text = "Auto TP to Stones: OFF"
+            gui.Mining.TPBtn.Text = "Auto TP Stone Hotspot: OFF"
             gui.Mining.TPBtn.BackgroundColor3 = THEME.tp
         end
     end
@@ -698,7 +675,7 @@ return function(ctx)
             startStoneTPLoop()
         end
         if gui.Toast and gui.Toast.show then
-            local msg = ctx.autoMineTPEnabled and "Auto TP to Stones ON" or "Auto TP to Stones OFF"
+            local msg = ctx.autoMineTPEnabled and "Auto TP Stone Hotspot ON" or "Auto TP Stone Hotspot OFF"
             gui.Toast.show({Text = msg, Variant = ctx.autoMineTPEnabled and "success" or "info", Duration = 1.5})
         end
     end)
@@ -939,7 +916,6 @@ return function(ctx)
     end)
 
     updateOreSellRarityUI()
-    updateHotspotBtnUI()
     updateMineTPBtnUI()
     gui.Mining.SellIntervalInput.Text = tostring(ctx.ORE_SELL_INTERVAL)
 
