@@ -120,6 +120,17 @@ return function(ctx)
     bind(gui.FishZone.FollowBtn.MouseButton1Click, function()
         ctx.followEnabled = not ctx.followEnabled
         if ctx.followEnabled then
+            -- Disable mining follow if it was active (avoid conflict)
+            if ctx.mineFollowEnabled then
+                ctx.mineFollowEnabled = false
+                ctx.mineFollowTarget = nil
+                ctx.mineFollowTargetName = "None"
+                gui.Mining.FollowBtn.Text = "Follow: OFF"
+                gui.Mining.FollowBtn.BackgroundColor3 = THEME.danger
+                gui.Mining.FollowSelectedLbl.Text = "Following: None"
+                unfreezeCharacter()
+                log("Mine Follow disabled — enabling Fish Follow", THEME.dim)
+            end
             gui.FishZone.FollowBtn.Text = "Follow: ON"
             gui.FishZone.FollowBtn.BackgroundColor3 = THEME.success
             if ctx.followTarget then

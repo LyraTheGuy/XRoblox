@@ -109,25 +109,22 @@ return function(config, components)
             {text = "Building GUI...", pct = 0.85},
             {text = "Welcome.", pct = 1.00},
         }
+        tweenProp(LoadTitle, {TextTransparency = 0}, 0.3)
+        tweenProp(LoadQuote, {TextTransparency = 0}, 0.3)
         task.wait(0.1)
-        tweenProp(LoadTitle, {TextTransparency = 0}, 0.6)
-        task.wait(0.4)
-        tweenProp(LoadQuote, {TextTransparency = 0}, 0.5)
-        task.wait(0.2)
         for _, stage in ipairs(stages) do
             LoadStatus.Text = stage.text
-            tweenProp(BarFill, {Size = UDim2.new(stage.pct, 0, 1, 0)}, 0.4, Enum.EasingStyle.Quint)
-            task.wait(0.35)
+            tweenProp(BarFill, {Size = UDim2.new(stage.pct, 0, 1, 0)}, 0.25, Enum.EasingStyle.Quint)
+            task.wait(0.15)
         end
-        task.wait(0.3)
-        tweenProp(LoadBG, {BackgroundTransparency = 1}, 0.5)
-        tweenProp(LoadStroke, {Transparency = 1}, 0.5)
-        tweenProp(LoadTitle, {TextTransparency = 1}, 0.4)
-        tweenProp(LoadQuote, {TextTransparency = 1}, 0.4)
-        tweenProp(LoadStatus, {TextTransparency = 1}, 0.4)
-        tweenProp(BarTrack, {BackgroundTransparency = 1}, 0.4)
-        tweenProp(BarFill, {BackgroundTransparency = 1}, 0.4)
-        task.wait(0.55)
+        tweenProp(LoadBG, {BackgroundTransparency = 1}, 0.25)
+        tweenProp(LoadStroke, {Transparency = 1}, 0.25)
+        tweenProp(LoadTitle, {TextTransparency = 1}, 0.2)
+        tweenProp(LoadQuote, {TextTransparency = 1}, 0.2)
+        tweenProp(LoadStatus, {TextTransparency = 1}, 0.2)
+        tweenProp(BarTrack, {BackgroundTransparency = 1}, 0.2)
+        tweenProp(BarFill, {BackgroundTransparency = 1}, 0.2)
+        task.wait(0.15)
         pcall(function() LoadGui:Destroy() end)
     end)
 
