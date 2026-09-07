@@ -387,7 +387,7 @@ for _, part in ipairs(getZoneParts()) do
             end
         end
 
-        -- Follow player movement (same as TP button, teleports on top)
+        -- Follow player movement (same as TP button, teleports on top + freeze)
         if ctx.followEnabled and ctx.followTarget and ctx.followTarget.Parent then
             local hrp = getHRP(lp.Character)
             local targetHRP = getHRP(ctx.followTarget.Character)
@@ -395,6 +395,8 @@ for _, part in ipairs(getZoneParts()) do
                 local dist = (targetHRP.Position - hrp.Position).Magnitude
                 if dist > 3 then
                     ctx.tpToPlayer(ctx.followTarget)
+                    local hum = getHum(lp.Character)
+                    if hum then hum.PlatformStand = true end
                 end
                 gui.FishZone.FollowSelectedLbl.Text = "Following: " .. ctx.followTargetName .. " (" .. math.floor(dist) .. "m)"
                 gui.FishZone.FollowSelectedLbl.TextColor3 = dist > 3 and THEME.success or THEME.accentGlow

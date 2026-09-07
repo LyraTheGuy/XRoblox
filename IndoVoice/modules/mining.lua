@@ -714,7 +714,7 @@ return function(ctx)
         end
     end)
 
-    -- Mine Follow movement (same as TP button, teleports on top)
+    -- Mine Follow movement (same as TP button, teleports on top + freeze)
     bind(ctx.RunService.Heartbeat, function()
         if ctx.destroyed then return end
         if ctx.mineFollowEnabled and ctx.mineFollowTarget and ctx.mineFollowTarget.Parent then
@@ -724,6 +724,8 @@ return function(ctx)
                 local dist = (targetHRP.Position - hrp.Position).Magnitude
                 if dist > 3 then
                     ctx.tpToPlayer(ctx.mineFollowTarget)
+                    local hum = getHum(lp.Character)
+                    if hum then hum.PlatformStand = true end
                 end
                 gui.Mining.FollowSelectedLbl.Text = "Following: " .. ctx.mineFollowTargetName .. " (" .. math.floor(dist) .. "m)"
                 gui.Mining.FollowSelectedLbl.TextColor3 = dist > 3 and THEME.success or THEME.accentGlow
