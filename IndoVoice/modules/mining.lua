@@ -653,6 +653,9 @@ return function(ctx)
     local Players = game:GetService("Players")
 
     -- Follow button toggle (Mining)
+    -- Note: Fishing Follow (ui.lua) uses ctx.followEnabled/ctx.followTarget.
+    -- Mining Follow uses ctx.mineFollowEnabled/ctx.mineFollowTarget.
+    -- Only ONE follow should be active at a time to avoid conflicts.
     ctx.mineFollowEnabled = false
     ctx.mineFollowTarget = nil
     ctx.mineFollowTargetName = "None"
@@ -696,6 +699,17 @@ return function(ctx)
     bind(gui.Mining.FollowBtn.MouseButton1Click, function()
         ctx.mineFollowEnabled = not ctx.mineFollowEnabled
         if ctx.mineFollowEnabled then
+            -- Disable fishing follow if it was active (avoid conflict)
+            if ctx.followEnabled then
+                ctx.followEnabled = false
+                ctx.followTarget = nil
+                ctx.followTargetName = "None"
+                gui.FishZone.FollowBtn.Text = "Follow: OFF"
+                gui.FishZone.FollowBtn.BackgroundColor3 = THEME.danger
+                gui.FishZone.FollowSelectedLbl.Text = "Following: None"
+                unfreezeCharacter()
+                log("Fish Follow disabled — enabling Mine Follow", THEME.dim)
+            end
             gui.Mining.FollowBtn.Text = "Follow: ON"
             gui.Mining.FollowBtn.BackgroundColor3 = THEME.success
             if ctx.mineFollowTarget then
@@ -717,6 +731,8 @@ return function(ctx)
     -- Mine Follow movement: only move when target is moving, freeze so you can fish/mine
     bind(ctx.RunService.Heartbeat, function()
         if ctx.destroyed then return end
+        -- Don't run mining follow if fishing follow is active (avoid conflict)
+        if ctx.followEnabled then return end
         if ctx.mineFollowEnabled and ctx.mineFollowTarget and ctx.mineFollowTarget.Parent then
             local hrp = getHRP(lp.Character)
             local targetHRP = getHRP(ctx.mineFollowTarget.Character)
@@ -729,13 +745,14 @@ return function(ctx)
                 if moving and dist > 3 then
                     -- Always TP first — CFrame teleport bypasses invisible walls
                     ctx.tpToPlayer(ctx.mineFollowTarget)
+                    local behindTarget = (targetHRP.CFrame * CFrame.new(0, 0, 5)).Position
                     if not alreadyFrozen then
                         task.wait(0.05)
-                        ctx.freezeAt(targetHRP.Position + Vector3.new(0, 0, 5))
+                        ctx.freezeAt(behindTarget)
                     else
                         -- Already frozen — just update the anchor position
                         -- Do NOT update frozenGyro — it locks rotation once and stays
-                        ctx.frozenAnchor.Position = targetHRP.Position + Vector3.new(0, 0, 5)
+                        ctx.frozenAnchor.Position = behindTarget
                     end
                 elseif not moving and dist <= 6 then
                     -- Target stopped and close — stay frozen for stable camera (like Auto Fish TP)
@@ -773,8 +790,16 @@ return function(ctx)
 
     bind(gui.Mining.TPBtn.MouseButton1Click, function()
         ctx.autoMineTPEnabled = not ctx.autoMineTPEnabled
+        -- Auto TP Stone Hotspot implies hotspot-only filtering
+        -- When turning OFF, also reset hotspot-only filter so user can mine
+        -- any available stone, not just hotspots.
+        if ctx.autoMineTPEnabled then
+            ctx.autoMineHotspotOnly = true
+        else
+            ctx.autoMineHotspotOnly = false
+        end
         updateMineTPBtnUI()
-        log("AutoMine: Auto TP " .. (ctx.autoMineTPEnabled and "ON" or "OFF"),
+        log("AutoMine: Auto TP " .. (ctx.autoMineTPEnabled and "ON" or "OFF") .. " | HotspotOnly: " .. tostring(ctx.autoMineHotspotOnly),
             ctx.autoMineTPEnabled and THEME.success or THEME.dim)
         if ctx.autoMineTPEnabled then
             startStoneTPLoop()

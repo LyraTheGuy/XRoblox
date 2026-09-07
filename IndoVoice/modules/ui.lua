@@ -120,6 +120,17 @@ return function(ctx)
     bind(gui.FishZone.FollowBtn.MouseButton1Click, function()
         ctx.followEnabled = not ctx.followEnabled
         if ctx.followEnabled then
+            -- Disable mining follow if it was active (avoid conflict)
+            if ctx.mineFollowEnabled then
+                ctx.mineFollowEnabled = false
+                ctx.mineFollowTarget = nil
+                ctx.mineFollowTargetName = "None"
+                gui.Mining.FollowBtn.Text = "Follow: OFF"
+                gui.Mining.FollowBtn.BackgroundColor3 = THEME.danger
+                gui.Mining.FollowSelectedLbl.Text = "Following: None"
+                unfreezeCharacter()
+                log("Mine Follow disabled — enabling Fish Follow", THEME.dim)
+            end
             gui.FishZone.FollowBtn.Text = "Follow: ON"
             gui.FishZone.FollowBtn.BackgroundColor3 = THEME.success
             if ctx.followTarget then
@@ -400,13 +411,14 @@ for _, part in ipairs(getZoneParts()) do
                 if moving and dist > 3 then
                     -- Always TP first — CFrame teleport bypasses invisible walls
                     ctx.tpToPlayer(ctx.followTarget)
+                    local behindTarget = (targetHRP.CFrame * CFrame.new(0, 0, 5)).Position
                     if not alreadyFrozen then
                         task.wait(0.05)
-                        ctx.freezeAt(targetHRP.Position + Vector3.new(0, 0, 5))
+                        ctx.freezeAt(behindTarget)
                     else
                         -- Already frozen — just update the anchor position
                         -- Do NOT update frozenGyro — it locks rotation once and stays
-                        ctx.frozenAnchor.Position = targetHRP.Position + Vector3.new(0, 0, 5)
+                        ctx.frozenAnchor.Position = behindTarget
                     end
                 elseif not moving and dist <= 6 then
                     -- Target stopped and close — stay frozen for stable camera (like Auto Fish TP)
