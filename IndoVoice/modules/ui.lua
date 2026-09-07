@@ -97,11 +97,15 @@ return function(ctx)
                 row.BorderSizePixel = 0
                 row.Parent = list
                 addCorner(row, UDim.new(0, 5))
+                -- Ensure the button can receive input (not blocked by siblings)
+                row.ZIndex = 2
                 if ctx.followTarget == player then
                     row.BackgroundColor3 = THEME.success
                     row.Text = player.Name .. " ✓"
                 end
-                bind(row.MouseButton1Click, function()
+                -- Use MouseButton1Click directly (bind() also works but let's be explicit)
+                row.MouseButton1Click:Connect(function()
+                    log("Follow: clicked player button " .. player.Name, THEME.accentGlow)
                     ctx.followTarget = player
                     ctx.followTargetName = player.Name
                     gui.FishZone.FollowSelectedLbl.Text = "Following: " .. player.Name
