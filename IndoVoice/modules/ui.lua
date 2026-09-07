@@ -77,8 +77,7 @@ return function(ctx)
     end)
 
     -- ═══════════════════════════════════════════
-    -- SHARED FOLLOW SYSTEM (Fishing + Mining)
-    -- ═══════════════════════════════════════════
+    -- Follow button toggle (Fishing)
     ctx.followEnabled = false
     ctx.followTarget = nil
     ctx.followTargetName = "None"
@@ -89,9 +88,9 @@ return function(ctx)
         c.Parent = obj
     end
 
-    -- Shared: populate any follow player list frame
-    local function populateFollowList(listFrame, selectedLbl)
-        for _, child in ipairs(listFrame:GetChildren()) do
+    local function populateFollowPlayerList()
+        local list = gui.FishZone.FollowPlayerList
+        for _, child in ipairs(list:GetChildren()) do
             if child:IsA("TextButton") then child:Destroy() end
         end
         for _, player in ipairs(Players:GetPlayers()) do
@@ -104,60 +103,44 @@ return function(ctx)
                 row.Font = Enum.Font.GothamBold
                 row.TextSize = 10
                 row.BorderSizePixel = 0
-                row.Parent = listFrame
+                row.Parent = list
                 addCorner(row, UDim.new(0, 5))
                 if ctx.followTarget == player then
                     row.BackgroundColor3 = THEME.success
-                    row.Text = player.Name .. " ✓"
+                    row.Text = player.Name .. " \u2713"
                 end
                 bind(row.MouseButton1Click, function()
                     ctx.followTarget = player
                     ctx.followTargetName = player.Name
-                    -- Update both labels
                     gui.FishZone.FollowSelectedLbl.Text = "Following: " .. player.Name
-                    gui.Mining.FollowSelectedLbl.Text = "Following: " .. player.Name
                     log("Follow target set: " .. player.Name, THEME.success)
-                    -- Refresh both lists
-                    populateFollowList(gui.FishZone.FollowPlayerList, gui.FishZone.FollowSelectedLbl)
-                    populateFollowList(gui.Mining.FollowPlayerList, gui.Mining.FollowSelectedLbl)
+                    populateFollowPlayerList()
                 end)
             end
         end
     end
+    ctx.populateFollowPlayerList = populateFollowPlayerList
 
-    -- Populate both lists on startup and player changes
-    local function refreshAllFollowLists()
-        populateFollowList(gui.FishZone.FollowPlayerList, gui.FishZone.FollowSelectedLbl)
-        populateFollowList(gui.Mining.FollowPlayerList, gui.Mining.FollowSelectedLbl)
-    end
-    ctx.refreshAllFollowLists = refreshAllFollowLists
+    bind(Players.PlayerAdded, populateFollowPlayerList)
+    bind(Players.PlayerRemoving, populateFollowPlayerList)
+    populateFollowPlayerList()
 
-    bind(Players.PlayerAdded, refreshAllFollowLists)
-    bind(Players.PlayerRemoving, refreshAllFollowLists)
-    refreshAllFollowLists()
-
-    -- Shared: toggle follow ON/OFF (syncs both buttons)
-    local function toggleFollow()
+    bind(gui.FishZone.FollowBtn.MouseButton1Click, function()
         ctx.followEnabled = not ctx.followEnabled
         if ctx.followEnabled then
             gui.FishZone.FollowBtn.Text = "Follow: ON"
             gui.FishZone.FollowBtn.BackgroundColor3 = THEME.success
-            gui.Mining.FollowBtn.Text = "Follow: ON"
-            gui.Mining.FollowBtn.BackgroundColor3 = THEME.success
             if ctx.followTarget then
-                log("Follow started → " .. ctx.followTargetName, THEME.success)
+                log("Follow started \u2192 " .. ctx.followTargetName, THEME.success)
             else
-                log("Follow ON — select a player first!", THEME.warn)
+                log("Follow ON \u2014 select a player first!", THEME.warn)
             end
         else
             gui.FishZone.FollowBtn.Text = "Follow: OFF"
             gui.FishZone.FollowBtn.BackgroundColor3 = THEME.danger
-            gui.Mining.FollowBtn.Text = "Follow: OFF"
-            gui.Mining.FollowBtn.BackgroundColor3 = THEME.danger
             ctx.followTarget = nil
             ctx.followTargetName = "None"
             gui.FishZone.FollowSelectedLbl.Text = "Following: None"
-            gui.Mining.FollowSelectedLbl.Text = "Following: None"
             log("Follow stopped", THEME.dim)
             unfreezeCharacter()
         end
@@ -165,13 +148,9 @@ return function(ctx)
             local msg = ctx.followEnabled and "Follow enabled" or "Follow disabled"
             gui.Toast.show({Text = msg, Variant = ctx.followEnabled and "success" or "info", Duration = 1.5})
         end
-    end
+    end)
 
-    -- Wire both Follow buttons to the same toggle
-    bind(gui.FishZone.FollowBtn.MouseButton1Click, toggleFollow)
-    bind(gui.Mining.FollowBtn.MouseButton1Click, toggleFollow)
-
-    for _, part in ipairs(getZoneParts()) do
+for _, part in ipairs(getZoneParts()) do
         table.insert(ctx.zoneAttributeConnections, part:GetAttributeChangedSignal("IsActive"):Connect(function()
             refreshZoneESP()
             if ctx.autoTPEnabled then
@@ -420,7 +399,7 @@ return function(ctx)
             end
         end
 
-        -- Follow player movement (shared across Fishing + Mining)
+        -- Follow player movement
         if ctx.followEnabled and ctx.followTarget and ctx.followTarget.Parent then
             local char = lp.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -429,40 +408,29 @@ return function(ctx)
             local targetHRP = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
             if hrp and hum and targetHRP then
                 local dist = (targetHRP.Position - hrp.Position).Magnitude
-                local followText, followColor
                 if dist > 5 then
                     local dir = (targetHRP.Position - hrp.Position).Unit
                     hum:MoveTo(hrp.Position + dir * math.min(dist, 16))
-                    followText = "Following: " .. ctx.followTargetName .. " (" .. math.floor(dist) .. "m)"
-                    followColor = THEME.success
+                    gui.FishZone.FollowSelectedLbl.Text = "Following: " .. ctx.followTargetName .. " (" .. math.floor(dist) .. "m)"
+                    gui.FishZone.FollowSelectedLbl.TextColor3 = THEME.success
                 else
-                    followText = "Following: " .. ctx.followTargetName .. " (nearby)"
-                    followColor = THEME.accentGlow
+                    gui.FishZone.FollowSelectedLbl.Text = "Following: " .. ctx.followTargetName .. " (nearby)"
+                    gui.FishZone.FollowSelectedLbl.TextColor3 = THEME.accentGlow
                 end
-                gui.FishZone.FollowSelectedLbl.Text = followText
-                gui.FishZone.FollowSelectedLbl.TextColor3 = followColor
-                gui.Mining.FollowSelectedLbl.Text = followText
-                gui.Mining.FollowSelectedLbl.TextColor3 = followColor
             end
         elseif ctx.followEnabled and ctx.followTarget and not ctx.followTarget.Parent then
-            -- Target left, auto-stop (sync both buttons)
             ctx.followEnabled = false
             gui.FishZone.FollowBtn.Text = "Follow: OFF"
             gui.FishZone.FollowBtn.BackgroundColor3 = THEME.danger
-            gui.Mining.FollowBtn.Text = "Follow: OFF"
-            gui.Mining.FollowBtn.BackgroundColor3 = THEME.danger
             gui.FishZone.FollowSelectedLbl.Text = "Following: None (left)"
             gui.FishZone.FollowSelectedLbl.TextColor3 = THEME.warn
-            gui.Mining.FollowSelectedLbl.Text = "Following: None (left)"
-            gui.Mining.FollowSelectedLbl.TextColor3 = THEME.warn
             ctx.followTarget = nil
             ctx.followTargetName = "None"
             unfreezeCharacter()
             log("Follow target left server", THEME.warn)
         end
-    end)
 
-    switchTab("About")
+switchTab("About")
     updateClickerUI()
     updateRewardButtons()
     refreshPlayerRows()

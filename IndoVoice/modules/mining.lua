@@ -654,7 +654,74 @@ return function(ctx)
         end
     end)
 
-    -- Auto TP toggle
+    local Players = game:GetService("Players")
+
+    -- Follow button toggle (Mining)
+    ctx.mineFollowEnabled = false
+    ctx.mineFollowTarget = nil
+    ctx.mineFollowTargetName = "None"
+
+    local function populateMineFollowPlayerList()
+        local list = gui.Mining.FollowPlayerList
+        for _, child in ipairs(list:GetChildren()) do
+            if child:IsA("TextButton") then child:Destroy() end
+        end
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= lp then
+                local row = Instance.new("TextButton")
+                row.Size = UDim2.new(1, -4, 0, 22)
+                row.BackgroundColor3 = THEME.panel2
+                row.Text = player.Name
+                row.TextColor3 = THEME.text
+                row.Font = Enum.Font.GothamBold
+                row.TextSize = 10
+                row.BorderSizePixel = 0
+                row.Parent = list
+                if ctx.mineFollowTarget == player then
+                    row.BackgroundColor3 = THEME.success
+                    row.Text = player.Name .. " \u2713"
+                end
+                bind(row.MouseButton1Click, function()
+                    ctx.mineFollowTarget = player
+                    ctx.mineFollowTargetName = player.Name
+                    gui.Mining.FollowSelectedLbl.Text = "Following: " .. player.Name
+                    log("Mine Follow target set: " .. player.Name, THEME.success)
+                    populateMineFollowPlayerList()
+                end)
+            end
+        end
+    end
+    ctx.populateMineFollowPlayerList = populateMineFollowPlayerList
+
+    bind(Players.PlayerAdded, function() populateMineFollowPlayerList() end)
+    bind(Players.PlayerRemoving, function() populateMineFollowPlayerList() end)
+    populateMineFollowPlayerList()
+
+    bind(gui.Mining.FollowBtn.MouseButton1Click, function()
+        ctx.mineFollowEnabled = not ctx.mineFollowEnabled
+        if ctx.mineFollowEnabled then
+            gui.Mining.FollowBtn.Text = "Follow: ON"
+            gui.Mining.FollowBtn.BackgroundColor3 = THEME.success
+            if ctx.mineFollowTarget then
+                log("Mine Follow started \u2192 " .. ctx.mineFollowTargetName, THEME.success)
+            else
+                log("Mine Follow ON \u2014 select a player first!", THEME.warn)
+            end
+        else
+            gui.Mining.FollowBtn.Text = "Follow: OFF"
+            gui.Mining.FollowBtn.BackgroundColor3 = THEME.danger
+            ctx.mineFollowTarget = nil
+            ctx.mineFollowTargetName = "None"
+            gui.Mining.FollowSelectedLbl.Text = "Following: None"
+            log("Mine Follow stopped", THEME.dim)
+        end
+        if gui.Toast and gui.Toast.show then
+            local msg = ctx.mineFollowEnabled and "Mining Follow enabled" or "Mining Follow disabled"
+            gui.Toast.show({Text = msg, Variant = ctx.mineFollowEnabled and "success" or "info", Duration = 1.5})
+        end
+    end)
+
+-- Auto TP toggle
     local function updateMineTPBtnUI()
         if ctx.autoMineTPEnabled then
             gui.Mining.TPBtn.Text = "Auto TP Stone Hotspot: ON"
