@@ -210,9 +210,5 @@ return function(ctx)
             gui.ShopGacha.Status.Text = "Status: Stopped | Rolls: " .. shopGachaRolls
             gui.ShopGacha.Status.TextColor3 = THEME.dim
         end
-        if gui.Toast and gui.Toast.show then
-            local msg = ctx.shopGachaEnabled and "Shop Gacha started" or "Shop Gacha stopped"
-            gui.Toast.show({Text = msg, Variant = ctx.shopGachaEnabled and "success" or "info", Duration = 1.5})
-        end
     end)
 end

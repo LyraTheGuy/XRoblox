@@ -55,10 +55,6 @@ return function(ctx)
         gui.FishZone.ZoneESPBtn.BackgroundColor3 = ctx.zoneESPOn and THEME.success or THEME.accent
         refreshZoneESP()
         log("FishZone ESP: " .. (ctx.zoneESPOn and "ON" or "OFF"), ctx.zoneESPOn and THEME.success or THEME.dim)
-        if gui.Toast and gui.Toast.show then
-            local msg = ctx.zoneESPOn and "FishZone ESP enabled" or "FishZone ESP disabled"
-            gui.Toast.show({Text = msg, Variant = ctx.zoneESPOn and "success" or "info", Duration = 1.5})
-        end
     end)
 
     bind(gui.FishZone.AutoTPBtn.MouseButton1Click, function()
@@ -70,27 +66,79 @@ return function(ctx)
             moveToNearestActiveZone()
             log("Auto TP: ON - searching for active zone", THEME.success)
         end
-        if gui.Toast and gui.Toast.show then
-            local msg = ctx.autoTPEnabled and "Auto TP to FishZone ON" or "Auto TP to FishZone OFF"
-            gui.Toast.show({Text = msg, Variant = ctx.autoTPEnabled and "success" or "info", Duration = 1.5})
-        end
     end)
 
-    bind(gui.FishZone.RefreshCharBtn.MouseButton1Click, function()
-        gui.FishZone.RefreshCharBtn.Text = "Refreshing..."
-        refreshCharacterAdonis()
-        log("Refresh character sent (Adonis)", THEME.warn)
-        if gui.Toast and gui.Toast.show then
-            gui.Toast.show({Text = "Refreshed Character", Variant = "warn", Duration = 1.5})
+    -- ═══════════════════════════════════════════
+    -- Follow button toggle (Fishing)
+    ctx.followEnabled = false
+    ctx.followTarget = nil
+    ctx.followTargetName = "None"
+
+    local function addCorner(obj, corner)
+        local c = Instance.new("UICorner")
+        c.CornerRadius = corner
+        c.Parent = obj
+    end
+
+    local function populateFollowPlayerList()
+        local list = gui.FishZone.FollowPlayerList
+        for _, child in ipairs(list:GetChildren()) do
+            if child:IsA("TextButton") then child:Destroy() end
         end
-        task.delay(1.2, function()
-            if gui.FishZone.RefreshCharBtn and gui.FishZone.RefreshCharBtn.Parent then
-                gui.FishZone.RefreshCharBtn.Text = "Refresh Character"
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= lp then
+                local row = Instance.new("TextButton")
+                row.Size = UDim2.new(1, -4, 0, 22)
+                row.BackgroundColor3 = THEME.panel2
+                row.Text = player.Name
+                row.TextColor3 = THEME.text
+                row.Font = Enum.Font.GothamBold
+                row.TextSize = 10
+                row.BorderSizePixel = 0
+                row.Parent = list
+                addCorner(row, UDim.new(0, 5))
+                if ctx.followTarget == player then
+                    row.BackgroundColor3 = THEME.success
+                    row.Text = player.Name .. " ✓"
+                end
+                bind(row.MouseButton1Click, function()
+                    ctx.followTarget = player
+                    ctx.followTargetName = player.Name
+                    gui.FishZone.FollowSelectedLbl.Text = "Following: " .. player.Name
+                    log("Follow target set: " .. player.Name, THEME.success)
+                    populateFollowPlayerList()
+                end)
             end
-        end)
+        end
+    end
+    ctx.populateFollowPlayerList = populateFollowPlayerList
+
+    bind(Players.PlayerAdded, populateFollowPlayerList)
+    bind(Players.PlayerRemoving, populateFollowPlayerList)
+    populateFollowPlayerList()
+
+    bind(gui.FishZone.FollowBtn.MouseButton1Click, function()
+        ctx.followEnabled = not ctx.followEnabled
+        if ctx.followEnabled then
+            gui.FishZone.FollowBtn.Text = "Follow: ON"
+            gui.FishZone.FollowBtn.BackgroundColor3 = THEME.success
+            if ctx.followTarget then
+                log("Follow started → " .. ctx.followTargetName, THEME.success)
+            else
+                log("Follow ON — select a player first!", THEME.warn)
+            end
+        else
+            gui.FishZone.FollowBtn.Text = "Follow: OFF"
+            gui.FishZone.FollowBtn.BackgroundColor3 = THEME.danger
+            ctx.followTarget = nil
+            ctx.followTargetName = "None"
+            gui.FishZone.FollowSelectedLbl.Text = "Following: None"
+            log("Follow stopped", THEME.dim)
+            unfreezeCharacter()
+        end
     end)
 
-    for _, part in ipairs(getZoneParts()) do
+for _, part in ipairs(getZoneParts()) do
         table.insert(ctx.zoneAttributeConnections, part:GetAttributeChangedSignal("IsActive"):Connect(function()
             refreshZoneESP()
             if ctx.autoTPEnabled then
@@ -337,6 +385,49 @@ return function(ctx)
                 gui.FishZone.ZoneStatus.Text = "No active zone"
                 gui.FishZone.ZoneStatus.TextColor3 = THEME.danger
             end
+        end
+
+        -- Follow player: only move when target is moving, freeze so you can fish/mine
+        if ctx.followEnabled and ctx.followTarget and ctx.followTarget.Parent then
+            local hrp = getHRP(lp.Character)
+            local targetHRP = getHRP(ctx.followTarget.Character)
+            local targetHum = ctx.followTarget.Character and ctx.followTarget.Character:FindFirstChildOfClass("Humanoid")
+            if hrp and targetHRP and targetHum then
+                local targetVel = (targetHRP.AssemblyLinearVelocity or Vector3.zero).Magnitude
+                local dist = (targetHRP.Position - hrp.Position).Magnitude
+                local moving = targetVel > 1.5 or targetHum.MoveDirection.Magnitude > 0.1
+                local alreadyFrozen = ctx.frozenAnchor and ctx.frozenAnchor.Parent
+                if moving and dist > 3 then
+                    -- Always TP first — CFrame teleport bypasses invisible walls
+                    ctx.tpToPlayer(ctx.followTarget)
+                    local behindTarget = (targetHRP.CFrame * CFrame.new(0, 0, 5)).Position
+                    if not alreadyFrozen then
+                        task.wait(0.05)
+                        ctx.freezeAt(behindTarget)
+                    else
+                        -- Already frozen — just update the anchor position
+                        -- Do NOT update frozenGyro — it locks rotation once and stays
+                        ctx.frozenAnchor.Position = behindTarget
+                    end
+                elseif not moving and dist <= 6 then
+                    -- Target stopped and close — stay frozen for stable camera (like Auto Fish TP)
+                    if not alreadyFrozen then
+                        ctx.freezeAt(hrp.Position)
+                    end
+                end
+                gui.FishZone.FollowSelectedLbl.Text = "Following: " .. ctx.followTargetName .. " (" .. math.floor(dist) .. "m)"
+                gui.FishZone.FollowSelectedLbl.TextColor3 = (moving and dist > 3) or dist <= 6 and THEME.success or THEME.accentGlow
+            end
+        elseif ctx.followEnabled and ctx.followTarget and not ctx.followTarget.Parent then
+            ctx.followEnabled = false
+            gui.FishZone.FollowBtn.Text = "Follow: OFF"
+            gui.FishZone.FollowBtn.BackgroundColor3 = THEME.danger
+            gui.FishZone.FollowSelectedLbl.Text = "Following: None (left)"
+            gui.FishZone.FollowSelectedLbl.TextColor3 = THEME.warn
+            ctx.followTarget = nil
+            ctx.followTargetName = "None"
+            unfreezeCharacter()
+            log("Follow target left server", THEME.warn)
         end
     end)
 

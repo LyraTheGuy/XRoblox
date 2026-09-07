@@ -648,42 +648,125 @@ return function(ctx)
             gui.Mining.ToggleBtn.Text = "Auto Mine: OFF"
             gui.Mining.ToggleBtn.BackgroundColor3 = THEME.accent
         end
-        if gui.Toast and gui.Toast.show then
-            local msg = ctx.autoMineEnabled and "Auto Mine started" or "Auto Mine stopped"
-            gui.Toast.show({Text = msg, Variant = ctx.autoMineEnabled and "success" or "info", Duration = 1.5})
-        end
     end)
 
-    -- Hotspot only toggle
-    local function updateHotspotBtnUI()
-        if ctx.autoMineHotspotOnly then
-            gui.Mining.HotspotBtn.Text = "Hotspot Only: ON"
-            gui.Mining.HotspotBtn.BackgroundColor3 = THEME.success
-        else
-            gui.Mining.HotspotBtn.Text = "Hotspot Only: OFF"
-            gui.Mining.HotspotBtn.BackgroundColor3 = THEME.tp
+    local Players = game:GetService("Players")
+
+    -- Follow button toggle (Mining)
+    ctx.mineFollowEnabled = false
+    ctx.mineFollowTarget = nil
+    ctx.mineFollowTargetName = "None"
+
+    local function populateMineFollowPlayerList()
+        local list = gui.Mining.FollowPlayerList
+        for _, child in ipairs(list:GetChildren()) do
+            if child:IsA("TextButton") then child:Destroy() end
+        end
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= lp then
+                local row = Instance.new("TextButton")
+                row.Size = UDim2.new(1, -4, 0, 22)
+                row.BackgroundColor3 = THEME.panel2
+                row.Text = player.Name
+                row.TextColor3 = THEME.text
+                row.Font = Enum.Font.GothamBold
+                row.TextSize = 10
+                row.BorderSizePixel = 0
+                row.Parent = list
+                if ctx.mineFollowTarget == player then
+                    row.BackgroundColor3 = THEME.success
+                    row.Text = player.Name .. " ✓"
+                end
+                bind(row.MouseButton1Click, function()
+                    ctx.mineFollowTarget = player
+                    ctx.mineFollowTargetName = player.Name
+                    gui.Mining.FollowSelectedLbl.Text = "Following: " .. player.Name
+                    log("Mine Follow target set: " .. player.Name, THEME.success)
+                    populateMineFollowPlayerList()
+                end)
+            end
         end
     end
-    ctx.updateHotspotBtnUI = updateHotspotBtnUI
+    ctx.populateMineFollowPlayerList = populateMineFollowPlayerList
 
-    bind(gui.Mining.HotspotBtn.MouseButton1Click, function()
-        ctx.autoMineHotspotOnly = not ctx.autoMineHotspotOnly
-        updateHotspotBtnUI()
-        log("AutoMine: Hotspot Only " .. (ctx.autoMineHotspotOnly and "ON" or "OFF"),
-            ctx.autoMineHotspotOnly and THEME.success or THEME.dim)
-        if gui.Toast and gui.Toast.show then
-            local msg = ctx.autoMineHotspotOnly and "Hotspot Only ON" or "Hotspot Only OFF"
-            gui.Toast.show({Text = msg, Variant = ctx.autoMineHotspotOnly and "success" or "info", Duration = 1.5})
+    bind(Players.PlayerAdded, function() populateMineFollowPlayerList() end)
+    bind(Players.PlayerRemoving, function() populateMineFollowPlayerList() end)
+    populateMineFollowPlayerList()
+
+    bind(gui.Mining.FollowBtn.MouseButton1Click, function()
+        ctx.mineFollowEnabled = not ctx.mineFollowEnabled
+        if ctx.mineFollowEnabled then
+            gui.Mining.FollowBtn.Text = "Follow: ON"
+            gui.Mining.FollowBtn.BackgroundColor3 = THEME.success
+            if ctx.mineFollowTarget then
+                log("Mine Follow started → " .. ctx.mineFollowTargetName, THEME.success)
+            else
+                log("Mine Follow ON — select a player first!", THEME.warn)
+            end
+        else
+            gui.Mining.FollowBtn.Text = "Follow: OFF"
+            gui.Mining.FollowBtn.BackgroundColor3 = THEME.danger
+            ctx.mineFollowTarget = nil
+            ctx.mineFollowTargetName = "None"
+            gui.Mining.FollowSelectedLbl.Text = "Following: None"
+            log("Mine Follow stopped", THEME.dim)
+            unfreezeCharacter()
         end
     end)
 
-    -- Auto TP toggle
+    -- Mine Follow movement: only move when target is moving, freeze so you can fish/mine
+    bind(ctx.RunService.Heartbeat, function()
+        if ctx.destroyed then return end
+        if ctx.mineFollowEnabled and ctx.mineFollowTarget and ctx.mineFollowTarget.Parent then
+            local hrp = getHRP(lp.Character)
+            local targetHRP = getHRP(ctx.mineFollowTarget.Character)
+            local targetHum = ctx.mineFollowTarget.Character and ctx.mineFollowTarget.Character:FindFirstChildOfClass("Humanoid")
+            if hrp and targetHRP and targetHum then
+                local targetVel = (targetHRP.AssemblyLinearVelocity or Vector3.zero).Magnitude
+                local dist = (targetHRP.Position - hrp.Position).Magnitude
+                local moving = targetVel > 1.5 or targetHum.MoveDirection.Magnitude > 0.1
+                local alreadyFrozen = ctx.frozenAnchor and ctx.frozenAnchor.Parent
+                if moving and dist > 3 then
+                    -- Always TP first — CFrame teleport bypasses invisible walls
+                    ctx.tpToPlayer(ctx.mineFollowTarget)
+                    local behindTarget = (targetHRP.CFrame * CFrame.new(0, 0, 5)).Position
+                    if not alreadyFrozen then
+                        task.wait(0.05)
+                        ctx.freezeAt(behindTarget)
+                    else
+                        -- Already frozen — just update the anchor position
+                        -- Do NOT update frozenGyro — it locks rotation once and stays
+                        ctx.frozenAnchor.Position = behindTarget
+                    end
+                elseif not moving and dist <= 6 then
+                    -- Target stopped and close — stay frozen for stable camera (like Auto Fish TP)
+                    if not alreadyFrozen then
+                        ctx.freezeAt(hrp.Position)
+                    end
+                end
+                gui.Mining.FollowSelectedLbl.Text = "Following: " .. ctx.mineFollowTargetName .. " (" .. math.floor(dist) .. "m)"
+                gui.Mining.FollowSelectedLbl.TextColor3 = (moving and dist > 3) or dist <= 6 and THEME.success or THEME.accentGlow
+            end
+        elseif ctx.mineFollowEnabled and ctx.mineFollowTarget and not ctx.mineFollowTarget.Parent then
+            ctx.mineFollowEnabled = false
+            gui.Mining.FollowBtn.Text = "Follow: OFF"
+            gui.Mining.FollowBtn.BackgroundColor3 = THEME.danger
+            gui.Mining.FollowSelectedLbl.Text = "Following: None (left)"
+            gui.Mining.FollowSelectedLbl.TextColor3 = THEME.warn
+            ctx.mineFollowTarget = nil
+            ctx.mineFollowTargetName = "None"
+            unfreezeCharacter()
+            log("Mine Follow target left server", THEME.warn)
+        end
+    end)
+
+-- Auto TP toggle
     local function updateMineTPBtnUI()
         if ctx.autoMineTPEnabled then
-            gui.Mining.TPBtn.Text = "Auto TP to Stones: ON"
+            gui.Mining.TPBtn.Text = "Auto TP Stone Hotspot: ON"
             gui.Mining.TPBtn.BackgroundColor3 = THEME.success
         else
-            gui.Mining.TPBtn.Text = "Auto TP to Stones: OFF"
+            gui.Mining.TPBtn.Text = "Auto TP Stone Hotspot: OFF"
             gui.Mining.TPBtn.BackgroundColor3 = THEME.tp
         end
     end
@@ -691,15 +774,15 @@ return function(ctx)
 
     bind(gui.Mining.TPBtn.MouseButton1Click, function()
         ctx.autoMineTPEnabled = not ctx.autoMineTPEnabled
+        -- Auto TP Stone Hotspot implies hotspot-only filtering
+        if ctx.autoMineTPEnabled then
+            ctx.autoMineHotspotOnly = true
+        end
         updateMineTPBtnUI()
         log("AutoMine: Auto TP " .. (ctx.autoMineTPEnabled and "ON" or "OFF"),
             ctx.autoMineTPEnabled and THEME.success or THEME.dim)
         if ctx.autoMineTPEnabled then
             startStoneTPLoop()
-        end
-        if gui.Toast and gui.Toast.show then
-            local msg = ctx.autoMineTPEnabled and "Auto TP to Stones ON" or "Auto TP to Stones OFF"
-            gui.Toast.show({Text = msg, Variant = ctx.autoMineTPEnabled and "success" or "info", Duration = 1.5})
         end
     end)
 
@@ -716,10 +799,6 @@ return function(ctx)
             log("AutoMine: Hotspot ESP OFF", THEME.dim)
         end
         refreshMineESP()
-        if gui.Toast and gui.Toast.show then
-            local msg = ctx.mineESPOn and "Hotspot ESP enabled" or "Hotspot ESP disabled"
-            gui.Toast.show({Text = msg, Variant = ctx.mineESPOn and "success" or "info", Duration = 1.5})
-        end
     end)
 
     -- ═══════════════════════════════════════════
@@ -917,10 +996,6 @@ return function(ctx)
             gui.Mining.AutoSellBtn.BackgroundColor3 = THEME.warn
             log("Auto Sell Ore: OFF", THEME.dim)
         end
-        if gui.Toast and gui.Toast.show then
-            local msg = ctx.autoSellOreEnabled and "Auto Sell Ore started" or "Auto Sell Ore stopped"
-            gui.Toast.show({Text = msg, Variant = ctx.autoSellOreEnabled and "success" or "info", Duration = 1.5})
-        end
     end)
 
     -- Sell ore now button
@@ -939,7 +1014,6 @@ return function(ctx)
     end)
 
     updateOreSellRarityUI()
-    updateHotspotBtnUI()
     updateMineTPBtnUI()
     gui.Mining.SellIntervalInput.Text = tostring(ctx.ORE_SELL_INTERVAL)
 
