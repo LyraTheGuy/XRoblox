@@ -406,16 +406,22 @@ for _, part in ipairs(getZoneParts()) do
                         ctx.freezeAt(behindTarget)
                     else
 <<<<<<< HEAD
+<<<<<<< HEAD
                         -- Already frozen — just update the anchor position
                         -- Do NOT update frozenGyro — it locks rotation once and stays
                         ctx.frozenAnchor.Position = behindTarget
 =======
+=======
+>>>>>>> parent of e6cf271 (please last)
                         -- Already frozen — just update the anchor position (no destroy/recreate)
                         local behindTarget = targetHRP.Position + Vector3.new(0, 0, 5)
                         ctx.frozenAnchor.Position = behindTarget
                         if ctx.frozenGyro and ctx.frozenGyro.Parent then
                             ctx.frozenGyro.CFrame = CFrame.new(behindTarget, targetHRP.Position)
                         end
+<<<<<<< HEAD
+>>>>>>> parent of e6cf271 (please last)
+=======
 >>>>>>> parent of e6cf271 (please last)
                     end
                 elseif not moving and dist <= 6 then
