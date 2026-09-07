@@ -400,13 +400,14 @@ for _, part in ipairs(getZoneParts()) do
                 if moving and dist > 3 then
                     -- Always TP first — CFrame teleport bypasses invisible walls
                     ctx.tpToPlayer(ctx.followTarget)
+                    local behindTarget = (targetHRP.CFrame * CFrame.new(0, 0, 5)).Position
                     if not alreadyFrozen then
                         task.wait(0.05)
-                        ctx.freezeAt(targetHRP.Position + Vector3.new(0, 0, 5))
+                        ctx.freezeAt(behindTarget)
                     else
                         -- Already frozen — just update the anchor position
                         -- Do NOT update frozenGyro — it locks rotation once and stays
-                        ctx.frozenAnchor.Position = targetHRP.Position + Vector3.new(0, 0, 5)
+                        ctx.frozenAnchor.Position = behindTarget
                     end
                 elseif not moving and dist <= 6 then
                     -- Target stopped and close — stay frozen for stable camera (like Auto Fish TP)
