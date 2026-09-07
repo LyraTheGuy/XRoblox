@@ -1790,9 +1790,6 @@ return function(gui, config)
                     gui.Settings.HideKeyLbl.Text = "Hide/Show UI: " .. keyName
                 end
                 saveSettings()
-                if gui.Toast and gui.Toast.show then
-                    gui.Toast.show({Text = "Hide UI key bound to " .. keyName, Variant = "success", Duration = 1.5})
-                end
             end
         end)
     end
@@ -1867,9 +1864,6 @@ return function(gui, config)
                     end
                     if isStaff then
                         log("⚠️ Staff/Admin detected: " .. player.Name, THEME.danger)
-                        if gui.Toast and gui.Toast.show then
-                            gui.Toast.show({Text = "Admin Joined: " .. player.Name, Variant = "warn", Duration = 4})
-                        end
                     end
                 end)
             end

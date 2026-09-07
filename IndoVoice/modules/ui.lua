@@ -55,10 +55,6 @@ return function(ctx)
         gui.FishZone.ZoneESPBtn.BackgroundColor3 = ctx.zoneESPOn and THEME.success or THEME.accent
         refreshZoneESP()
         log("FishZone ESP: " .. (ctx.zoneESPOn and "ON" or "OFF"), ctx.zoneESPOn and THEME.success or THEME.dim)
-        if gui.Toast and gui.Toast.show then
-            local msg = ctx.zoneESPOn and "FishZone ESP enabled" or "FishZone ESP disabled"
-            gui.Toast.show({Text = msg, Variant = ctx.zoneESPOn and "success" or "info", Duration = 1.5})
-        end
     end)
 
     bind(gui.FishZone.AutoTPBtn.MouseButton1Click, function()
@@ -69,10 +65,6 @@ return function(ctx)
             startAutoTP()
             moveToNearestActiveZone()
             log("Auto TP: ON - searching for active zone", THEME.success)
-        end
-        if gui.Toast and gui.Toast.show then
-            local msg = ctx.autoTPEnabled and "Auto TP to FishZone ON" or "Auto TP to FishZone OFF"
-            gui.Toast.show({Text = msg, Variant = ctx.autoTPEnabled and "success" or "info", Duration = 1.5})
         end
     end)
 
@@ -143,10 +135,6 @@ return function(ctx)
             gui.FishZone.FollowSelectedLbl.Text = "Following: None"
             log("Follow stopped", THEME.dim)
             unfreezeCharacter()
-        end
-        if gui.Toast and gui.Toast.show then
-            local msg = ctx.followEnabled and "Follow enabled" or "Follow disabled"
-            gui.Toast.show({Text = msg, Variant = ctx.followEnabled and "success" or "info", Duration = 1.5})
         end
     end)
 
@@ -399,24 +387,20 @@ for _, part in ipairs(getZoneParts()) do
             end
         end
 
-        -- Follow player movement
+        -- Follow player movement (TP-style, keeps you right on top of them)
         if ctx.followEnabled and ctx.followTarget and ctx.followTarget.Parent then
             local char = lp.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
             local targetChar = ctx.followTarget.Character
             local targetHRP = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
-            if hrp and hum and targetHRP then
+            if hrp and targetHRP then
                 local dist = (targetHRP.Position - hrp.Position).Magnitude
-                if dist > 5 then
-                    local dir = (targetHRP.Position - hrp.Position).Unit
-                    hum:MoveTo(hrp.Position + dir * math.min(dist, 16))
-                    gui.FishZone.FollowSelectedLbl.Text = "Following: " .. ctx.followTargetName .. " (" .. math.floor(dist) .. "m)"
-                    gui.FishZone.FollowSelectedLbl.TextColor3 = THEME.success
-                else
-                    gui.FishZone.FollowSelectedLbl.Text = "Following: " .. ctx.followTargetName .. " (nearby)"
-                    gui.FishZone.FollowSelectedLbl.TextColor3 = THEME.accentGlow
+                if dist > 4 then
+                    local offset = targetHRP.CFrame * Vector3.new(0, 3, 4)
+                    hrp.CFrame = CFrame.new(offset, targetHRP.Position)
                 end
+                gui.FishZone.FollowSelectedLbl.Text = "Following: " .. ctx.followTargetName .. " (" .. math.floor(dist) .. "m)"
+                gui.FishZone.FollowSelectedLbl.TextColor3 = dist > 4 and THEME.success or THEME.accentGlow
             end
         elseif ctx.followEnabled and ctx.followTarget and not ctx.followTarget.Parent then
             ctx.followEnabled = false

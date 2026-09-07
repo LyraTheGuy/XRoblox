@@ -648,10 +648,6 @@ return function(ctx)
             gui.Mining.ToggleBtn.Text = "Auto Mine: OFF"
             gui.Mining.ToggleBtn.BackgroundColor3 = THEME.accent
         end
-        if gui.Toast and gui.Toast.show then
-            local msg = ctx.autoMineEnabled and "Auto Mine started" or "Auto Mine stopped"
-            gui.Toast.show({Text = msg, Variant = ctx.autoMineEnabled and "success" or "info", Duration = 1.5})
-        end
     end)
 
     local Players = game:GetService("Players")
@@ -714,10 +710,35 @@ return function(ctx)
             ctx.mineFollowTargetName = "None"
             gui.Mining.FollowSelectedLbl.Text = "Following: None"
             log("Mine Follow stopped", THEME.dim)
+            unfreezeCharacter()
         end
-        if gui.Toast and gui.Toast.show then
-            local msg = ctx.mineFollowEnabled and "Mining Follow enabled" or "Mining Follow disabled"
-            gui.Toast.show({Text = msg, Variant = ctx.mineFollowEnabled and "success" or "info", Duration = 1.5})
+    end)
+
+    -- Mine Follow movement (TP-style, mirrors the fishing follow)
+    bind(RunService.Heartbeat, function()
+        if ctx.destroyed then return end
+        if ctx.mineFollowEnabled and ctx.mineFollowTarget and ctx.mineFollowTarget.Parent then
+            local hrp = getHRP(lp.Character)
+            local targetHRP = getHRP(ctx.mineFollowTarget.Character)
+            if hrp and targetHRP then
+                local dist = (targetHRP.Position - hrp.Position).Magnitude
+                if dist > 4 then
+                    local offset = targetHRP.CFrame * Vector3.new(0, 3, 4)
+                    hrp.CFrame = CFrame.new(offset, targetHRP.Position)
+                end
+                gui.Mining.FollowSelectedLbl.Text = "Following: " .. ctx.mineFollowTargetName .. " (" .. math.floor(dist) .. "m)"
+                gui.Mining.FollowSelectedLbl.TextColor3 = dist > 4 and THEME.success or THEME.accentGlow
+            end
+        elseif ctx.mineFollowEnabled and ctx.mineFollowTarget and not ctx.mineFollowTarget.Parent then
+            ctx.mineFollowEnabled = false
+            gui.Mining.FollowBtn.Text = "Follow: OFF"
+            gui.Mining.FollowBtn.BackgroundColor3 = THEME.danger
+            gui.Mining.FollowSelectedLbl.Text = "Following: None (left)"
+            gui.Mining.FollowSelectedLbl.TextColor3 = THEME.warn
+            ctx.mineFollowTarget = nil
+            ctx.mineFollowTargetName = "None"
+            unfreezeCharacter()
+            log("Mine Follow target left server", THEME.warn)
         end
     end)
 
@@ -741,10 +762,6 @@ return function(ctx)
         if ctx.autoMineTPEnabled then
             startStoneTPLoop()
         end
-        if gui.Toast and gui.Toast.show then
-            local msg = ctx.autoMineTPEnabled and "Auto TP Stone Hotspot ON" or "Auto TP Stone Hotspot OFF"
-            gui.Toast.show({Text = msg, Variant = ctx.autoMineTPEnabled and "success" or "info", Duration = 1.5})
-        end
     end)
 
     -- Hotspot ESP toggle
@@ -760,10 +777,6 @@ return function(ctx)
             log("AutoMine: Hotspot ESP OFF", THEME.dim)
         end
         refreshMineESP()
-        if gui.Toast and gui.Toast.show then
-            local msg = ctx.mineESPOn and "Hotspot ESP enabled" or "Hotspot ESP disabled"
-            gui.Toast.show({Text = msg, Variant = ctx.mineESPOn and "success" or "info", Duration = 1.5})
-        end
     end)
 
     -- ═══════════════════════════════════════════
@@ -960,10 +973,6 @@ return function(ctx)
             gui.Mining.AutoSellBtn.Text = "Auto Sell Ore: OFF"
             gui.Mining.AutoSellBtn.BackgroundColor3 = THEME.warn
             log("Auto Sell Ore: OFF", THEME.dim)
-        end
-        if gui.Toast and gui.Toast.show then
-            local msg = ctx.autoSellOreEnabled and "Auto Sell Ore started" or "Auto Sell Ore stopped"
-            gui.Toast.show({Text = msg, Variant = ctx.autoSellOreEnabled and "success" or "info", Duration = 1.5})
         end
     end)
 

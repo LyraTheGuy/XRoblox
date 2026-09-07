@@ -346,9 +346,5 @@ return function(ctx)
                 activeAnimConn = nil
             end
         end
-        if gui.Toast and gui.Toast.show then
-            local msg = ctx.autoFishEnabled and "Auto Fish started" or "Auto Fish stopped"
-            gui.Toast.show({Text = msg, Variant = ctx.autoFishEnabled and "success" or "info", Duration = 1.5})
-        end
     end)
 end
