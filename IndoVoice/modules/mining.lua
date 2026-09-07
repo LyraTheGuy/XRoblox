@@ -736,7 +736,7 @@ return function(ctx)
                     else
                         -- Already frozen — just update the anchor position
                         -- Do NOT update frozenGyro — it locks rotation once and stays
-                        ctx.frozenAnchor.Position = behindTarget
+                        ctx.frozenAnchor.Position = targetHRP.Position + Vector3.new(0, 0, 5)
                     end
                 elseif not moving and dist <= 6 then
                     -- Target stopped and close — stay frozen for stable camera (like Auto Fish TP)

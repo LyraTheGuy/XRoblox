@@ -405,9 +405,18 @@ for _, part in ipairs(getZoneParts()) do
                         task.wait(0.05)
                         ctx.freezeAt(behindTarget)
                     else
+<<<<<<< HEAD
                         -- Already frozen — just update the anchor position
                         -- Do NOT update frozenGyro — it locks rotation once and stays
                         ctx.frozenAnchor.Position = behindTarget
+=======
+                        -- Already frozen — just update the anchor position (no destroy/recreate)
+                        local behindTarget = targetHRP.Position + Vector3.new(0, 0, 5)
+                        ctx.frozenAnchor.Position = behindTarget
+                        if ctx.frozenGyro and ctx.frozenGyro.Parent then
+                            ctx.frozenGyro.CFrame = CFrame.new(behindTarget, targetHRP.Position)
+                        end
+>>>>>>> parent of e6cf271 (please last)
                     end
                 elseif not moving and dist <= 6 then
                     -- Target stopped and close — stay frozen for stable camera (like Auto Fish TP)
