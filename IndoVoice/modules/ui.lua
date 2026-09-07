@@ -398,9 +398,9 @@ for _, part in ipairs(getZoneParts()) do
                 local moving = targetVel > 1.5 or targetHum.MoveDirection.Magnitude > 0.1
                 local alreadyFrozen = ctx.frozenAnchor and ctx.frozenAnchor.Parent
                 if moving and dist > 3 then
-                    if not alreadyFrozen or dist > 10 then
-                        -- First time or drifted too far — TP and create freeze
-                        ctx.tpToPlayer(ctx.followTarget)
+                    -- Always TP first — CFrame teleport bypasses invisible walls
+                    ctx.tpToPlayer(ctx.followTarget)
+                    if not alreadyFrozen then
                         task.wait(0.05)
                         ctx.freezeAt(targetHRP.Position + Vector3.new(0, 0, 5))
                     else
