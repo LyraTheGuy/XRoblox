@@ -715,7 +715,7 @@ return function(ctx)
     end)
 
     -- Mine Follow movement (TP-style, mirrors the fishing follow)
-    bind(RunService.Heartbeat, function()
+    bind(ctx.RunService.Heartbeat, function()
         if ctx.destroyed then return end
         if ctx.mineFollowEnabled and ctx.mineFollowTarget and ctx.mineFollowTarget.Parent then
             local hrp = getHRP(lp.Character)
