@@ -107,7 +107,7 @@ return function(ctx)
                 addCorner(row, UDim.new(0, 5))
                 if ctx.followTarget == player then
                     row.BackgroundColor3 = THEME.success
-                    row.Text = player.Name .. " \u2713"
+                    row.Text = player.Name .. " ✓"
                 end
                 bind(row.MouseButton1Click, function()
                     ctx.followTarget = player
@@ -131,9 +131,9 @@ return function(ctx)
             gui.FishZone.FollowBtn.Text = "Follow: ON"
             gui.FishZone.FollowBtn.BackgroundColor3 = THEME.success
             if ctx.followTarget then
-                log("Follow started \u2192 " .. ctx.followTargetName, THEME.success)
+                log("Follow started → " .. ctx.followTargetName, THEME.success)
             else
-                log("Follow ON \u2014 select a player first!", THEME.warn)
+                log("Follow ON — select a player first!", THEME.warn)
             end
         else
             gui.FishZone.FollowBtn.Text = "Follow: OFF"

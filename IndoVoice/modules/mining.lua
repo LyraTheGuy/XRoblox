@@ -679,7 +679,7 @@ return function(ctx)
                 row.Parent = list
                 if ctx.mineFollowTarget == player then
                     row.BackgroundColor3 = THEME.success
-                    row.Text = player.Name .. " \u2713"
+                    row.Text = player.Name .. " ✓"
                 end
                 bind(row.MouseButton1Click, function()
                     ctx.mineFollowTarget = player
@@ -703,9 +703,9 @@ return function(ctx)
             gui.Mining.FollowBtn.Text = "Follow: ON"
             gui.Mining.FollowBtn.BackgroundColor3 = THEME.success
             if ctx.mineFollowTarget then
-                log("Mine Follow started \u2192 " .. ctx.mineFollowTargetName, THEME.success)
+                log("Mine Follow started → " .. ctx.mineFollowTargetName, THEME.success)
             else
-                log("Mine Follow ON \u2014 select a player first!", THEME.warn)
+                log("Mine Follow ON — select a player first!", THEME.warn)
             end
         else
             gui.Mining.FollowBtn.Text = "Follow: OFF"
