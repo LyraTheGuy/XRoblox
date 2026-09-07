@@ -387,20 +387,17 @@ for _, part in ipairs(getZoneParts()) do
             end
         end
 
-        -- Follow player movement (TP-style, keeps you right on top of them)
+        -- Follow player movement (same as TP button, teleports on top)
         if ctx.followEnabled and ctx.followTarget and ctx.followTarget.Parent then
-            local char = lp.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            local targetChar = ctx.followTarget.Character
-            local targetHRP = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+            local hrp = getHRP(lp.Character)
+            local targetHRP = getHRP(ctx.followTarget.Character)
             if hrp and targetHRP then
                 local dist = (targetHRP.Position - hrp.Position).Magnitude
-                if dist > 4 then
-                    local offset = targetHRP.CFrame * Vector3.new(0, 3, 4)
-                    hrp.CFrame = CFrame.new(offset, targetHRP.Position)
+                if dist > 3 then
+                    ctx.tpToPlayer(ctx.followTarget)
                 end
                 gui.FishZone.FollowSelectedLbl.Text = "Following: " .. ctx.followTargetName .. " (" .. math.floor(dist) .. "m)"
-                gui.FishZone.FollowSelectedLbl.TextColor3 = dist > 4 and THEME.success or THEME.accentGlow
+                gui.FishZone.FollowSelectedLbl.TextColor3 = dist > 3 and THEME.success or THEME.accentGlow
             end
         elseif ctx.followEnabled and ctx.followTarget and not ctx.followTarget.Parent then
             ctx.followEnabled = false

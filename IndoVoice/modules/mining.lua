@@ -714,7 +714,7 @@ return function(ctx)
         end
     end)
 
-    -- Mine Follow movement (TP-style, mirrors the fishing follow)
+    -- Mine Follow movement (same as TP button, teleports on top)
     bind(ctx.RunService.Heartbeat, function()
         if ctx.destroyed then return end
         if ctx.mineFollowEnabled and ctx.mineFollowTarget and ctx.mineFollowTarget.Parent then
@@ -722,12 +722,11 @@ return function(ctx)
             local targetHRP = getHRP(ctx.mineFollowTarget.Character)
             if hrp and targetHRP then
                 local dist = (targetHRP.Position - hrp.Position).Magnitude
-                if dist > 4 then
-                    local offset = targetHRP.CFrame * Vector3.new(0, 3, 4)
-                    hrp.CFrame = CFrame.new(offset, targetHRP.Position)
+                if dist > 3 then
+                    ctx.tpToPlayer(ctx.mineFollowTarget)
                 end
                 gui.Mining.FollowSelectedLbl.Text = "Following: " .. ctx.mineFollowTargetName .. " (" .. math.floor(dist) .. "m)"
-                gui.Mining.FollowSelectedLbl.TextColor3 = dist > 4 and THEME.success or THEME.accentGlow
+                gui.Mining.FollowSelectedLbl.TextColor3 = dist > 3 and THEME.success or THEME.accentGlow
             end
         elseif ctx.mineFollowEnabled and ctx.mineFollowTarget and not ctx.mineFollowTarget.Parent then
             ctx.mineFollowEnabled = false
