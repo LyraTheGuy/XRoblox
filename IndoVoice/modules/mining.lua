@@ -714,21 +714,27 @@ return function(ctx)
         end
     end)
 
-    -- Mine Follow movement (same as TP button, teleports on top + freeze)
+    -- Mine Follow movement: only move when target is moving, freeze so you can fish/mine
     bind(ctx.RunService.Heartbeat, function()
         if ctx.destroyed then return end
         if ctx.mineFollowEnabled and ctx.mineFollowTarget and ctx.mineFollowTarget.Parent then
             local hrp = getHRP(lp.Character)
             local targetHRP = getHRP(ctx.mineFollowTarget.Character)
-            if hrp and targetHRP then
+            local targetHum = ctx.mineFollowTarget.Character and ctx.mineFollowTarget.Character:FindFirstChildOfClass("Humanoid")
+            if hrp and targetHRP and targetHum then
+                local targetVel = (targetHRP.AssemblyLinearVelocity or Vector3.zero).Magnitude
                 local dist = (targetHRP.Position - hrp.Position).Magnitude
-                if dist > 3 then
+                local moving = targetVel > 1.5 or targetHum.MoveDirection.Magnitude > 0.1
+                if moving and dist > 3 then
                     ctx.tpToPlayer(ctx.mineFollowTarget)
-                    local hum = getHum(lp.Character)
-                    if hum then hum.PlatformStand = true end
+                    task.wait(0.05)
+                    ctx.freezeAt(targetHRP.Position + Vector3.new(0, 0, 5))
+                elseif not moving and dist <= 6 then
+                    -- Target standing still and we're close enough — release freeze so we can interact
+                    unfreezeCharacter()
                 end
                 gui.Mining.FollowSelectedLbl.Text = "Following: " .. ctx.mineFollowTargetName .. " (" .. math.floor(dist) .. "m)"
-                gui.Mining.FollowSelectedLbl.TextColor3 = dist > 3 and THEME.success or THEME.accentGlow
+                gui.Mining.FollowSelectedLbl.TextColor3 = (moving and dist > 3) or dist <= 6 and THEME.success or THEME.accentGlow
             end
         elseif ctx.mineFollowEnabled and ctx.mineFollowTarget and not ctx.mineFollowTarget.Parent then
             ctx.mineFollowEnabled = false

@@ -387,19 +387,25 @@ for _, part in ipairs(getZoneParts()) do
             end
         end
 
-        -- Follow player movement (same as TP button, teleports on top + freeze)
+        -- Follow player: only move when target is moving, freeze so you can fish/mine
         if ctx.followEnabled and ctx.followTarget and ctx.followTarget.Parent then
             local hrp = getHRP(lp.Character)
             local targetHRP = getHRP(ctx.followTarget.Character)
-            if hrp and targetHRP then
+            local targetHum = ctx.followTarget.Character and ctx.followTarget.Character:FindFirstChildOfClass("Humanoid")
+            if hrp and targetHRP and targetHum then
+                local targetVel = (targetHRP.AssemblyLinearVelocity or Vector3.zero).Magnitude
                 local dist = (targetHRP.Position - hrp.Position).Magnitude
-                if dist > 3 then
+                local moving = targetVel > 1.5 or targetHum.MoveDirection.Magnitude > 0.1
+                if moving and dist > 3 then
                     ctx.tpToPlayer(ctx.followTarget)
-                    local hum = getHum(lp.Character)
-                    if hum then hum.PlatformStand = true end
+                    task.wait(0.05)
+                    ctx.freezeAt(targetHRP.Position + Vector3.new(0, 0, 5))
+                elseif not moving and dist <= 6 then
+                    -- Target standing still and we're close enough — release freeze so we can interact
+                    unfreezeCharacter()
                 end
                 gui.FishZone.FollowSelectedLbl.Text = "Following: " .. ctx.followTargetName .. " (" .. math.floor(dist) .. "m)"
-                gui.FishZone.FollowSelectedLbl.TextColor3 = dist > 3 and THEME.success or THEME.accentGlow
+                gui.FishZone.FollowSelectedLbl.TextColor3 = (moving and dist > 3) or dist <= 6 and THEME.success or THEME.accentGlow
             end
         elseif ctx.followEnabled and ctx.followTarget and not ctx.followTarget.Parent then
             ctx.followEnabled = false
