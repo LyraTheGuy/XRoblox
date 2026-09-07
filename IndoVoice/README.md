@@ -8,6 +8,7 @@ Comprehensive automation toolkit for IndoVoice on Roblox.
 - Auto Fish — Remote-based with minigame skip and auto re-equip
 - Auto Mine — Click-to-mine with hotspot ESP and stone detection
 - Auto Sell Ore — Auto teleport to shop and sell by rarity
+- Auto TP Stone Hotspot — Auto teleport to hotspot stones only (filters non-hotspots automatically)
 
 **Rewards & Currency**
 - Auto Gacha (BlindBox) — 10x rolls with stop-on-rarity
@@ -19,6 +20,7 @@ Comprehensive automation toolkit for IndoVoice on Roblox.
 - Rod Shop — Browse and purchase rods
 - FishZone ESP — Highlight active zones, auto TP
 - Player ESP — Box highlight, teleport, tracer, inspect
+- Follow Player — Follow a player to fish/mine together (stable camera freeze, wall bypass, faces target direction)
 - Anti-Idle — Defeat idle detection
 - Webhook Integration — Discord notifications (customizable)
 
@@ -87,6 +89,17 @@ The codebase uses a modular `ctx` (context) pattern to stay within Luau's 200 lo
 2. Each module in `modules/` receives `ctx` and adds its own functionality
 3. Modules read/write shared state through `ctx` (e.g., `ctx.destroyed`, `ctx.autoFishEnabled`)
 4. `main.lua` orchestrates loading: config → gui → core → modules
+
+## Recent Changes
+
+### Follow System (Fishing & Mining)
+- Fixed camera wobble — BodyGyro locks rotation once, only BodyPosition tracks target
+- Fixed wall bouncing — CFrame teleport bypasses invisible walls before freeze
+- Fixed follow offset — now uses target's facing direction (`targetHRP.CFrame * CFrame.new(0,0,5)`) instead of world-space Z-axis
+- Character stays frozen when target stops (stable camera like Auto Fish TP)
+
+### Auto TP Stone Hotspot
+- Now forces hotspot-only filtering when enabled (skips non-hotspot stones)
 
 ## Usage
 

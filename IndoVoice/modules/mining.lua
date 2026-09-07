@@ -729,14 +729,13 @@ return function(ctx)
                 if moving and dist > 3 then
                     -- Always TP first — CFrame teleport bypasses invisible walls
                     ctx.tpToPlayer(ctx.mineFollowTarget)
-                    local behindTarget = (targetHRP.CFrame * CFrame.new(0, 0, 5)).Position
                     if not alreadyFrozen then
                         task.wait(0.05)
-                        ctx.freezeAt(behindTarget)
+                        ctx.freezeAt(targetHRP.Position + Vector3.new(0, 0, 5))
                     else
                         -- Already frozen — just update the anchor position
                         -- Do NOT update frozenGyro — it locks rotation once and stays
-                        ctx.frozenAnchor.Position = behindTarget
+                        ctx.frozenAnchor.Position = targetHRP.Position + Vector3.new(0, 0, 5)
                     end
                 elseif not moving and dist <= 6 then
                     -- Target stopped and close — stay frozen for stable camera (like Auto Fish TP)
@@ -774,10 +773,6 @@ return function(ctx)
 
     bind(gui.Mining.TPBtn.MouseButton1Click, function()
         ctx.autoMineTPEnabled = not ctx.autoMineTPEnabled
-        -- Auto TP Stone Hotspot implies hotspot-only filtering
-        if ctx.autoMineTPEnabled then
-            ctx.autoMineHotspotOnly = true
-        end
         updateMineTPBtnUI()
         log("AutoMine: Auto TP " .. (ctx.autoMineTPEnabled and "ON" or "OFF"),
             ctx.autoMineTPEnabled and THEME.success or THEME.dim)
