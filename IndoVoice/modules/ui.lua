@@ -429,8 +429,9 @@ for _, part in ipairs(getZoneParts()) do
             unfreezeCharacter()
             log("Follow target left server", THEME.warn)
         end
+    end)
 
-switchTab("About")
+    switchTab("About")
     updateClickerUI()
     updateRewardButtons()
     refreshPlayerRows()
