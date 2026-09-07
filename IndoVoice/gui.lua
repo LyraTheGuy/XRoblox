@@ -649,48 +649,52 @@ return function(config, components)
     local SellNowBtn = makeActionButton(FishScroll, "Sell All Now", 170, LYRA.accent)
     local FollowBtn = makeActionButton(FishScroll, "Follow: OFF", 204, LYRA.danger)
 
-    -- Follow player dropdown container
-    local FollowDropdownFrame = Instance.new("Frame")
-    FollowDropdownFrame.Size = UDim2.new(1, -20, 0, 120)
-    FollowDropdownFrame.Position = UDim2.new(0, 10, 0, 238)
-    FollowDropdownFrame.BackgroundColor3 = LYRA.bg2
-    FollowDropdownFrame.BorderSizePixel = 0
-    FollowDropdownFrame.ClipsDescendants = true
-    FollowDropdownFrame.Parent = FishScroll
-    shared.corner(FollowDropdownFrame, UDim.new(0, 8))
-    shared.stroke(FollowDropdownFrame, LYRA.panel2, 1, 0.5)
+    -- Follow UI built via helper to keep local count under 200
+    local function makeFollowUI(parent, yPos, selectedY)
+        local f = Instance.new("Frame")
+        f.Size = UDim2.new(1, -20, 0, 120)
+        f.Position = UDim2.new(0, 10, 0, yPos)
+        f.BackgroundColor3 = LYRA.bg2
+        f.BorderSizePixel = 0
+        f.ClipsDescendants = true
+        f.Parent = parent
+        shared.corner(f, UDim.new(0, 8))
+        shared.stroke(f, LYRA.panel2, 1, 0.5)
 
-    local FollowDropdownLabel = Instance.new("TextLabel")
-    FollowDropdownLabel.Size = UDim2.new(1, 0, 0, 20)
-    FollowDropdownLabel.Position = UDim2.new(0, 0, 0, 0)
-    FollowDropdownLabel.BackgroundTransparency = 1
-    FollowDropdownLabel.Text = "Select Player:"
-    FollowDropdownLabel.TextColor3 = LYRA.dim
-    FollowDropdownLabel.Font = Enum.Font.GothamBold
-    FollowDropdownLabel.TextSize = 10
-    FollowDropdownLabel.Parent = FollowDropdownFrame
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(1, 0, 0, 20)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = "Select Player:"
+        lbl.TextColor3 = LYRA.dim
+        lbl.Font = Enum.Font.GothamBold
+        lbl.TextSize = 10
+        lbl.Parent = f
 
-    local FollowPlayerList = Instance.new("ScrollingFrame")
-    FollowPlayerList.Size = UDim2.new(1, -8, 1, -22)
-    FollowPlayerList.Position = UDim2.new(0, 4, 0, 20)
-    FollowPlayerList.BackgroundTransparency = 1
-    FollowPlayerList.BorderSizePixel = 0
-    FollowPlayerList.ScrollBarThickness = 3
-    FollowPlayerList.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    FollowPlayerList.Parent = FollowDropdownFrame
-    Instance.new("UIListLayout", FollowPlayerList).Padding = UDim.new(0, 2)
+        local list = Instance.new("ScrollingFrame")
+        list.Size = UDim2.new(1, -8, 1, -22)
+        list.Position = UDim2.new(0, 4, 0, 20)
+        list.BackgroundTransparency = 1
+        list.BorderSizePixel = 0
+        list.ScrollBarThickness = 3
+        list.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        list.Parent = f
+        Instance.new("UIListLayout", list).Padding = UDim.new(0, 2)
 
-    -- Follow selected player label
-    local FollowSelectedLbl = Instance.new("TextLabel")
-    FollowSelectedLbl.Size = UDim2.new(1, -20, 0, 14)
-    FollowSelectedLbl.Position = UDim2.new(0, 10, 0, 362)
-    FollowSelectedLbl.BackgroundTransparency = 1
-    FollowSelectedLbl.Text = "Following: None"
-    FollowSelectedLbl.TextColor3 = LYRA.warn
-    FollowSelectedLbl.Font = Enum.Font.GothamBold
-    FollowSelectedLbl.TextSize = 10
-    FollowSelectedLbl.TextXAlignment = Enum.TextXAlignment.Left
-    FollowSelectedLbl.Parent = FishScroll
+        local sel = Instance.new("TextLabel")
+        sel.Size = UDim2.new(1, -20, 0, 14)
+        sel.Position = UDim2.new(0, 10, 0, selectedY)
+        sel.BackgroundTransparency = 1
+        sel.Text = "Following: None"
+        sel.TextColor3 = LYRA.warn
+        sel.Font = Enum.Font.GothamBold
+        sel.TextSize = 10
+        sel.TextXAlignment = Enum.TextXAlignment.Left
+        sel.Parent = parent
+
+        return f, list, sel
+    end
+
+    local FollowDropdownFrame, FollowPlayerList, FollowSelectedLbl = makeFollowUI(FishScroll, 238, 362)
 
     -- AutoFish Status
     local AutoFishStatus = Instance.new("TextLabel")
@@ -887,49 +891,7 @@ return function(config, components)
     local AutoSellOreBtn = makeActionButton(MiningScroll, "Auto Sell Ore: OFF", 136, LYRA.warn)
     local SellOreNowBtn = makeActionButton(MiningScroll, "Sell Ore Now", 170, LYRA.accent)
     local MineFollowBtn = makeActionButton(MiningScroll, "Follow: OFF", 204, LYRA.danger)
-
-    -- Follow player dropdown container (mining)
-    local MineFollowDropdownFrame = Instance.new("Frame")
-    MineFollowDropdownFrame.Size = UDim2.new(1, -20, 0, 120)
-    MineFollowDropdownFrame.Position = UDim2.new(0, 10, 0, 238)
-    MineFollowDropdownFrame.BackgroundColor3 = LYRA.bg2
-    MineFollowDropdownFrame.BorderSizePixel = 0
-    MineFollowDropdownFrame.ClipsDescendants = true
-    MineFollowDropdownFrame.Parent = MiningScroll
-    shared.corner(MineFollowDropdownFrame, UDim.new(0, 8))
-    shared.stroke(MineFollowDropdownFrame, LYRA.panel2, 1, 0.5)
-
-    local MineFollowDropdownLabel = Instance.new("TextLabel")
-    MineFollowDropdownLabel.Size = UDim2.new(1, 0, 0, 20)
-    MineFollowDropdownLabel.Position = UDim2.new(0, 0, 0, 0)
-    MineFollowDropdownLabel.BackgroundTransparency = 1
-    MineFollowDropdownLabel.Text = "Select Player:"
-    MineFollowDropdownLabel.TextColor3 = LYRA.dim
-    MineFollowDropdownLabel.Font = Enum.Font.GothamBold
-    MineFollowDropdownLabel.TextSize = 10
-    MineFollowDropdownLabel.Parent = MineFollowDropdownFrame
-
-    local MineFollowPlayerList = Instance.new("ScrollingFrame")
-    MineFollowPlayerList.Size = UDim2.new(1, -8, 1, -22)
-    MineFollowPlayerList.Position = UDim2.new(0, 4, 0, 20)
-    MineFollowPlayerList.BackgroundTransparency = 1
-    MineFollowPlayerList.BorderSizePixel = 0
-    MineFollowPlayerList.ScrollBarThickness = 3
-    MineFollowPlayerList.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    MineFollowPlayerList.Parent = MineFollowDropdownFrame
-    Instance.new("UIListLayout", MineFollowPlayerList).Padding = UDim.new(0, 2)
-
-    -- Follow selected player label (mining)
-    local MineFollowSelectedLbl = Instance.new("TextLabel")
-    MineFollowSelectedLbl.Size = UDim2.new(1, -20, 0, 14)
-    MineFollowSelectedLbl.Position = UDim2.new(0, 10, 0, 362)
-    MineFollowSelectedLbl.BackgroundTransparency = 1
-    MineFollowSelectedLbl.Text = "Following: None"
-    MineFollowSelectedLbl.TextColor3 = LYRA.warn
-    MineFollowSelectedLbl.Font = Enum.Font.GothamBold
-    MineFollowSelectedLbl.TextSize = 10
-    MineFollowSelectedLbl.TextXAlignment = Enum.TextXAlignment.Left
-    MineFollowSelectedLbl.Parent = MiningScroll
+    local MineFollowDropdownFrame, MineFollowPlayerList, MineFollowSelectedLbl = makeFollowUI(MiningScroll, 238, 362)
 
     -- Status labels
     local AutoMineStatus = Instance.new("TextLabel")
