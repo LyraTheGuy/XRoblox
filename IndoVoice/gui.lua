@@ -674,6 +674,7 @@ return function(config, components)
         list.BorderSizePixel = 0
         list.ScrollBarThickness = 3
         list.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        list.Active = true -- Enable input for child buttons
         list.Parent = f
         Instance.new("UIListLayout", list).Padding = UDim.new(0, 2)
 

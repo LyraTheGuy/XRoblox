@@ -676,11 +676,14 @@ return function(ctx)
                 row.TextSize = 10
                 row.BorderSizePixel = 0
                 row.Parent = list
+                -- Ensure the button can receive input (not blocked by siblings)
+                row.ZIndex = 2
                 if ctx.mineFollowTarget == player then
                     row.BackgroundColor3 = THEME.success
                     row.Text = player.Name .. " ✓"
                 end
-                bind(row.MouseButton1Click, function()
+                row.MouseButton1Click:Connect(function()
+                    log("Mine Follow: clicked player button " .. player.Name, THEME.accentGlow)
                     ctx.mineFollowTarget = player
                     ctx.mineFollowTargetName = player.Name
                     gui.Mining.FollowSelectedLbl.Text = "Following: " .. player.Name
