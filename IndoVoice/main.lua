@@ -189,7 +189,7 @@ if not coreOk then
 end
 
 -- Load modules
-local modules = {"fishing", "mining", "gacha", "shopgacha", "rodshop", "antiafk", "ui"}
+local modules = {"fishing", "mining", "gacha", "shopgacha", "tokenshop", "rodshop", "antiafk", "ui"}
 for _, name in ipairs(modules) do
     local ok, err = pcall(function()
         local modChunk = loadModule(name)

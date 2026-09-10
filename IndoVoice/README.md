@@ -44,6 +44,7 @@ Comprehensive automation toolkit for IndoVoice on Roblox.
 │   ├── mining.lua      # Auto Mine
 │   ├── gacha.lua       # Gacha automation
 │   ├── rodshop.lua     # Rod purchasing
+│   ├── tokenshop.lua   # LuckTicket purchasing
 │   ├── shopgacha.lua   # Shop Gacha
 │   ├── antiafk.lua     # Anti-Idle
 │   └── ui.lua          # Window controls
@@ -76,6 +77,7 @@ IndoVoice/
 │   ├── mining.lua      # Auto Mine + Auto Sell Ore
 │   ├── gacha.lua       # Auto Gacha (Blind Box)
 │   ├── shopgacha.lua   # Shop Gacha (Pet / Aura / Trail)
+│   ├── tokenshop.lua   # Token Shop (LuckTicket I - VI)
 │   ├── rodshop.lua     # Rod Shop purchases
 │   └── ui.lua          # UI bindings, heartbeat loop, startup
 └── README.md           # This file
