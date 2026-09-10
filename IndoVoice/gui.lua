@@ -1374,8 +1374,151 @@ return function(config, components)
         ShopGachaStopButtons[rarity] = btn
     end
 
+    -- ── Token Shop Section (LuckTicket I - VI) ──
+    -- Helper like Settings/Logs to keep outer-scope locals under 200
+    local tokenShopY = shopGachaY + 250
+    local function buildTokenShopSection(scroll, yPos)
+        local sep = Instance.new("Frame")
+        sep.Size = UDim2.new(1, -20, 0, 1)
+        sep.Position = UDim2.new(0, 10, 0, yPos - 10)
+        sep.BackgroundColor3 = LYRA.panel2
+        sep.BorderSizePixel = 0
+        sep.Parent = scroll
+
+        local title = Instance.new("TextLabel")
+        title.Size = UDim2.new(1, -20, 0, 18)
+        title.Position = UDim2.new(0, 10, 0, yPos)
+        title.BackgroundTransparency = 1
+        title.Text = "🎟 Buy LuckTicket (Tokens)"
+        title.TextColor3 = LYRA.accentGlow
+        title.Font = Enum.Font.GothamBold
+        title.TextSize = 12
+        title.TextXAlignment = Enum.TextXAlignment.Left
+        title.Parent = scroll
+
+        -- Opens the game's own TokenShop GUI (BindableFunction ShowFunction)
+        local openBtn = Instance.new("TextButton")
+        openBtn.Size = UDim2.new(0, 130, 0, 18)
+        openBtn.Position = UDim2.new(1, -140, 0, yPos + 1)
+        openBtn.BackgroundColor3 = LYRA.accent
+        openBtn.Text = "Open TokenShop GUI"
+        openBtn.TextColor3 = Color3.new(1, 1, 1)
+        openBtn.Font = Enum.Font.GothamBold
+        openBtn.TextSize = 9
+        openBtn.BorderSizePixel = 0
+        openBtn.Parent = scroll
+        shared.corner(openBtn, UDim.new(0, 4))
+
+        local searchBox = Instance.new("TextBox")
+        searchBox.Size = UDim2.new(1, -20, 0, 22)
+        searchBox.Position = UDim2.new(0, 10, 0, yPos + 22)
+        searchBox.BackgroundColor3 = LYRA.bg2
+        searchBox.TextColor3 = LYRA.text
+        searchBox.PlaceholderText = "Search luck ticket..."
+        searchBox.PlaceholderColor3 = LYRA.dim
+        searchBox.Text = ""
+        searchBox.Font = Enum.Font.Gotham
+        searchBox.TextSize = 10
+        searchBox.ClearTextOnFocus = false
+        searchBox.BorderSizePixel = 0
+        searchBox.Parent = scroll
+        shared.corner(searchBox, UDim.new(0, 4))
+
+        local status = Instance.new("TextLabel")
+        status.Size = UDim2.new(1, -20, 0, 16)
+        status.Position = UDim2.new(0, 10, 0, yPos + 48)
+        status.BackgroundTransparency = 1
+        status.Text = ""
+        status.TextColor3 = LYRA.dim
+        status.Font = Enum.Font.Gotham
+        status.TextSize = 10
+        status.TextXAlignment = Enum.TextXAlignment.Left
+        status.Parent = scroll
+
+        -- Ticket list (client sends item id only; server validates tokens)
+        local listFrame = Instance.new("Frame")
+        listFrame.Size = UDim2.new(1, -20, 0, 100)
+        listFrame.Position = UDim2.new(0, 10, 0, yPos + 68)
+        listFrame.BackgroundColor3 = LYRA.bg2
+        listFrame.BorderSizePixel = 0
+        listFrame.ClipsDescendants = true
+        listFrame.Parent = scroll
+        shared.corner(listFrame, UDim.new(0, 6))
+
+        local listScroll = Instance.new("ScrollingFrame")
+        listScroll.Size = UDim2.new(1, 0, 1, 0)
+        listScroll.BackgroundTransparency = 1
+        listScroll.BorderSizePixel = 0
+        listScroll.ScrollBarThickness = 3
+        listScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        listScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+        listScroll.Parent = listFrame
+        Instance.new("UIListLayout", listScroll).Padding = UDim.new(0, 2)
+
+        local buyButtons, rows = {}, {}
+        for _, ticket in ipairs({"I", "II", "III", "IV", "V", "VI"}) do
+            local itemName = "UseableItem_ServerLuckTicket" .. ticket
+            local row = Instance.new("Frame")
+            row.Name = itemName
+            row.Size = UDim2.new(1, -4, 0, 26)
+            row.BackgroundColor3 = LYRA.panel2
+            row.BackgroundTransparency = 0.5
+            row.BorderSizePixel = 0
+            row.Parent = listScroll
+            shared.corner(row, UDim.new(0, 4))
+
+            local lbl = Instance.new("TextLabel")
+            lbl.Size = UDim2.new(1, -70, 1, 0)
+            lbl.Position = UDim2.new(0, 6, 0, 0)
+            lbl.BackgroundTransparency = 1
+            lbl.Text = "LuckTicket " .. ticket
+            lbl.TextColor3 = LYRA.text
+            lbl.Font = Enum.Font.Gotham
+            lbl.TextSize = 10
+            lbl.TextXAlignment = Enum.TextXAlignment.Left
+            lbl.TextTruncate = Enum.TextTruncate.AtEnd
+            lbl.Parent = row
+
+            local buyBtn = Instance.new("TextButton")
+            buyBtn.Size = UDim2.new(0, 50, 0, 20)
+            buyBtn.Position = UDim2.new(1, -54, 0.5, -10)
+            buyBtn.BackgroundColor3 = LYRA.accent
+            buyBtn.Text = "Buy"
+            buyBtn.TextColor3 = Color3.new(1, 1, 1)
+            buyBtn.Font = Enum.Font.GothamBold
+            buyBtn.TextSize = 9
+            buyBtn.BorderSizePixel = 0
+            buyBtn.Parent = row
+            shared.corner(buyBtn, UDim.new(0, 4))
+
+            buyButtons[itemName] = buyBtn
+            rows[itemName] = row
+        end
+
+        -- Shown when the search filter matches nothing
+        local emptyHint = Instance.new("TextLabel")
+        emptyHint.Size = UDim2.new(1, -4, 0, 26)
+        emptyHint.BackgroundTransparency = 1
+        emptyHint.Visible = false
+        emptyHint.Text = "No tickets match your search"
+        emptyHint.TextColor3 = LYRA.dim
+        emptyHint.Font = Enum.Font.Gotham
+        emptyHint.TextSize = 10
+        emptyHint.Parent = listScroll
+
+        return {
+            OpenBtn = openBtn,
+            SearchBox = searchBox,
+            Status = status,
+            TicketScroll = listScroll,
+            BuyButtons = buyButtons,
+            Rows = rows,
+            EmptyHint = emptyHint,
+        }
+    end
+
     -- ── Rod Shop Section ──
-    local rodShopY = shopGachaY + 250
+    local rodShopY = tokenShopY + 186
 
     local RodShopSep = Instance.new("Frame")
     RodShopSep.Size = UDim2.new(1, -20, 0, 1)
@@ -1905,6 +2048,7 @@ return function(config, components)
             TypeButtons = ShopGachaTypeButtons,
             StopButtons = ShopGachaStopButtons,
         },
+        TokenShop = buildTokenShopSection(FunScroll, tokenShopY),
         RodShop = {
             BuyButtons = RodBuyButtons,
             RodRows = RodRows,
