@@ -322,6 +322,10 @@ return function(gui, config)
         ctx.antiIdleEnabled = false
         ctx.autoGetEggEnabled = false
         ctx.eggRarityLog = {}
+        -- Clear nearby egg ESP
+        pcall(function()
+            if ctx._clearEggESP then ctx._clearEggESP() end
+        end)
         _G.__RideAPet_Destroy = nil
         disconnectList(ctx.connections)
         disconnectList(ctx.antiIdleConnections)
@@ -352,6 +356,8 @@ return function(gui, config)
             gui.Main.Visible = not ctx.hideUI
         elseif input.KeyCode == config.Keys.ESP then
             toggleAllESP()
+        elseif input.KeyCode == config.Keys.ToggleEgg then
+            -- Handled by auto_get_egg module
         end
     end)
 

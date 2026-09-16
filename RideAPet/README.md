@@ -9,7 +9,14 @@ Automation toolkit for Ride A Pet on Roblox.
 - Eggs stay in inventory infinitely for rarest stacking
 - Rarity whitelist (Divine, Mythical, Legendary, Epic)
 - Rarity priority sorting (rarer eggs first)
-- Last-5 collection log with emoji indicators
+- **Rarity distribution tracker** — live counts per tier
+- **Session stats** — eggs/min, elapsed time, nearby count
+- **Sound alerts** — pitch-shifted sounds on rare finds
+- **Nearby egg ESP** — colored highlights + name labels
+- **Smart routing** — distance + rarity combined scoring
+- **Auto-discard** — optionally discard low-rarity eggs
+- **Discord webhook** — notification for rare finds
+- **Hotkey** — press `G` to toggle on/off
 - Auto-TP to egg spawns
 
 **🐾 Auto Ride**

@@ -12,6 +12,7 @@ return {
         PickPosition = Enum.KeyCode.P,
         ESP = Enum.KeyCode.E,
         Teleport = Enum.KeyCode.T,
+        ToggleEgg = Enum.KeyCode.G,
     },
 
     Safety = {
@@ -62,6 +63,31 @@ return {
         AutoTPToEggs = true,
         -- Max eggs before warning (0 = unlimited)
         MaxEggs = 0,
+        -- Collection radius: only scan eggs within this distance (0 = unlimited)
+        CollectRadius = 0,
+        -- Sound alerts: play a sound when rare eggs are collected
+        SoundAlerts = true,
+        -- Rarity-based alert volumes (1.0 = full volume)
+        AlertVolumes = {
+            Divine = 1.0,
+            Mythical = 0.9,
+            Legendary = 0.7,
+            Epic = 0.5,
+        },
+        -- Nearby egg ESP: show colored highlights on nearby eggs
+        NearbyESP = true,
+        ESPMaxDistance = 150,
+        -- Smart routing: sort by distance + rarity combined
+        SmartRouting = true,
+        -- Auto-discard low-rarity eggs when inventory is full
+        AutoDiscard = false,
+        DiscardRarities = {"Common", "Uncommon"},
+        -- Discord webhook for rare finds
+        WebhookEnabled = false,
+        WebhookURL = "",
+        WebhookMinRarity = "Legendary",
+        -- Session stats tracking
+        ShowSessionStats = true,
     },
 
     Theme = {

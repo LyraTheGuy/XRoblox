@@ -110,14 +110,14 @@ return function(config, components)
         Text = "—", TextSize = 12, Color = THEME.panel2, TextColor = THEME.text,
         HoverColor = THEME.accent2, CornerRadius = UDim.new(0, 7), ZIndex = 4, Glow = false,
     })
-    view.MinBtn = minBtn
+    view.MinBtn = minBtn.Instance
 
     local closeBtn = components.button({
         Parent = Main, Size = UDim2.fromOffset(24, 24), Position = UDim2.new(1, -38, 0, 8),
         Text = "X", TextSize = 11, Color = Color3.fromRGB(64, 28, 34), TextColor = THEME.danger,
         HoverColor = THEME.danger, CornerRadius = UDim.new(0, 7), ZIndex = 4, Glow = false,
     })
-    view.CloseBtn = closeBtn
+    view.CloseBtn = closeBtn.Instance
 
     -- Header mask
     local HeaderMask = Instance.new("Frame")
@@ -238,7 +238,7 @@ return function(config, components)
         TextSize = 11, Color = THEME.accent, TextColor = Color3.new(1, 1, 1),
         HoverColor = THEME.accentDark, CornerRadius = UDim.new(0, 8), ZIndex = 5,
     })
-    view.RideToggleBtn = RideToggle
+    view.RideToggleBtn = RideToggle.Instance
 
     -- Speed slider label
     local SpeedLabel = Instance.new("TextLabel")
@@ -313,7 +313,7 @@ return function(config, components)
         TextSize = 11, Color = THEME.accent, TextColor = Color3.new(1, 1, 1),
         HoverColor = THEME.accentDark, CornerRadius = UDim.new(0, 8), ZIndex = 5,
     })
-    view.EggToggleBtn = EggToggle
+    view.EggToggleBtn = EggToggle.Instance
 
     local EggCount = Instance.new("TextLabel")
     EggCount.Text = "Eggs Collected: 0"
@@ -371,11 +371,40 @@ return function(config, components)
     RarityLog.Parent = EggsSection
     view.EggRarityLog = RarityLog
 
+    -- Rarity distribution
+    local RarityDist = Instance.new("TextLabel")
+    RarityDist.Text = "🟣 Divine: 0 | 🔴 Mythical: 0 | 🟡 Legendary: 0 | 🟠 Epic: 0 | 🔵 Rare: 0 | 🟢 Uncommon: 0 | ⚪ Common: 0"
+    RarityDist.Size = UDim2.new(1, -16, 0, 30)
+    RarityDist.Position = UDim2.new(0, 8, 0, 156)
+    RarityDist.BackgroundTransparency = 1
+    RarityDist.TextColor3 = THEME.text
+    RarityDist.Font = Enum.Font.Code
+    RarityDist.TextSize = 9
+    RarityDist.TextXAlignment = Enum.TextXAlignment.Left
+    RarityDist.TextWrapped = true
+    RarityDist.ZIndex = 5
+    RarityDist.Parent = EggsSection
+    view.EggRarityDist = RarityDist
+
+    -- Session stats
+    local SessionStats = Instance.new("TextLabel")
+    SessionStats.Text = "Session: 0 eggs | 0.0/min | 0s elapsed | Near: 0 eggs"
+    SessionStats.Size = UDim2.new(1, -16, 0, 16)
+    SessionStats.Position = UDim2.new(0, 8, 0, 190)
+    SessionStats.BackgroundTransparency = 1
+    SessionStats.TextColor3 = THEME.faint
+    SessionStats.Font = Enum.Font.Code
+    SessionStats.TextSize = 9
+    SessionStats.TextXAlignment = Enum.TextXAlignment.Left
+    SessionStats.ZIndex = 5
+    SessionStats.Parent = EggsSection
+    view.EggSessionStats = SessionStats
+
     -- Placement warning
     local PlacementWarning = Instance.new("TextLabel")
     PlacementWarning.Text = "⚠ Eggs are NOT auto-placed — they stay in inventory"
-    PlacementWarning.Size = UDim2.new(1, -16, 0, 28)
-    PlacementWarning.Position = UDim2.new(0, 8, 0, 222)
+    PlacementWarning.Size = UDim2.new(1, -16, 0, 20)
+    PlacementWarning.Position = UDim2.new(0, 8, 0, 210)
     PlacementWarning.BackgroundTransparency = 1
     PlacementWarning.TextColor3 = THEME.warn
     PlacementWarning.Font = Enum.Font.GothamBold
@@ -417,7 +446,7 @@ return function(config, components)
         TextSize = 11, Color = THEME.accent, TextColor = Color3.new(1, 1, 1),
         HoverColor = THEME.accentDark, CornerRadius = UDim.new(0, 8), ZIndex = 5,
     })
-    view.ESPToggleBtn = ESPToggle
+    view.ESPToggleBtn = ESPToggle.Instance
 
     -- ═══════════════════════════════════════════
     -- SETTINGS TAB
@@ -451,7 +480,7 @@ return function(config, components)
         TextSize = 11, Color = THEME.warn, TextColor = Color3.new(1, 1, 1),
         HoverColor = THEME.accentDark, CornerRadius = UDim.new(0, 8), ZIndex = 5,
     })
-    view.AntiIdleBtn = AntiIdleBtn
+    view.AntiIdleBtn = AntiIdleBtn.Instance
 
     -- Unload button
     local UnloadBtn = components.button({
@@ -461,7 +490,7 @@ return function(config, components)
         TextSize = 11, Color = THEME.danger, TextColor = Color3.new(1, 1, 1),
         HoverColor = Color3.fromRGB(180, 40, 60), CornerRadius = UDim.new(0, 8), ZIndex = 5,
     })
-    view.UnloadBtn = UnloadBtn
+    view.UnloadBtn = UnloadBtn.Instance
 
     -- ═══════════════════════════════════════════
     -- LOGS TAB
@@ -494,6 +523,7 @@ return function(config, components)
         Text = "Clear", TextSize = 9, Color = THEME.panel2, TextColor = THEME.dim,
         HoverColor = THEME.danger, CornerRadius = UDim.new(0, 6), ZIndex = 5,
     })
+    local ClearLogsBtnInst = ClearLogsBtn.Instance
 
     local LogScroll = Instance.new("ScrollingFrame")
     LogScroll.Name = "LogScroll"
@@ -512,7 +542,7 @@ return function(config, components)
     view.Logs = {
         LogScroll = LogScroll,
         LogCount = LogCount,
-        ClearLogsBtn = ClearLogsBtn,
+        ClearLogsBtn = ClearLogsBtnInst,
     }
 
     -- ═══════════════════════════════════════════
