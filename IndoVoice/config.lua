@@ -3,7 +3,11 @@
 
 return {
     Gate = {
-        Password = "U0VQVEVNQkVSQ0VSSUE=", -- base64 encoded password
+        Password = "T0NUT0JFUkhBTFU=", -- base64 encoded password
+        -- Password bypass: after one successful login the session is saved
+        -- per place (executor filesystem / getgenv). Rejoins in the SAME
+        -- place skip the gate and auto-execute. 0 = never expire.
+        SessionTTL = 7 * 24 * 60 * 60, -- 7 days (seconds)
     },
 
     Keys = {
@@ -90,7 +94,7 @@ return {
 
     Webhook = {
         Enabled = false,
-        URL = "https://discord.com/api/webhooks/1443302616363962430/ZK7VC4mHOb8Rct6xAZ3WplkSXjoQdCW9BUBVKguxYRLD48c2h0fUJthAK5as-I1oDLIY", -- Paste your Discord webhook URL here
+        URL = "", -- Paste your Discord webhook URL here
         LogRarities = {"Ancient"}, -- Only log these rarities
         LogSells = true,
     },
