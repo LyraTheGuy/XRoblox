@@ -7,7 +7,7 @@ return {
         -- Password bypass: after one successful login the session is saved
         -- per place (executor filesystem / getgenv). Rejoins in the SAME
         -- place skip the gate and auto-execute. 0 = never expire.
-        SessionTTL = 7 * 24 * 60 * 60, -- 7 days (seconds)
+        SessionTTL = 1 * 24 * 60 * 60, -- 7 days (seconds)
     },
 
     Keys = {
