@@ -1,9 +1,26 @@
 -- IndoVoice/gate.lua
 -- Password gate UI — must pass before main loads
-return function(config)
+--
+-- PASSWORD BYPASS SUPPORT (session persistence):
+--   The factory now accepts an optional second argument `opts`:
+--     gateFactory(config, { trusted = true })
+--   When `trusted` is true the gate UI is skipped entirely and the function
+--   returns true immediately. main.lua sets this when a saved session shows
+--   the password was already typed once before (see session.lua).
+return function(config, opts)
     local Players = game:GetService("Players")
     local TweenService = game:GetService("TweenService")
     local lp = Players.LocalPlayer
+
+    -- ------------------------------------------------------------------
+    -- PASSWORD BYPASS: skip the whole gate UI when main.lua already
+    -- verified a saved session for this place (password typed once before).
+    -- ------------------------------------------------------------------
+    opts = (type(opts) == "table") and opts or {}
+    if opts.trusted == true then
+        -- No GUI is built, no blocking loop runs — instant pass-through.
+        return true
+    end
 
     local ENCODED_PASS = config.Gate and config.Gate.Password or ""
 

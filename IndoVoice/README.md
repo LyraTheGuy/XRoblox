@@ -30,13 +30,19 @@ Comprehensive automation toolkit for IndoVoice on Roblox.
 - Per-Rarity Auto-Sell & Webhook Filters
 - Settings Save/Load (persists across sessions)
 
+**Session & Persistence**
+- Password Bypass — type the gate password once; rejoins in the same place skip the gate (per-place session file, 7-day TTL, see `config.Gate.SessionTTL`)
+- Auto Re-Execute on Rejoin — the script re-runs itself after server hops / reconnects via `queue_on_teleport` + a one-shot re-exec marker (cleared by manual unload)
+- Duplicate-Run Guard — safe re-execution: a second copy never runs while one is alive
+
 ## File Structure
 
 ```
 ├── bootstrap.lua       # Loader
 ├── main.lua            # Entry point with gate
 ├── config.lua          # Theme and defaults
-├── gate.lua            # Authentication
+├── gate.lua            # Authentication (supports session bypass)
+├── session.lua         # Per-place session save/bypass + re-exec flag
 ├── gui.lua             # Tabbed UI
 ├── core.lua            # Shared state
 ├── modules/

@@ -3,7 +3,11 @@
 
 return {
     Gate = {
-        Password = "U0VQVEVNQkVSQ0VSSUE=", -- base64 encoded password
+        Password = "T0NUT0JFUkhBTFU=", -- base64 encoded password
+        -- Password bypass: after one successful login the session is saved
+        -- per place (executor filesystem / getgenv). Rejoins in the SAME
+        -- place skip the gate and auto-execute. 0 = never expire.
+        SessionTTL = 7 * 24 * 60 * 60, -- 7 days (seconds)
     },
 
     Keys = {
