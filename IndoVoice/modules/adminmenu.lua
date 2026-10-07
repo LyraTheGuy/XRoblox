@@ -51,9 +51,8 @@ return function(ctx)
         Interval = 0.12,               -- seconds between ESP refreshes (throttle)
         MaxDistance = 1500,            -- hide ESP beyond this many studs
         Outline = "box",               -- "box" | "highlight" | "both" | "none"
+        Scope = "target",              -- "target" (selected player only) | "all"
         ShowName = true,
-        ShowHealth = true,
-        ShowDistance = true,
         ColorMode = "health",          -- "health" | "accent" | "static"
         StaticColor = Color3.fromRGB(155, 89, 255),
         RequireLineOfSight = false,    -- raycast wall check (off = cheaper)
@@ -133,7 +132,7 @@ return function(ctx)
 
     -- Forward declarations (these are defined further down but referenced by
     -- closures above them, so they must exist as locals up front).
-    local refreshPlayerList, healthColor, refreshToolbar, syncToggles, setBeam, setView
+    local refreshPlayerList, healthColor, refreshToolbar, syncToggles, setBeam, setView, updateESP, toggleTargetVisuals
 
     -- ==================================================================
     -- SMALL UI HELPERS
@@ -562,6 +561,10 @@ return function(ctx)
         if S.viewOn then
             S.view = { target = player, angle = 0, savedType = S.view and S.view.savedType, savedSubject = S.view and S.view.savedSubject }
         end
+        -- ESP follows the selection, so refresh it right away.
+        if S.espOn then
+            updateESP()
+        end
         refreshPlayerList()
     end
 
@@ -579,7 +582,7 @@ return function(ctx)
             row.BackgroundTransparency = 0
         end
         makeLabel(row, {
-            Text = player.Name,
+            Text = player.DisplayName,
             Position = UDim2.new(0, 8, 0, 0),
             Size = UDim2.new(1, -70, 1, 0),
             TextSize = 10,
@@ -595,8 +598,10 @@ return function(ctx)
             TextXAlignment = Enum.TextXAlignment.Right,
             TextColor3 = THEME.dim,
         })
+        -- The name row IS the switch: click = ESP + Beam on for this player,
+        -- click again = off. VIEW / TP keep using the selected target.
         bind(row.MouseButton1Click, function()
-            selectTarget(player)
+            toggleTargetVisuals(player)
         end)
         S.rows[player] = row
         S.rowMeta[player] = { hp = hp }
@@ -707,47 +712,23 @@ return function(ctx)
         local bb = Instance.new("BillboardGui")
         bb.Name = "AdminESP_Tag"
         bb.AlwaysOnTop = true
-        bb.Size = UDim2.new(0, 150, 0, 46)
-        bb.StudsOffset = Vector3.new(0, 3.2, 0)
+        bb.Size = UDim2.new(0, 170, 0, 20)
+        bb.StudsOffset = Vector3.new(0, 3, 0)
         bb.Adornee = hrp
         bb.Parent = hrp
 
+        -- DisplayName ONLY — no health bar, no studs/distance text.
         local name = makeLabel(bb, {
-            Text = player.Name,
-            Size = UDim2.new(1, 0, 0, 15),
+            Text = player.DisplayName,
+            Size = UDim2.new(1, 0, 1, 0),
             TextSize = 12,
             Font = Enum.Font.GothamBold,
             TextXAlignment = Enum.TextXAlignment.Center,
+            TextTruncate = Enum.TextTruncate.AtEnd,
         })
         stroke(name, Color3.new(0, 0, 0), 1.5)
 
-        local hpBg = Instance.new("Frame")
-        hpBg.Size = UDim2.new(1, -12, 0, 8)
-        hpBg.Position = UDim2.new(0, 6, 0, 17)
-        hpBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-        hpBg.BackgroundTransparency = 0.25
-        hpBg.BorderSizePixel = 0
-        hpBg.Parent = bb
-        corner(hpBg, 4)
-
-        local hpFill = Instance.new("Frame")
-        hpFill.Size = UDim2.new(1, 0, 1, 0)
-        hpFill.BackgroundColor3 = HEALTH_COLORS.high
-        hpFill.BorderSizePixel = 0
-        hpFill.Parent = hpBg
-        corner(hpFill, 4)
-
-        local stat = makeLabel(bb, {
-            Text = "",
-            Size = UDim2.new(1, 0, 0, 12),
-            Position = UDim2.new(0, 0, 0, 28),
-            TextSize = 10,
-            TextXAlignment = Enum.TextXAlignment.Center,
-            TextColor3 = Color3.new(1, 1, 1),
-        })
-        stroke(stat, Color3.new(0, 0, 0), 1.5)
-
-        local entry = { billboard = bb, name = name, hpBg = hpBg, hpFill = hpFill, stat = stat }
+        local entry = { billboard = bb, name = name }
 
         -- Box / highlight outline styles
         if ESP_CFG.Outline == "box" or ESP_CFG.Outline == "both" then
@@ -795,7 +776,59 @@ return function(ctx)
     local rayParams = RaycastParams.new()
     rayParams.FilterType = Enum.RaycastFilterType.Exclude
 
-    local function updateESP()
+    -- Refresh the overlay for ONE player (create / update / destroy as needed).
+    local function updateESPFor(player, myHRP)
+        local char = player.Character
+        local hrp = char and getHRP(char)
+        if not hrp then
+            destroyESP(player)
+            return
+        end
+        if not S.esp[player] then
+            buildESP(player)
+        end
+        local e = S.esp[player]
+        if not e then
+            return
+        end
+        local hum = getHum(char)
+        local hp, maxHp = 100, 100
+        if hum then
+            hp = hum.Health
+            maxHp = math.max(hum.MaxHealth, 1)
+        end
+        local ratio = math.clamp(hp / maxHp, 0, 1)
+        local dist = myHRP and (myHRP.Position - hrp.Position).Magnitude or 0
+        local col = espColor(player, ratio)
+
+        -- Tag text = DisplayName only; the colour still tracks health.
+        e.name.Text = ESP_CFG.ShowName and player.DisplayName or ""
+        e.name.TextColor3 = col
+        if e.box then
+            e.box.Color3 = col
+        end
+        if e.hl then
+            e.hl.FillColor = col
+            e.hl.OutlineColor = col
+        end
+
+        -- Distance culling + optional line-of-sight raycast.
+        local visible = dist <= ESP_CFG.MaxDistance
+        if visible and ESP_CFG.RequireLineOfSight and myHRP then
+            rayParams.FilterDescendantsInstances = { lp.Character, char }
+            local hit = workspace:Raycast(myHRP.Position, hrp.Position - myHRP.Position, rayParams)
+            visible = (hit == nil)
+        end
+        e.billboard.Enabled = visible
+        if e.box then
+            e.box.Visible = visible
+        end
+        if e.hl then
+            e.hl.Enabled = visible
+        end
+    end
+
+    updateESP = function()
         local myHRP = getHRP(lp.Character)
         -- Drop entries for players who left the server.
         for player in pairs(S.esp) do
@@ -803,61 +836,24 @@ return function(ctx)
                 destroyESP(player)
             end
         end
+
+        if ESP_CFG.Scope == "target" then
+            -- Overlay ONLY the selected player; clear everyone else.
+            local target = S.target
+            for player in pairs(S.esp) do
+                if player ~= target then
+                    destroyESP(player)
+                end
+            end
+            if target and target.Parent and target ~= lp then
+                updateESPFor(target, myHRP)
+            end
+            return
+        end
+
         for _, player in ipairs(Players:GetPlayers()) do
             if player ~= lp then
-                local char = player.Character
-                local hrp = char and getHRP(char)
-                if not hrp then
-                    destroyESP(player)
-                else
-                    if not S.esp[player] then
-                        buildESP(player)
-                    end
-                    local e = S.esp[player]
-                    if e then
-                        local hum = getHum(char)
-                        local hp, maxHp = 100, 100
-                        if hum then
-                            hp = hum.Health
-                            maxHp = math.max(hum.MaxHealth, 1)
-                        end
-                        local ratio = math.clamp(hp / maxHp, 0, 1)
-                        local dist = myHRP and (myHRP.Position - hrp.Position).Magnitude or 0
-                        local col = espColor(player, ratio)
-
-                        e.name.Text = ESP_CFG.ShowName and player.Name or ""
-                        e.hpBg.Visible = ESP_CFG.ShowHealth
-                        e.hpFill.Size = UDim2.new(ratio, 0, 1, 0)
-                        e.hpFill.BackgroundColor3 = col
-                        if ESP_CFG.ShowDistance then
-                            e.stat.Text = string.format("HP %d/%d  •  %dm", math.floor(hp), math.floor(maxHp), math.floor(dist))
-                        else
-                            e.stat.Text = string.format("HP %d/%d", math.floor(hp), math.floor(maxHp))
-                        end
-                        if e.box then
-                            e.box.Color3 = col
-                        end
-                        if e.hl then
-                            e.hl.FillColor = col
-                            e.hl.OutlineColor = col
-                        end
-
-                        -- Distance culling + optional line-of-sight raycast.
-                        local visible = dist <= ESP_CFG.MaxDistance
-                        if visible and ESP_CFG.RequireLineOfSight and myHRP then
-                            rayParams.FilterDescendantsInstances = { lp.Character, char }
-                            local hit = workspace:Raycast(myHRP.Position, hrp.Position - myHRP.Position, rayParams)
-                            visible = (hit == nil)
-                        end
-                        e.billboard.Enabled = visible
-                        if e.box then
-                            e.box.Visible = visible
-                        end
-                        if e.hl then
-                            e.hl.Enabled = visible
-                        end
-                    end
-                end
+                updateESPFor(player, myHRP)
             end
         end
     end
@@ -869,6 +865,9 @@ return function(ctx)
                 destroyESP(player)
             end
         else
+            if ESP_CFG.Scope == "target" and not S.target then
+                log("ESP: scope is Target only — click a name on the left first", THEME.warn)
+            end
             updateESP()
         end
         refreshToolbar()
@@ -939,6 +938,7 @@ return function(ctx)
         end
         if not b.beam or not b.beam.Parent then
             local beam = Instance.new("Beam")
+            beam.Name = "AdminMenu_Beam"
             beam.Attachment0 = b.a0
             beam.Attachment1 = b.a1
             beam.FaceCamera = true
@@ -1077,6 +1077,37 @@ return function(ctx)
         return true
     end
 
+    -- Clicking a player's name toggles ESP + Beam for them: the row IS the
+    -- switch (click = on, click again = off), no checkbox needed.
+    toggleTargetVisuals = function(player)
+        if not player or player == lp then
+            return false
+        end
+        if S.target == player and (S.espOn or S.beamOn) then
+            setESP(false)
+            setBeam(false)
+            if U.espSet then
+                U.espSet(false, false)
+            end
+            if U.beamSet then
+                U.beamSet(false, false)
+            end
+            log("ESP + Beam OFF for " .. player.DisplayName, THEME.dim)
+            return false
+        end
+        selectTarget(player)
+        setESP(true)
+        setBeam(true)
+        if U.espSet then
+            U.espSet(true, false)
+        end
+        if U.beamSet then
+            U.beamSet(true, false)
+        end
+        log("ESP + Beam ON for " .. player.DisplayName, THEME.success)
+        return true
+    end
+
     -- ==================================================================
     -- FEATURE 4 — TP  (guarded teleport + condition submenu)
     -- ==================================================================
@@ -1177,17 +1208,27 @@ return function(ctx)
     do
         local p = makeSubPanel("ESP")
         local y = 6
-        U.espToggle = toggleRow(p, y, "Enable ESP (all players)", false, function(state)
+        U.espToggle = toggleRow(p, y, "Enable ESP", false, function(state)
             setESP(state)
             log("ESP: " .. (state and "ON" or "OFF"), state and THEME.success or THEME.dim)
         end)
         U.espSet = U.espToggle
         y = y + 30
-        toggleRow(p, y, "Show name", ESP_CFG.ShowName, function(v) ESP_CFG.ShowName = v end)
-        y = y + 28
-        toggleRow(p, y, "Show health bar", ESP_CFG.ShowHealth, function(v) ESP_CFG.ShowHealth = v end)
-        y = y + 28
-        toggleRow(p, y, "Show distance", ESP_CFG.ShowDistance, function(v) ESP_CFG.ShowDistance = v end)
+        segRow(p, y, "ESP scope", {
+            { label = "Target only", value = "target" },
+            { label = "All players", value = "all" },
+        }, ESP_CFG.Scope, function(v)
+            ESP_CFG.Scope = v
+            if S.espOn then
+                for player in pairs(S.esp) do
+                    destroyESP(player)
+                end
+                updateESP()
+            end
+            log("ESP scope: " .. (v == "target" and "selected player only" or "all players"), THEME.dim)
+        end)
+        y = y + 46
+        toggleRow(p, y, "Show name tag", ESP_CFG.ShowName, function(v) ESP_CFG.ShowName = v end)
         y = y + 28
         toggleRow(p, y, "Line of sight only (raycast)", ESP_CFG.RequireLineOfSight, function(v)
             ESP_CFG.RequireLineOfSight = v
@@ -1224,8 +1265,10 @@ return function(ctx)
         end)
         y = y + 40
         makeLabel(p, {
-            Text = "ESP shows every player except you. Health turns green/yellow/red.\n"
-                .. "Staff get a red outline. Turn on raycast to hide walls.",
+            Text = "Tag shows the DisplayName ONLY (no health / studs) — the colour\n"
+                .. "still tracks health. Click a name on the left to toggle ESP +\n"
+                .. "Beam for that player; click again to turn them off.\n"
+                .. "Staff get a red outline. Raycast hides wall-hidden tags.",
             Size = UDim2.new(1, -8, 0, 40),
             Position = UDim2.new(0, 4, 0, y),
             TextSize = 9,
@@ -1575,7 +1618,7 @@ return function(ctx)
         refreshPlayerList()
     end)
 
-    -- Optional keybind: config.Keys.ESP toggles the global ESP overlay.
+    -- Optional keybind: config.Keys.ESP toggles the ESP overlay (current scope).
     if config and config.Keys and config.Keys.ESP then
         bind(UserInputService.InputBegan, function(input, gpe)
             if gpe or ctx.destroyed then
@@ -1596,11 +1639,23 @@ return function(ctx)
     local function cleanup()
         S.espOn, S.beamOn, S.viewOn = false, false, false
         for player in pairs(S.esp) do
-            destroyESP(player)
+            pcall(function()
+                destroyESP(player)
+            end)
         end
-        stopBeam()
-        stopView()
+        pcall(stopBeam)
+        pcall(stopView)
         activeSlider = nil
+        -- Safety sweep: nothing ESP / beam related may survive an unload, even
+        -- if the internal state table got out of sync (orphaned instances).
+        pcall(function()
+            for _, obj in ipairs(workspace:GetDescendants()) do
+                if obj.Name == "AdminMenu_Beam" or obj.Name == "AdminESP_Box"
+                    or obj.Name == "AdminESP_Tag" or obj.Name == "AdminESP_HL" then
+                    obj:Destroy()
+                end
+            end
+        end)
     end
     ctx.adminMenuCleanup = cleanup
 
@@ -1613,6 +1668,20 @@ return function(ctx)
             return teleportTo(target or S.target)
         end,
         selectTarget = selectTarget,
+        -- Clicking a name toggles ESP + Beam; this is the same switch.
+        toggleTarget = function(player)
+            return toggleTargetVisuals(player or S.target)
+        end,
+        setESPScope = function(v)
+            ESP_CFG.Scope = (v == "all") and "all" or "target"
+            if S.espOn then
+                for player in pairs(S.esp) do
+                    destroyESP(player)
+                end
+                updateESP()
+            end
+            return ESP_CFG.Scope
+        end,
         getState = function()
             local n = 0
             for _ in pairs(S.esp) do
@@ -1624,6 +1693,7 @@ return function(ctx)
                 beamOn = S.beamOn,
                 viewOn = S.viewOn,
                 espCount = n,
+                espScope = ESP_CFG.Scope,
             }
         end,
         cleanup = cleanup,

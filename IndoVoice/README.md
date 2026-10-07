@@ -43,10 +43,17 @@ then drives four features from the toolbar:
 
 | Feature | What it does |
 |---------|--------------|
-| **ESP** | Global overlay on every other player: name, health bar, distance text and a box / highlight outline. Health is colour-coded green → yellow → red and staff get a red outline. Refreshes are throttled (never per-frame). |
+| **ESP** | Overlay for the **selected player** by default (switch the panel to *All players* for everyone): a tag showing the **DisplayName only** plus a box / highlight outline. The tag colour still tracks health (green → yellow → red) and staff get a red outline. Refreshes are throttled (never per-frame). |
 | **BEAM** | Draws a beam from you to the selected target. Customise colour, thickness, transparency and style (Solid / Pulse / Rainbow). Re-homes itself after respawns. |
 | **VIEW** | Scriptable camera on the target: smooth third-person Follow, First-person, or an automatic Orbit. Smoothness, distance, height, orbit speed and radius are sliders. Restores your camera on disable. |
 | **TP** | Guarded teleport with a disable-condition submenu showing live status. |
+
+**Quick toggle:** click a player's **name** in the list — that turns ESP + Beam on for
+them; click the **same** name again to turn them off. No checkbox needed. VIEW and TP
+keep using the selected target.
+
+**Unloading** (Settings → Unload Script, the ✕ button, or `ctx.adminMenuCleanup()`)
+destroys every ESP tag / box / highlight, removes the beam and restores your camera.
 
 **TP disable conditions** (all default **ON** so a misclick can never teleport you):
 `Require confirm click`, `Cooldown`, `Block if target is dead`, `Block if you are dead`,
@@ -58,7 +65,7 @@ Click a row to toggle it; the status column shows `OK`, `BLOCKED`, `ARMED` or `O
 Every tunable lives at the top of `IndoVoice/modules/adminmenu.lua`:
 
 ```lua
-local ESP_CFG  = { Interval, MaxDistance, Outline, ShowName, ShowHealth, ShowDistance,
+local ESP_CFG  = { Interval, MaxDistance, Outline, Scope, ShowName,
                    ColorMode, StaticColor, RequireLineOfSight }
 local BEAM_CFG = { Interval, Color, Thickness, Transparency, Style }
 local VIEW_CFG = { Smoothness, Mode, Distance, Height, OrbitSpeed, OrbitRadius }
@@ -70,11 +77,13 @@ Features can also be driven programmatically through the shared context:
 
 ```lua
 ctx.adminMenu.selectTarget(player)
-ctx.adminMenu.setESP(true)      -- global ESP
+ctx.adminMenu.setESP(true)         -- ESP for the current scope (target / all)
+ctx.adminMenu.toggleTarget(player) -- the click-a-name switch: ESP + Beam on/off
+ctx.adminMenu.setESPScope("all")   -- "target" (default) or "all"
 ctx.adminMenu.setBeam(true)     -- beam to the selected target
 ctx.adminMenu.setView(true)     -- camera on the selected target
 ctx.adminMenu.teleport(target)  -- guarded teleport (honours every condition)
-ctx.adminMenu.getState()        -- { target, espOn, beamOn, viewOn, espCount }
+ctx.adminMenu.getState()        -- { target, espOn, beamOn, viewOn, espCount, espScope }
 ```
 
 The `E` key (config `Keys.ESP`) toggles the global ESP overlay.
