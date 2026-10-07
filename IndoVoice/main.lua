@@ -110,6 +110,12 @@ if Session then
 		-- Bypass the gate if this place has a valid (non-expired) session.
 		local saved = Session.Load()
 		trustedSession = (saved ~= nil and saved.authenticated == true)
+		-- The owner changed the password since this session was created:
+		-- session.lua already wiped every stale session/marker, so everyone
+		-- meets the gate again ("all sessions must restart").
+		if Session.lastRejectReason == "password_changed" then
+			print("[IndoVoice] Password changed — all saved sessions were reset. Enter the new password.")
+		end
 	end)
 	-- A pending re-exec flag can only be set by a run that already passed the
 	-- gate (main.lua arms it after a successful load), so it also proves the
