@@ -546,42 +546,16 @@ return function(config, components)
     -- ═══════════════════════════════════════════
     -- PLAYERS TAB
     -- ═══════════════════════════════════════════
-    local SearchBox = Instance.new("TextBox")
-    SearchBox.PlaceholderText = "Search player..."
-    SearchBox.Text = ""
-    SearchBox.ClearTextOnFocus = false
-    SearchBox.Size = UDim2.new(1, -20, 0, 32)
-    SearchBox.Position = UDim2.new(0, 10, 0, 10)
-    SearchBox.BackgroundColor3 = LYRA.bg2
-    SearchBox.TextColor3 = LYRA.text
-    SearchBox.PlaceholderColor3 = LYRA.dim
-    SearchBox.Font = Enum.Font.Gotham
-    SearchBox.TextSize = 13
-    SearchBox.BorderSizePixel = 0
-    SearchBox.Parent = Tabs.Players
-    shared.corner(SearchBox, UDim.new(0, 8))
-
-    local PlayerList = Instance.new("ScrollingFrame")
-    PlayerList.Size = UDim2.new(1, -20, 1, -70)
-    PlayerList.Position = UDim2.new(0, 10, 0, 48)
-    PlayerList.BackgroundColor3 = LYRA.bg2
-    PlayerList.BorderSizePixel = 0
-    PlayerList.ScrollBarThickness = 3
-    PlayerList.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    PlayerList.Parent = Tabs.Players
-    shared.corner(PlayerList, UDim.new(0, 8))
-    Instance.new("UIListLayout", PlayerList).Padding = UDim.new(0, 4)
-
-    local PlayerHint = Instance.new("TextLabel")
-    PlayerHint.Text = "Scroll for more players"
-    PlayerHint.Size = UDim2.new(1, -20, 0, 16)
-    PlayerHint.Position = UDim2.new(0, 10, 1, -20)
-    PlayerHint.BackgroundTransparency = 1
-    PlayerHint.TextColor3 = LYRA.dim
-    PlayerHint.Font = Enum.Font.Gotham
-    PlayerHint.TextSize = 10
-    PlayerHint.TextXAlignment = Enum.TextXAlignment.Left
-    PlayerHint.Parent = Tabs.Players
+    -- Admin menu container.
+    -- The Player Admin Menu module (modules/adminmenu.lua) builds the target
+    -- list + ESP / BEAM / VIEW / TP controls inside this frame, replacing the
+    -- old one-row-per-player buttons (ESP / Beam / TP / View).
+    local Admin = Instance.new("Frame")
+    Admin.Name = "AdminMenu"
+    Admin.Size = UDim2.new(1, 0, 1, 0)
+    Admin.BackgroundTransparency = 1
+    Admin.BorderSizePixel = 0
+    Admin.Parent = Tabs.Players
 
     -- ═══════════════════════════════════════════
     -- FISHING TAB (combined FishZone + AutoFish)
@@ -1996,9 +1970,7 @@ return function(config, components)
             DashActions = DashActions,
         },
         Players = {
-            SearchBox = SearchBox,
-            PlayerList = PlayerList,
-            PlayerHint = PlayerHint,
+            Admin = Admin,
         },
         FishZone = {
             ZoneESPBtn = ZoneESPBtn,

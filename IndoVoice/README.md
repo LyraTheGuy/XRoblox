@@ -19,7 +19,7 @@ Comprehensive automation toolkit for IndoVoice on Roblox.
 **Utilities**
 - Rod Shop — Browse and purchase rods
 - FishZone ESP — Highlight active zones, auto TP
-- Player ESP — Box highlight, teleport, tracer, inspect
+- Player Admin Menu — Target a player, then drive ESP / Beam / View / TP (see below)
 - Follow Player — Follow a player to fish/mine together (stable camera freeze, wall bypass, faces target direction)
 - Anti-Idle — Defeat idle detection
 - Webhook Integration — Discord notifications (customizable)
@@ -35,6 +35,50 @@ Comprehensive automation toolkit for IndoVoice on Roblox.
 - Auto Re-Execute on Rejoin — the script re-runs itself after server hops / reconnects via `queue_on_teleport` + a one-shot re-exec marker (cleared by manual unload)
 - Duplicate-Run Guard — safe re-execution: a second copy never runs while one is alive
 
+## Player Admin Menu (ESP / Beam / View / TP)
+
+The Players tab is a single admin menu owned by `modules/adminmenu.lua`. It reads
+players live from the shared Players service, lets you pick a target on the left,
+then drives four features from the toolbar:
+
+| Feature | What it does |
+|---------|--------------|
+| **ESP** | Global overlay on every other player: name, health bar, distance text and a box / highlight outline. Health is colour-coded green → yellow → red and staff get a red outline. Refreshes are throttled (never per-frame). |
+| **BEAM** | Draws a beam from you to the selected target. Customise colour, thickness, transparency and style (Solid / Pulse / Rainbow). Re-homes itself after respawns. |
+| **VIEW** | Scriptable camera on the target: smooth third-person Follow, First-person, or an automatic Orbit. Smoothness, distance, height, orbit speed and radius are sliders. Restores your camera on disable. |
+| **TP** | Guarded teleport with a disable-condition submenu showing live status. |
+
+**TP disable conditions** (all default **ON** so a misclick can never teleport you):
+`Require confirm click`, `Cooldown`, `Block if target is dead`, `Block if you are dead`,
+`Block if target is staff`, `Block if in a safe zone`, `Block if you are in combat`.
+Click a row to toggle it; the status column shows `OK`, `BLOCKED`, `ARMED` or `OFF`.
+
+### Customising
+
+Every tunable lives at the top of `IndoVoice/modules/adminmenu.lua`:
+
+```lua
+local ESP_CFG  = { Interval, MaxDistance, Outline, ShowName, ShowHealth, ShowDistance,
+                   ColorMode, StaticColor, RequireLineOfSight }
+local BEAM_CFG = { Interval, Color, Thickness, Transparency, Style }
+local VIEW_CFG = { Smoothness, Mode, Distance, Height, OrbitSpeed, OrbitRadius }
+local TP       = { RequireConfirm, ConfirmWindow, Cooldown, BlockTargetDead,
+                   BlockSelfDead, BlockStaff, BlockSafeZone, BlockInCombat }
+```
+
+Features can also be driven programmatically through the shared context:
+
+```lua
+ctx.adminMenu.selectTarget(player)
+ctx.adminMenu.setESP(true)      -- global ESP
+ctx.adminMenu.setBeam(true)     -- beam to the selected target
+ctx.adminMenu.setView(true)     -- camera on the selected target
+ctx.adminMenu.teleport(target)  -- guarded teleport (honours every condition)
+ctx.adminMenu.getState()        -- { target, espOn, beamOn, viewOn, espCount }
+```
+
+The `E` key (config `Keys.ESP`) toggles the global ESP overlay.
+
 ## File Structure
 
 ```
@@ -46,6 +90,7 @@ Comprehensive automation toolkit for IndoVoice on Roblox.
 ├── gui.lua             # Tabbed UI
 ├── core.lua            # Shared state
 ├── modules/
+│   ├── adminmenu.lua   # Player Admin Menu (ESP / Beam / View / TP)
 │   ├── fishing.lua     # Auto Fish
 │   ├── mining.lua      # Auto Mine
 │   ├── gacha.lua       # Gacha automation
@@ -79,6 +124,7 @@ IndoVoice/
 ├── gui.lua             # Full GUI layout and elements
 ├── core.lua            # Shared state, utilities, players, zones, clicker, webhook, settings
 ├── modules/
+│   ├── adminmenu.lua   # Player Admin Menu (ESP / Beam / View / TP)
 │   ├── fishing.lua     # Auto Fish system
 │   ├── mining.lua      # Auto Mine + Auto Sell Ore
 │   ├── gacha.lua       # Auto Gacha (Blind Box)

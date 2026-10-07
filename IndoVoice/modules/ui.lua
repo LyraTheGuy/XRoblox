@@ -22,9 +22,6 @@ return function(ctx)
     local tpToZone = ctx.tpToZone
     local refreshZoneESP = ctx.refreshZoneESP
     local unfreezeCharacter = ctx.unfreezeCharacter
-    local refreshPlayerRows = ctx.refreshPlayerRows
-    local makePlayerRow = ctx.makePlayerRow
-    local removePlayerRow = ctx.removePlayerRow
     local updateClickerUI = ctx.updateClickerUI
     local updateRewardButtons = ctx.updateRewardButtons
     local applyTheme = ctx.applyTheme
@@ -39,15 +36,8 @@ return function(ctx)
     local stopAutoTP = ctx.stopAutoTP
     local updatePerfMonitor = ctx.updatePerfMonitor
 
-    -- Player search
-    bind(gui.Players.SearchBox:GetPropertyChangedSignal("Text"), function()
-        ctx.playerSearchText = gui.Players.SearchBox.Text
-        refreshPlayerRows()
-    end)
-
-    for _, p in ipairs(Players:GetPlayers()) do makePlayerRow(p) end
-    bind(Players.PlayerAdded, makePlayerRow)
-    bind(Players.PlayerRemoving, removePlayerRow)
+    -- Player rows and targeting are owned by modules/adminmenu.lua
+    -- (the Player Admin Menu). Nothing to wire here anymore.
 
     bind(gui.FishZone.ZoneESPBtn.MouseButton1Click, function()
         ctx.zoneESPOn = not ctx.zoneESPOn
@@ -449,7 +439,6 @@ for _, part in ipairs(getZoneParts()) do
     switchTab("About")
     updateClickerUI()
     updateRewardButtons()
-    refreshPlayerRows()
     refreshZoneESP()
     applyTheme()
 
