@@ -17,17 +17,20 @@ return function(ctx)
     local autoFishStage = "Idle"
     local activeAnimConn = nil
     local fishSessionStart = 0
-    local FISH_BREAK_INTERVAL = 3600 -- 60 min
-    local FISH_BREAK_DURATION = 300 -- 5 min pause
 
-    -- Timing config
-    local AF_PRE_CAST_DELAY = 0.3
-    local AF_CAST_HOLD_MIN = 0.4
-    local AF_CAST_HOLD_MAX = 0.6
-    local AF_VERIFY_CAST_TIMEOUT = 2.5
-    local AF_BAIT_LANDED_TIMEOUT = 30
-    local AF_MINIGAME_TIMEOUT = 30
-    local AF_POST_END_DELAY = 0.3
+    -- Timing config — centralized in config.FishTiming so the values are part
+    -- of the persisted settings and restorable from a saved profile. Defaults
+    -- match the previous hardcoded constants, so behaviour is unchanged.
+    local FT = (ctx.config and ctx.config.FishTiming) or {}
+    local FISH_BREAK_INTERVAL = FT.BreakInterval or 3600 -- 60 min
+    local FISH_BREAK_DURATION = FT.BreakDuration or 300 -- 5 min pause
+    local AF_PRE_CAST_DELAY = FT.PreCastDelay or 0.3
+    local AF_CAST_HOLD_MIN = FT.CastHoldMin or 0.4
+    local AF_CAST_HOLD_MAX = FT.CastHoldMax or 0.6
+    local AF_VERIFY_CAST_TIMEOUT = FT.VerifyCastTimeout or 2.5
+    local AF_BAIT_LANDED_TIMEOUT = FT.BaitLandedTimeout or 30
+    local AF_MINIGAME_TIMEOUT = FT.MinigameTimeout or 30
+    local AF_POST_END_DELAY = FT.PostEndDelay or 0.3
 
     -- Animation IDs (IndoVoice fishing game)
     local FISHING_ANIM_ID = "rbxassetid://107858786510758"
@@ -329,9 +332,13 @@ return function(ctx)
         end)
     end
 
-    bind(gui.AutoFish.ToggleBtn.MouseButton1Click, function()
-        ctx.autoFishEnabled = not ctx.autoFishEnabled
-        if ctx.autoFishEnabled then
+    -- Set Auto Fish to an explicit state (idempotent). Shared by the button
+    -- and by saved-profile restoration (ctx.setAutoFish).
+    local function setAutoFish(on)
+        on = on and true or false
+        if ctx.autoFishEnabled == on then return end
+        ctx.autoFishEnabled = on
+        if on then
             gui.AutoFish.ToggleBtn.Text = "Auto Fish: ON"
             gui.AutoFish.ToggleBtn.BackgroundColor3 = THEME.success
             task.spawn(autoFishLoop)
@@ -346,5 +353,10 @@ return function(ctx)
                 activeAnimConn = nil
             end
         end
+    end
+    ctx.setAutoFish = setAutoFish
+
+    bind(gui.AutoFish.ToggleBtn.MouseButton1Click, function()
+        setAutoFish(not ctx.autoFishEnabled)
     end)
 end

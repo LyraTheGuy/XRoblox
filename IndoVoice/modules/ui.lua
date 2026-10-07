@@ -39,12 +39,20 @@ return function(ctx)
     -- Player rows and targeting are owned by modules/adminmenu.lua
     -- (the Player Admin Menu). Nothing to wire here anymore.
 
-    bind(gui.FishZone.ZoneESPBtn.MouseButton1Click, function()
-        ctx.zoneESPOn = not ctx.zoneESPOn
-        gui.FishZone.ZoneESPBtn.Text = ctx.zoneESPOn and "FishZone ESP: ON" or "FishZone ESP: OFF"
-        gui.FishZone.ZoneESPBtn.BackgroundColor3 = ctx.zoneESPOn and THEME.success or THEME.accent
+    -- Set FishZone ESP to an explicit state (idempotent).
+    local function setZoneESP(on)
+        on = on and true or false
+        if ctx.zoneESPOn == on then return end
+        ctx.zoneESPOn = on
+        gui.FishZone.ZoneESPBtn.Text = on and "FishZone ESP: ON" or "FishZone ESP: OFF"
+        gui.FishZone.ZoneESPBtn.BackgroundColor3 = on and THEME.success or THEME.accent
         refreshZoneESP()
-        log("FishZone ESP: " .. (ctx.zoneESPOn and "ON" or "OFF"), ctx.zoneESPOn and THEME.success or THEME.dim)
+        log("FishZone ESP: " .. (on and "ON" or "OFF"), on and THEME.success or THEME.dim)
+    end
+    ctx.setZoneESP = setZoneESP
+
+    bind(gui.FishZone.ZoneESPBtn.MouseButton1Click, function()
+        setZoneESP(not ctx.zoneESPOn)
     end)
 
     bind(gui.FishZone.AutoTPBtn.MouseButton1Click, function()
@@ -111,18 +119,31 @@ return function(ctx)
     bind(Players.PlayerRemoving, populateFollowPlayerList)
     populateFollowPlayerList()
 
-    bind(gui.FishZone.FollowBtn.MouseButton1Click, function()
-        ctx.followEnabled = not ctx.followEnabled
-        if ctx.followEnabled then
+    -- Set Fish Follow to an explicit state. `targetPlayer` (optional) selects
+    -- the follow target — used when a saved profile restores a target name.
+    local function setFishFollow(on, targetPlayer)
+        on = on and true or false
+        if on and targetPlayer then
+            ctx.followTarget = targetPlayer
+            ctx.followTargetName = targetPlayer.Name
+            if populateFollowPlayerList then populateFollowPlayerList() end
+        end
+        if ctx.followEnabled == on then return end
+        ctx.followEnabled = on
+        if on then
             -- Disable mining follow if it was active (avoid conflict)
             if ctx.mineFollowEnabled then
-                ctx.mineFollowEnabled = false
-                ctx.mineFollowTarget = nil
-                ctx.mineFollowTargetName = "None"
-                gui.Mining.FollowBtn.Text = "Follow: OFF"
-                gui.Mining.FollowBtn.BackgroundColor3 = THEME.danger
-                gui.Mining.FollowSelectedLbl.Text = "Following: None"
-                unfreezeCharacter()
+                if ctx.setMineFollow then
+                    ctx.setMineFollow(false)
+                else
+                    ctx.mineFollowEnabled = false
+                    ctx.mineFollowTarget = nil
+                    ctx.mineFollowTargetName = "None"
+                    gui.Mining.FollowBtn.Text = "Follow: OFF"
+                    gui.Mining.FollowBtn.BackgroundColor3 = THEME.danger
+                    gui.Mining.FollowSelectedLbl.Text = "Following: None"
+                    unfreezeCharacter()
+                end
                 log("Mine Follow disabled — enabling Fish Follow", THEME.dim)
             end
             gui.FishZone.FollowBtn.Text = "Follow: ON"
@@ -141,6 +162,11 @@ return function(ctx)
             log("Follow stopped", THEME.dim)
             unfreezeCharacter()
         end
+    end
+    ctx.setFishFollow = setFishFollow
+
+    bind(gui.FishZone.FollowBtn.MouseButton1Click, function()
+        setFishFollow(not ctx.followEnabled)
     end)
 
 for _, part in ipairs(getZoneParts()) do
@@ -292,43 +318,24 @@ for _, part in ipairs(getZoneParts()) do
         end
     end)
 
-    -- Dark/Light theme toggle
+    -- Halloween theme variants (centralized in config.ThemeVariants — no
+    -- hardcoded colors here).
     bind(gui.Settings.DarkThemeBtn.MouseButton1Click, function()
-        THEME.accent = Color3.fromRGB(155, 89, 255)
-        THEME.accentGlow = Color3.fromRGB(180, 130, 255)
-        THEME.bg = Color3.fromRGB(12, 10, 20)
-        THEME.bg2 = Color3.fromRGB(18, 15, 30)
-        THEME.panel = Color3.fromRGB(22, 20, 38)
-        THEME.panel2 = Color3.fromRGB(30, 27, 50)
-        THEME.sidebar = Color3.fromRGB(16, 13, 28)
-        THEME.topbar = Color3.fromRGB(20, 17, 34)
-        THEME.text = Color3.fromRGB(240, 235, 255)
-        THEME.dim = Color3.fromRGB(130, 120, 170)
+        if ctx.applyThemeVariant then ctx.applyThemeVariant("Dark") end
         gui.Settings.DarkThemeBtn.BackgroundColor3 = THEME.accent
         gui.Settings.DarkThemeBtn.TextColor3 = Color3.new(1, 1, 1)
         gui.Settings.LightThemeBtn.BackgroundColor3 = THEME.panel2
         gui.Settings.LightThemeBtn.TextColor3 = THEME.dim
-        applyTheme()
-        log("Theme: Dark (Lyra)", THEME.dim)
+        log("Theme: Halloween (Dark)", THEME.dim)
     end)
 
     bind(gui.Settings.LightThemeBtn.MouseButton1Click, function()
-        THEME.accent = Color3.fromRGB(120, 70, 220)
-        THEME.accentGlow = Color3.fromRGB(100, 60, 190)
-        THEME.bg = Color3.fromRGB(240, 238, 250)
-        THEME.bg2 = Color3.fromRGB(228, 224, 242)
-        THEME.panel = Color3.fromRGB(248, 246, 255)
-        THEME.panel2 = Color3.fromRGB(220, 215, 238)
-        THEME.sidebar = Color3.fromRGB(235, 230, 248)
-        THEME.topbar = Color3.fromRGB(230, 226, 245)
-        THEME.text = Color3.fromRGB(30, 20, 60)
-        THEME.dim = Color3.fromRGB(100, 90, 140)
+        if ctx.applyThemeVariant then ctx.applyThemeVariant("Ember") end
         gui.Settings.LightThemeBtn.BackgroundColor3 = THEME.accent
         gui.Settings.LightThemeBtn.TextColor3 = Color3.new(1, 1, 1)
         gui.Settings.DarkThemeBtn.BackgroundColor3 = THEME.panel2
         gui.Settings.DarkThemeBtn.TextColor3 = THEME.dim
-        applyTheme()
-        log("Theme: Light (Lyra)", THEME.dim)
+        log("Theme: Halloween (Ember)", THEME.dim)
     end)
 
     for name, btn in pairs(gui.TabButtons) do

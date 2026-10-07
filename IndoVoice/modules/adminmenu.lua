@@ -55,7 +55,7 @@ return function(ctx)
         UseInGameName = true,          -- show the name the GAME displays overhead
         ShowName = true,
         ColorMode = "health",          -- "health" | "accent" | "static"
-        StaticColor = Color3.fromRGB(155, 89, 255),
+        StaticColor = Color3.fromRGB(255, 205, 80),
         RequireLineOfSight = false,    -- raycast wall check (off = cheaper)
     }
 
@@ -102,12 +102,12 @@ return function(ctx)
 
     -- Colour palette used by the beam / ESP colour swatches.
     local PALETTE = (config and config.ThemePresets) or {
-        Color3.fromRGB(0, 170, 255),
-        Color3.fromRGB(132, 97, 255),
-        Color3.fromRGB(255, 96, 140),
-        Color3.fromRGB(67, 214, 125),
-        Color3.fromRGB(255, 170, 0),
-        Color3.fromRGB(255, 120, 84),
+        Color3.fromRGB(255, 165, 0),
+        Color3.fromRGB(255, 205, 80),
+        Color3.fromRGB(255, 140, 40),
+        Color3.fromRGB(210, 95, 55),
+        Color3.fromRGB(255, 225, 150),
+        Color3.fromRGB(180, 120, 40),
     }
 
     -- ==================================================================
@@ -1754,6 +1754,54 @@ return function(ctx)
                 updateESP()
             end
             return ESP_CFG.Scope
+        end,
+        -- Snapshot of every customizable Players-tab setting (camera / beam /
+        -- ESP / TP). Used by the saved-settings system to persist profiles.
+        getConfig = function()
+            return {
+                esp = {
+                    Interval = ESP_CFG.Interval, MaxDistance = ESP_CFG.MaxDistance,
+                    Outline = ESP_CFG.Outline, Scope = ESP_CFG.Scope,
+                    UseInGameName = ESP_CFG.UseInGameName, ShowName = ESP_CFG.ShowName,
+                    ColorMode = ESP_CFG.ColorMode, StaticColor = ESP_CFG.StaticColor,
+                    RequireLineOfSight = ESP_CFG.RequireLineOfSight,
+                },
+                beam = {
+                    Interval = BEAM_CFG.Interval, Color = BEAM_CFG.Color,
+                    Thickness = BEAM_CFG.Thickness, Transparency = BEAM_CFG.Transparency,
+                    Style = BEAM_CFG.Style,
+                },
+                view = {
+                    Smoothness = VIEW_CFG.Smoothness, Mode = VIEW_CFG.Mode,
+                    Distance = VIEW_CFG.Distance, Height = VIEW_CFG.Height,
+                    OrbitSpeed = VIEW_CFG.OrbitSpeed, OrbitRadius = VIEW_CFG.OrbitRadius,
+                },
+                tp = {
+                    RequireConfirm = TP.RequireConfirm, ConfirmWindow = TP.ConfirmWindow,
+                    Cooldown = TP.Cooldown, BlockTargetDead = TP.BlockTargetDead,
+                    BlockSelfDead = TP.BlockSelfDead, BlockStaff = TP.BlockStaff,
+                    BlockSafeZone = TP.BlockSafeZone, BlockInCombat = TP.BlockInCombat,
+                },
+            }
+        end,
+        -- Restore a snapshot produced by getConfig(). Only matching keys/types
+        -- are written, so a corrupt or partial profile can never break the menu.
+        setConfig = function(cfg)
+            if type(cfg) ~= "table" then return false end
+            local function merge(dst, src)
+                if type(src) ~= "table" then return end
+                for k, v in pairs(src) do
+                    if dst[k] ~= nil and type(v) == type(dst[k]) then
+                        dst[k] = v
+                    end
+                end
+            end
+            merge(ESP_CFG, cfg.esp)
+            merge(BEAM_CFG, cfg.beam)
+            merge(VIEW_CFG, cfg.view)
+            merge(TP, cfg.tp)
+            if S.espOn then pcall(function() updateESP() end) end
+            return true
         end,
         getState = function()
             local n = 0

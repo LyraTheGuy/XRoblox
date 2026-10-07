@@ -28,7 +28,9 @@ return function(theme, shared)
                 -- Extract the Build marker from the source instead of executing
                 -- the live config: executing it could block forever on top-level
                 -- workspace lookups (e.g. WaitForChild) and never return.
-                local buildMarker = src:match('Build%s*=%s*"([%w%.]+)"')
+                -- Capture everything up to the closing quote so version markers
+                -- containing spaces (e.g. "Spooky Version") compare correctly.
+                local buildMarker = src:match('Build%s*=%s*"([^"]+)"')
                 if buildMarker then
                     liveBuild = buildMarker
                 end

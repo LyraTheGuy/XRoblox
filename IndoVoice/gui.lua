@@ -292,7 +292,7 @@ return function(config, components)
     Title.Parent = Sidebar
 
     local Subtitle = Instance.new("TextLabel")
-    Subtitle.Text = "v1.2 | LyraHub UI"
+    Subtitle.Text = "Spooky Version | LyraHub UI"
     Subtitle.Size = UDim2.new(1, 0, 0, 14)
     Subtitle.Position = UDim2.new(0, 0, 0, 46)
     Subtitle.BackgroundTransparency = 1
@@ -536,7 +536,7 @@ return function(config, components)
     AboutVersion.Size = UDim2.new(1, -20, 0, 20)
     AboutVersion.Position = UDim2.new(0, 10, 1, -24)
     AboutVersion.BackgroundTransparency = 1
-    AboutVersion.Text = "v1.2 | LyraHub UI"
+    AboutVersion.Text = "Spooky Version | LyraHub UI"
     AboutVersion.TextColor3 = LYRA.dim
     AboutVersion.Font = Enum.Font.Code
     AboutVersion.TextSize = 10
@@ -1667,7 +1667,7 @@ return function(config, components)
         scroll.BackgroundTransparency = 1
         scroll.BorderSizePixel = 0
         scroll.ScrollBarThickness = 3
-        scroll.CanvasSize = UDim2.new(0, 0, 0, 680)
+        scroll.CanvasSize = UDim2.new(0, 0, 0, 940)
         scroll.Parent = Tabs.Settings
 
         local hideKeyLbl = Instance.new("TextLabel")
@@ -1849,7 +1849,7 @@ return function(config, components)
         shared.corner(accentPreview, UDim.new(0, 4))
 
         local darkThemeBtn = Instance.new("TextButton")
-        darkThemeBtn.Text = "Dark (Lyra)"
+        darkThemeBtn.Text = "Halloween (Dark)"
         darkThemeBtn.Size = UDim2.new(0.48, -10, 0, 28)
         darkThemeBtn.Position = UDim2.new(0, 10, 0, 586)
         darkThemeBtn.BackgroundColor3 = LYRA.accent
@@ -1861,7 +1861,7 @@ return function(config, components)
         shared.corner(darkThemeBtn, UDim.new(0, 6))
 
         local lightThemeBtn = Instance.new("TextButton")
-        lightThemeBtn.Text = "Light (Lyra)"
+        lightThemeBtn.Text = "Halloween (Ember)"
         lightThemeBtn.Size = UDim2.new(0.48, -10, 0, 28)
         lightThemeBtn.Position = UDim2.new(0.5, 5, 0, 586)
         lightThemeBtn.BackgroundColor3 = LYRA.panel2
@@ -1885,6 +1885,138 @@ return function(config, components)
         settingsInfo.TextYAlignment = Enum.TextYAlignment.Top
         settingsInfo.Parent = scroll
 
+        -- ── Saved Settings Profiles ───────────────────────────────────
+        -- Storage/CRUD lives in modules/SettingsProfiles.lua and is wired by
+        -- modules/settingsintegration.lua. This block only builds the widgets
+        -- and returns structured references (no FindFirstChild lookups).
+        local profSep = Instance.new("Frame")
+        profSep.Size = UDim2.new(1, -20, 0, 1)
+        profSep.Position = UDim2.new(0, 10, 0, 700)
+        profSep.BackgroundColor3 = LYRA.panel2
+        profSep.BorderSizePixel = 0
+        profSep.Parent = scroll
+
+        local profTitle = Instance.new("TextLabel")
+        profTitle.Size = UDim2.new(1, -20, 0, 18)
+        profTitle.Position = UDim2.new(0, 10, 0, 708)
+        profTitle.BackgroundTransparency = 1
+        profTitle.Text = "Saved Profiles"
+        profTitle.TextColor3 = LYRA.accentGlow
+        profTitle.Font = Enum.Font.GothamBold
+        profTitle.TextSize = 12
+        profTitle.TextXAlignment = Enum.TextXAlignment.Left
+        profTitle.Parent = scroll
+
+        local profCurrent = Instance.new("TextLabel")
+        profCurrent.Size = UDim2.new(1, -20, 0, 16)
+        profCurrent.Position = UDim2.new(0, 10, 0, 728)
+        profCurrent.BackgroundTransparency = 1
+        profCurrent.Text = "Current Profile: —"
+        profCurrent.TextColor3 = LYRA.dim
+        profCurrent.Font = Enum.Font.Gotham
+        profCurrent.TextSize = 10
+        profCurrent.TextXAlignment = Enum.TextXAlignment.Left
+        profCurrent.Parent = scroll
+
+        local profNameInput = Instance.new("TextBox")
+        profNameInput.Size = UDim2.new(1, -20, 0, 24)
+        profNameInput.Position = UDim2.new(0, 10, 0, 748)
+        profNameInput.BackgroundColor3 = LYRA.bg2
+        profNameInput.TextColor3 = LYRA.text
+        profNameInput.PlaceholderText = "Profile name… (for Create / Rename)"
+        profNameInput.PlaceholderColor3 = LYRA.faint
+        profNameInput.Text = ""
+        profNameInput.Font = Enum.Font.Gotham
+        profNameInput.TextSize = 10
+        profNameInput.ClearTextOnFocus = false
+        profNameInput.BorderSizePixel = 0
+        profNameInput.Parent = scroll
+        shared.corner(profNameInput, UDim.new(0, 4))
+        shared.stroke(profNameInput, LYRA.divider, 1, 0.4)
+        Instance.new("UIPadding", profNameInput).PaddingLeft = UDim.new(0, 6)
+
+        local profDropdown = Instance.new("TextButton")
+        profDropdown.Size = UDim2.new(1, -20, 0, 26)
+        profDropdown.Position = UDim2.new(0, 10, 0, 778)
+        profDropdown.BackgroundColor3 = LYRA.panel2
+        profDropdown.TextColor3 = LYRA.text
+        profDropdown.Font = Enum.Font.GothamBold
+        profDropdown.TextSize = 10
+        profDropdown.Text = "Select profile…   ▼"
+        profDropdown.TextXAlignment = Enum.TextXAlignment.Left
+        profDropdown.AutoButtonColor = false
+        profDropdown.BorderSizePixel = 0
+        profDropdown.Parent = scroll
+        shared.corner(profDropdown, UDim.new(0, 6))
+        local profDropdownStroke = shared.stroke(profDropdown, LYRA.divider, 1, 0.4)
+        Instance.new("UIPadding", profDropdown).PaddingLeft = UDim.new(0, 8)
+
+        -- Opaque list so it cleanly covers the action buttons while open.
+        local profList = Instance.new("ScrollingFrame")
+        profList.Size = UDim2.new(1, -20, 0, 140)
+        profList.Position = UDim2.new(0, 10, 0, 806)
+        profList.BackgroundColor3 = LYRA.bg2
+        profList.BorderSizePixel = 0
+        profList.ScrollBarThickness = 3
+        profList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        profList.CanvasSize = UDim2.new(0, 0, 0, 0)
+        profList.Visible = false
+        profList.ZIndex = 30
+        profList.Parent = scroll
+        shared.corner(profList, UDim.new(0, 6))
+        shared.stroke(profList, LYRA.accentGlow, 1, 0.3)
+        Instance.new("UIListLayout", profList).Padding = UDim.new(0, 2)
+
+        local profEmpty = Instance.new("TextLabel")
+        profEmpty.Size = UDim2.new(1, -8, 0, 24)
+        profEmpty.Position = UDim2.new(0, 4, 0, 4)
+        profEmpty.BackgroundTransparency = 1
+        profEmpty.Text = "No saved profiles yet"
+        profEmpty.TextColor3 = LYRA.dim
+        profEmpty.Font = Enum.Font.Gotham
+        profEmpty.TextSize = 10
+        profEmpty.ZIndex = 31
+        profEmpty.Visible = false
+        profEmpty.Parent = profList
+
+        local profSaveBtn = makeActionButton(scroll, "Save Current Settings", 810, LYRA.accent)
+        profSaveBtn.Size = UDim2.new(0.48, -10, 0, 28)
+        profSaveBtn.Position = UDim2.new(0, 10, 0, 810)
+        profSaveBtn.TextSize = 10
+
+        local profLoadBtn = makeActionButton(scroll, "Load Selected Profile", 810, LYRA.tp)
+        profLoadBtn.Size = UDim2.new(0.48, -10, 0, 28)
+        profLoadBtn.Position = UDim2.new(0.5, 5, 0, 810)
+        profLoadBtn.TextSize = 10
+
+        local profCreateBtn = makeActionButton(scroll, "Create New Profile", 844, LYRA.success)
+        profCreateBtn.Size = UDim2.new(0.32, -9, 0, 28)
+        profCreateBtn.Position = UDim2.new(0, 10, 0, 844)
+        profCreateBtn.TextSize = 9
+
+        local profRenameBtn = makeActionButton(scroll, "Rename Profile", 844, LYRA.warn)
+        profRenameBtn.Size = UDim2.new(0.32, -9, 0, 28)
+        profRenameBtn.Position = UDim2.new(0.33, 3, 0, 844)
+        profRenameBtn.TextSize = 9
+
+        local profDeleteBtn = makeActionButton(scroll, "Delete Profile", 844, LYRA.danger)
+        profDeleteBtn.Size = UDim2.new(0.32, -9, 0, 28)
+        profDeleteBtn.Position = UDim2.new(0.66, -2, 0, 844)
+        profDeleteBtn.TextSize = 9
+
+        local profStatus = Instance.new("TextLabel")
+        profStatus.Size = UDim2.new(1, -20, 0, 30)
+        profStatus.Position = UDim2.new(0, 10, 0, 878)
+        profStatus.BackgroundTransparency = 1
+        profStatus.Text = ""
+        profStatus.TextColor3 = LYRA.dim
+        profStatus.Font = Enum.Font.Gotham
+        profStatus.TextSize = 10
+        profStatus.TextWrapped = true
+        profStatus.TextXAlignment = Enum.TextXAlignment.Left
+        profStatus.TextYAlignment = Enum.TextYAlignment.Top
+        profStatus.Parent = scroll
+
         return {
             HideKeyLbl = hideKeyLbl, HideUIKeybind = hideUIKey,
             UnloadBtn = unloadBtn, AutoClaimDailyRewardBtn = autoClaimDailyRewardBtn,
@@ -1897,6 +2029,20 @@ return function(config, components)
             AccentPreview = accentPreview, ColorButtons = {},
             DarkThemeBtn = darkThemeBtn, LightThemeBtn = lightThemeBtn,
             SettingsInfo = settingsInfo,
+            Profiles = {
+                Dropdown = profDropdown,
+                DropdownStroke = profDropdownStroke,
+                DropdownList = profList,
+                Empty = profEmpty,
+                NameInput = profNameInput,
+                CurrentLabel = profCurrent,
+                SaveButton = profSaveBtn,
+                LoadButton = profLoadBtn,
+                CreateButton = profCreateBtn,
+                RenameButton = profRenameBtn,
+                DeleteButton = profDeleteBtn,
+                StatusLabel = profStatus,
+            },
         }
     end
     local S = buildSettingsTab()
@@ -2064,6 +2210,7 @@ return function(config, components)
             DarkThemeBtn = S.DarkThemeBtn,
             LightThemeBtn = S.LightThemeBtn,
             SettingsInfo = S.SettingsInfo,
+            Profiles = S.Profiles,
         },
         Logs = {
             LogScroll = L.LogScroll,

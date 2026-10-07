@@ -25,10 +25,10 @@ Comprehensive automation toolkit for IndoVoice on Roblox.
 - Webhook Integration — Discord notifications (customizable)
 
 **Settings**
-- Theme Toggle (Dark/Light)
-- Accent Color Presets
+- Halloween Theme (Dark / Ember variants — gold on near-black)
 - Per-Rarity Auto-Sell & Webhook Filters
 - Settings Save/Load (persists across sessions)
+- **Saved Settings Profiles** — create / save / load / rename / delete named snapshots of every user setting (Auto Fish, Auto Mine, camera & player settings, keybinds, toggles, zones, targets). See below.
 
 **Session & Persistence**
 - Password Bypass — type the gate password once; rejoins in the same place skip the gate (per-place session file, 7-day TTL, see `config.Gate.SessionTTL`)
@@ -109,7 +109,9 @@ The `E` key (config `Keys.ESP`) toggles the global ESP overlay.
 │   ├── tokenshop.lua   # LuckTicket purchasing
 │   ├── shopgacha.lua   # Shop Gacha
 │   ├── antiafk.lua     # Anti-Idle
-│   └── ui.lua          # Window controls
+│   ├── ui.lua          # Window controls
+│   ├── SettingsProfiles.lua    # Saved settings profiles (storage/CRUD)
+│   └── settingsintegration.lua # Collect/apply settings + wire the profile UI
 └── README.md
 ```
 
@@ -142,8 +144,36 @@ IndoVoice/
 │   ├── shopgacha.lua   # Shop Gacha (Pet / Aura / Trail)
 │   ├── tokenshop.lua   # Token Shop (LuckTicket I - VI)
 │   ├── rodshop.lua     # Rod Shop purchases
-│   └── ui.lua          # UI bindings, heartbeat loop, startup
+│   ├── ui.lua          # UI bindings, heartbeat loop, startup
+│   ├── SettingsProfiles.lua    # Saved settings profiles (storage/CRUD)
+│   └── settingsintegration.lua # Settings snapshot/apply + profile UI wiring
 └── README.md           # This file
+```
+
+## Saved Settings Profiles
+
+Named snapshots of every user-configurable setting, stored per user/device in
+the executor workspace (`LyraHubProfiles/<slug>.json` + `index.json`, with a
+`getgenv()` fallback and an in-memory last resort).
+
+- **Storage/CRUD:** `modules/SettingsProfiles.lua` — versioned, corruption-safe
+  JSON; `create` refuses duplicate names, `delete` refuses the active profile.
+- **Integration:** `modules/settingsintegration.lua` — gathers settings from
+  `ctx`, applies a loaded profile via each feature's setter, and wires the UI.
+- **UI:** `gui.lua` returns `gui.Settings.Profiles.{Dropdown, SaveButton,
+  LoadButton, CreateButton, RenameButton, DeleteButton, CurrentLabel,
+  StatusLabel, ...}`.
+
+API (reusable by any module, loaded separately in `main.lua`):
+
+```lua
+SettingsProfiles.List()
+SettingsProfiles.Create(name)
+SettingsProfiles.Save(name)          -- snapshots the current settings
+SettingsProfiles.Load(name)          -- returns the saved settings table
+SettingsProfiles.Rename(oldName, newName)
+SettingsProfiles.Delete(name)
+SettingsProfiles.GetCurrent()
 ```
 
 ## Architecture

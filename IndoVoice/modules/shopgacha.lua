@@ -12,29 +12,27 @@ return function(ctx)
     local shopGachaType = "Pet"
     local shopGachaStopRarities = {}
 
-    -- Type selection buttons
-    for typeName, btn in pairs(gui.ShopGacha.TypeButtons) do
-        bind(btn.MouseButton1Click, function()
-            shopGachaType = typeName
-            for tName, tBtn in pairs(gui.ShopGacha.TypeButtons) do
-                if tName == typeName then
-                    tBtn.BackgroundColor3 = THEME.accent
-                    tBtn.BackgroundTransparency = 0.2
-                    tBtn.TextColor3 = Color3.new(1, 1, 1)
-                else
-                    tBtn.BackgroundColor3 = THEME.panel2
-                    tBtn.BackgroundTransparency = 0.6
-                    tBtn.TextColor3 = THEME.dim
-                end
+    -- Mirror the module-local selections on ctx so the saved-settings system
+    -- can persist and restore them from a profile.
+    ctx.shopGachaType = shopGachaType
+    ctx.shopGachaStopRarities = shopGachaStopRarities
+
+    local function updateShopGachaTypeUI()
+        for tName, tBtn in pairs(gui.ShopGacha.TypeButtons) do
+            if tName == shopGachaType then
+                tBtn.BackgroundColor3 = THEME.accent
+                tBtn.BackgroundTransparency = 0.2
+                tBtn.TextColor3 = Color3.new(1, 1, 1)
+            else
+                tBtn.BackgroundColor3 = THEME.panel2
+                tBtn.BackgroundTransparency = 0.6
+                tBtn.TextColor3 = THEME.dim
             end
-            log("ShopGacha: Type → " .. typeName, THEME.dim)
-        end)
+        end
     end
 
-    -- Stop rarity buttons
-    for rarity, btn in pairs(gui.ShopGacha.StopButtons) do
-        bind(btn.MouseButton1Click, function()
-            shopGachaStopRarities[rarity] = not shopGachaStopRarities[rarity]
+    local function updateShopGachaStopUI()
+        for rarity, btn in pairs(gui.ShopGacha.StopButtons) do
             if shopGachaStopRarities[rarity] then
                 btn.BackgroundColor3 = THEME.success
                 btn.BackgroundTransparency = 0.2
@@ -44,6 +42,39 @@ return function(ctx)
                 btn.BackgroundTransparency = 0.6
                 btn.TextColor3 = THEME.dim
             end
+        end
+    end
+
+    local function setShopGachaType(typeName)
+        if not typeName or typeName == "" then return end
+        shopGachaType = typeName
+        ctx.shopGachaType = typeName
+        updateShopGachaTypeUI()
+    end
+    ctx.setShopGachaType = setShopGachaType
+
+    local function applyShopGachaStopRarities(map)
+        if type(map) ~= "table" then return end
+        for rarity in pairs(gui.ShopGacha.StopButtons) do
+            shopGachaStopRarities[rarity] = map[rarity] == true
+        end
+        updateShopGachaStopUI()
+    end
+    ctx.applyShopGachaStopRarities = applyShopGachaStopRarities
+
+    -- Type selection buttons
+    for typeName, btn in pairs(gui.ShopGacha.TypeButtons) do
+        bind(btn.MouseButton1Click, function()
+            setShopGachaType(typeName)
+            log("ShopGacha: Type → " .. typeName, THEME.dim)
+        end)
+    end
+
+    -- Stop rarity buttons
+    for rarity, btn in pairs(gui.ShopGacha.StopButtons) do
+        bind(btn.MouseButton1Click, function()
+            shopGachaStopRarities[rarity] = not shopGachaStopRarities[rarity]
+            updateShopGachaStopUI()
         end)
     end
 
@@ -198,9 +229,12 @@ return function(ctx)
         log("ShopGacha: Stopped", THEME.dim)
     end
 
-    bind(gui.ShopGacha.ToggleBtn.MouseButton1Click, function()
-        ctx.shopGachaEnabled = not ctx.shopGachaEnabled
-        if ctx.shopGachaEnabled then
+    -- Set Shop Gacha to an explicit state (idempotent).
+    local function setShopGacha(on)
+        on = on and true or false
+        if ctx.shopGachaEnabled == on then return end
+        ctx.shopGachaEnabled = on
+        if on then
             gui.ShopGacha.ToggleBtn.Text = "Shop Gacha: ON"
             gui.ShopGacha.ToggleBtn.BackgroundColor3 = THEME.success
             task.spawn(shopGachaLoop)
@@ -210,5 +244,10 @@ return function(ctx)
             gui.ShopGacha.Status.Text = "Status: Stopped | Rolls: " .. shopGachaRolls
             gui.ShopGacha.Status.TextColor3 = THEME.dim
         end
+    end
+    ctx.setShopGacha = setShopGacha
+
+    bind(gui.ShopGacha.ToggleBtn.MouseButton1Click, function()
+        setShopGacha(not ctx.shopGachaEnabled)
     end)
 end

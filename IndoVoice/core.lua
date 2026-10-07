@@ -594,6 +594,19 @@ return function(gui, config)
     end
     ctx.applyTheme = applyTheme
 
+    -- Apply a named theme variant from config.ThemeVariants (used by the
+    -- Settings theme buttons and by saved-profile restoration).
+    ctx.applyThemeVariant = function(name)
+        local variant = config.ThemeVariants and config.ThemeVariants[name]
+        if not variant then return false end
+        for k, v in pairs(variant) do
+            THEME[k] = v
+        end
+        ctx.activeThemeVariant = name
+        applyTheme()
+        return true
+    end
+
     local function switchTab(name)
         ctx.activeTab = name
         for tabName, frame in pairs(gui.Tabs) do
@@ -628,14 +641,14 @@ return function(gui, config)
             CloseFrame.Size = UDim2.new(0, 620, 0, 420)
             CloseFrame.AnchorPoint = Vector2.new(0.5, 0.5)
             CloseFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-            CloseFrame.BackgroundColor3 = Color3.fromRGB(12, 10, 20)
+            CloseFrame.BackgroundColor3 = THEME.bg
             CloseFrame.BackgroundTransparency = 1
             CloseFrame.BorderSizePixel = 0
             CloseFrame.ClipsDescendants = true
             CloseFrame.Parent = CloseGui
             Instance.new("UICorner", CloseFrame).CornerRadius = UDim.new(0, 12)
             local CloseStroke = Instance.new("UIStroke", CloseFrame)
-            CloseStroke.Color = Color3.fromRGB(110, 60, 200)
+            CloseStroke.Color = THEME.accentDark
             CloseStroke.Thickness = 1
 
             local CloseText = Instance.new("TextLabel")
@@ -644,7 +657,7 @@ return function(gui, config)
             CloseText.AnchorPoint = Vector2.new(0.5, 0.5)
             CloseText.Position = UDim2.new(0.5, 0, 0.5, 0)
             CloseText.BackgroundTransparency = 1
-            CloseText.TextColor3 = Color3.fromRGB(180, 130, 255)
+            CloseText.TextColor3 = THEME.accentGlow
             CloseText.Font = Enum.Font.GothamBold
             CloseText.TextSize = 24
             CloseText.TextTransparency = 1
@@ -898,9 +911,12 @@ return function(gui, config)
         end
     end)
 
-    bind(gui.FishZone.AutoSellBtn.MouseButton1Click, function()
-        ctx.autoSellEnabled = not ctx.autoSellEnabled
-        if ctx.autoSellEnabled then
+    -- Set Auto Sell Fish to an explicit state (idempotent).
+    ctx.setAutoSellFish = function(on)
+        on = on and true or false
+        if ctx.autoSellEnabled == on then return end
+        ctx.autoSellEnabled = on
+        if on then
             gui.FishZone.AutoSellBtn.Text = "Auto Sell Fish: ON"
             gui.FishZone.AutoSellBtn.BackgroundColor3 = THEME.success
             log("Auto Sell: ON (interval " .. ctx.AUTO_SELL_INTERVAL .. "s)", THEME.success)
@@ -920,6 +936,10 @@ return function(gui, config)
             gui.FishZone.AutoSellBtn.BackgroundColor3 = THEME.warn
             log("Auto Sell: OFF", THEME.dim)
         end
+    end
+
+    bind(gui.FishZone.AutoSellBtn.MouseButton1Click, function()
+        ctx.setAutoSellFish(not ctx.autoSellEnabled)
     end)
 
     bind(gui.FishZone.SellNowBtn.MouseButton1Click, function()
@@ -936,49 +956,63 @@ return function(gui, config)
         end
     end)
 
+    -- Set Auto Claim Daily Reward to an explicit state (idempotent).
+    ctx.setAutoClaimDaily = function(on)
+        on = on and true or false
+        if ctx.autoClaimDailyRewardEnabled == on then return end
+        ctx.autoClaimDailyRewardEnabled = on
+        updateRewardButtons()
+        if on then
+            log("Daily Reward: Auto-claim ON (every 1h)", THEME.success)
+            task.spawn(function()
+                while ctx.autoClaimDailyRewardEnabled and not ctx.destroyed do
+                    local success, message = claimDailyReward()
+                    if success then
+                        log("Daily Reward: CLAIMED - " .. tostring(message), THEME.success)
+                    else
+                        log("Daily Reward: " .. tostring(message), THEME.dim)
+                    end
+                    task.wait(3600)
+                end
+            end)
+        else
+            log("Daily Reward: Auto-claim OFF", THEME.dim)
+        end
+    end
+
     if gui.Settings.AutoClaimDailyRewardBtn then
         bind(gui.Settings.AutoClaimDailyRewardBtn.MouseButton1Click, function()
-            ctx.autoClaimDailyRewardEnabled = not ctx.autoClaimDailyRewardEnabled
-            updateRewardButtons()
-            if ctx.autoClaimDailyRewardEnabled then
-                log("Daily Reward: Auto-claim ON (every 1h)", THEME.success)
-                task.spawn(function()
-                    while ctx.autoClaimDailyRewardEnabled and not ctx.destroyed do
-                        local success, message = claimDailyReward()
-                        if success then
-                            log("Daily Reward: CLAIMED - " .. tostring(message), THEME.success)
-                        else
-                            log("Daily Reward: " .. tostring(message), THEME.dim)
-                        end
-                        task.wait(3600)
-                    end
-                end)
-            else
-                log("Daily Reward: Auto-claim OFF", THEME.dim)
-            end
+            ctx.setAutoClaimDaily(not ctx.autoClaimDailyRewardEnabled)
         end)
+    end
+
+    -- Set Auto Claim Session Reward to an explicit state (idempotent).
+    ctx.setAutoClaimSession = function(on)
+        on = on and true or false
+        if ctx.autoClaimSessionRewardEnabled == on then return end
+        ctx.autoClaimSessionRewardEnabled = on
+        updateRewardButtons()
+        if on then
+            log("Session Reward: Auto-claim ON (every 1h)", THEME.success)
+            task.spawn(function()
+                while ctx.autoClaimSessionRewardEnabled and not ctx.destroyed do
+                    local success, message = claimSessionReward()
+                    if success then
+                        log("Session Reward: " .. tostring(message), THEME.success)
+                    else
+                        log("Session Reward: " .. tostring(message), THEME.dim)
+                    end
+                    task.wait(3600)
+                end
+            end)
+        else
+            log("Session Reward: Auto-claim OFF", THEME.dim)
+        end
     end
 
     if gui.Settings.AutoClaimSessionRewardBtn then
         bind(gui.Settings.AutoClaimSessionRewardBtn.MouseButton1Click, function()
-            ctx.autoClaimSessionRewardEnabled = not ctx.autoClaimSessionRewardEnabled
-            updateRewardButtons()
-            if ctx.autoClaimSessionRewardEnabled then
-                log("Session Reward: Auto-claim ON (every 1h)", THEME.success)
-                task.spawn(function()
-                    while ctx.autoClaimSessionRewardEnabled and not ctx.destroyed do
-                        local success, message = claimSessionReward()
-                        if success then
-                            log("Session Reward: " .. tostring(message), THEME.success)
-                        else
-                            log("Session Reward: " .. tostring(message), THEME.dim)
-                        end
-                        task.wait(3600)
-                    end
-                end)
-            else
-                log("Session Reward: Auto-claim OFF", THEME.dim)
-            end
+            ctx.setAutoClaimSession(not ctx.autoClaimSessionRewardEnabled)
         end)
     end
 
@@ -1022,13 +1056,20 @@ return function(gui, config)
         log("Anti Idle: OFF", THEME.dim)
     end
 
+    -- Set Anti Idle to an explicit state (idempotent).
+    ctx.setAntiIdle = function(on)
+        on = on and true or false
+        if ctx.antiIdleEnabled == on then return end
+        if on then
+            enableAntiIdle()
+        else
+            disableAntiIdle()
+        end
+    end
+
     if gui.Settings.AntiIdleBtn then
         bind(gui.Settings.AntiIdleBtn.MouseButton1Click, function()
-            if ctx.antiIdleEnabled then
-                disableAntiIdle()
-            else
-                enableAntiIdle()
-            end
+            ctx.setAntiIdle(not ctx.antiIdleEnabled)
         end)
     end
 

@@ -12,30 +12,27 @@ return function(ctx)
     local gachaStopRarities = {}
     local selectedGachaBox = gui.Gacha.SelectedBox.Value
 
-    -- Box selection buttons
-    for boxName, btn in pairs(gui.Gacha.BoxButtons) do
-        bind(btn.MouseButton1Click, function()
-            selectedGachaBox = boxName
-            gui.Gacha.SelectedBox.Value = boxName
-            for bName, bBtn in pairs(gui.Gacha.BoxButtons) do
-                if bName == boxName then
-                    bBtn.BackgroundColor3 = THEME.accent
-                    bBtn.BackgroundTransparency = 0.2
-                    bBtn.TextColor3 = Color3.new(1, 1, 1)
-                else
-                    bBtn.BackgroundColor3 = THEME.panel2
-                    bBtn.BackgroundTransparency = 0.6
-                    bBtn.TextColor3 = THEME.dim
-                end
+    -- Mirror the module-local selections on ctx so the saved-settings system
+    -- can persist and restore them from a profile.
+    ctx.gachaStopRarities = gachaStopRarities
+    ctx.selectedGachaBox = selectedGachaBox
+
+    local function updateGachaBoxUI()
+        for bName, bBtn in pairs(gui.Gacha.BoxButtons) do
+            if bName == selectedGachaBox then
+                bBtn.BackgroundColor3 = THEME.accent
+                bBtn.BackgroundTransparency = 0.2
+                bBtn.TextColor3 = Color3.new(1, 1, 1)
+            else
+                bBtn.BackgroundColor3 = THEME.panel2
+                bBtn.BackgroundTransparency = 0.6
+                bBtn.TextColor3 = THEME.dim
             end
-            log("Gacha: Selected box → " .. boxName, THEME.dim)
-        end)
+        end
     end
 
-    -- Stop rarity toggle buttons
-    for rarity, btn in pairs(gui.Gacha.StopButtons) do
-        bind(btn.MouseButton1Click, function()
-            gachaStopRarities[rarity] = not gachaStopRarities[rarity]
+    local function updateGachaStopUI()
+        for rarity, btn in pairs(gui.Gacha.StopButtons) do
             if gachaStopRarities[rarity] then
                 btn.BackgroundColor3 = THEME.success
                 btn.BackgroundTransparency = 0.2
@@ -45,6 +42,42 @@ return function(ctx)
                 btn.BackgroundTransparency = 0.6
                 btn.TextColor3 = THEME.dim
             end
+        end
+    end
+
+    -- Select a blind box (used by the buttons and profile restoration).
+    local function setGachaBox(boxName)
+        if not boxName or boxName == "" then return end
+        selectedGachaBox = boxName
+        ctx.selectedGachaBox = boxName
+        gui.Gacha.SelectedBox.Value = boxName
+        updateGachaBoxUI()
+    end
+    ctx.setGachaBox = setGachaBox
+
+    -- Apply a full stop-rarity map (used by profile restoration).
+    local function applyGachaStopRarities(map)
+        if type(map) ~= "table" then return end
+        for rarity in pairs(gui.Gacha.StopButtons) do
+            gachaStopRarities[rarity] = map[rarity] == true
+        end
+        updateGachaStopUI()
+    end
+    ctx.applyGachaStopRarities = applyGachaStopRarities
+
+    -- Box selection buttons
+    for boxName, btn in pairs(gui.Gacha.BoxButtons) do
+        bind(btn.MouseButton1Click, function()
+            setGachaBox(boxName)
+            log("Gacha: Selected box → " .. boxName, THEME.dim)
+        end)
+    end
+
+    -- Stop rarity toggle buttons
+    for rarity, btn in pairs(gui.Gacha.StopButtons) do
+        bind(btn.MouseButton1Click, function()
+            gachaStopRarities[rarity] = not gachaStopRarities[rarity]
+            updateGachaStopUI()
         end)
     end
 
@@ -191,9 +224,12 @@ return function(ctx)
         end
     end
 
-    bind(gui.Gacha.ToggleBtn.MouseButton1Click, function()
-        ctx.autoGachaEnabled = not ctx.autoGachaEnabled
-        if ctx.autoGachaEnabled then
+    -- Set Auto Gacha to an explicit state (idempotent).
+    local function setAutoGacha(on)
+        on = on and true or false
+        if ctx.autoGachaEnabled == on then return end
+        ctx.autoGachaEnabled = on
+        if on then
             gui.Gacha.ToggleBtn.Text = "Auto Gacha: ON"
             gui.Gacha.ToggleBtn.BackgroundColor3 = THEME.success
             task.spawn(autoGachaLoop)
@@ -203,5 +239,10 @@ return function(ctx)
             gui.Gacha.Status.Text = "Status: Stopped | Rolls: " .. autoGachaRolls
             gui.Gacha.Status.TextColor3 = THEME.dim
         end
+    end
+    ctx.setAutoGacha = setAutoGacha
+
+    bind(gui.Gacha.ToggleBtn.MouseButton1Click, function()
+        setAutoGacha(not ctx.autoGachaEnabled)
     end)
 end
