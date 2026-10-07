@@ -19,21 +19,76 @@ Comprehensive automation toolkit for IndoVoice on Roblox.
 **Utilities**
 - Rod Shop — Browse and purchase rods
 - FishZone ESP — Highlight active zones, auto TP
-- Player ESP — Box highlight, teleport, tracer, inspect
+- Player Admin Menu — Target a player, then drive ESP / Beam / View / TP (see below)
 - Follow Player — Follow a player to fish/mine together (stable camera freeze, wall bypass, faces target direction)
 - Anti-Idle — Defeat idle detection
 - Webhook Integration — Discord notifications (customizable)
 
 **Settings**
-- Theme Toggle (Dark/Light)
-- Accent Color Presets
+- Halloween Theme (Dark / Ember variants — gold on near-black)
 - Per-Rarity Auto-Sell & Webhook Filters
 - Settings Save/Load (persists across sessions)
+- **Saved Settings Profiles** — create / save / load / rename / delete named snapshots of every user setting (Auto Fish, Auto Mine, camera & player settings, keybinds, toggles, zones, targets). See below.
 
 **Session & Persistence**
 - Password Bypass — type the gate password once; rejoins in the same place skip the gate (per-place session file, 7-day TTL, see `config.Gate.SessionTTL`)
 - Auto Re-Execute on Rejoin — the script re-runs itself after server hops / reconnects via `queue_on_teleport` + a one-shot re-exec marker (cleared by manual unload)
 - Duplicate-Run Guard — safe re-execution: a second copy never runs while one is alive
+
+## Player Admin Menu (ESP / Beam / View / TP)
+
+The Players tab is a single admin menu owned by `modules/adminmenu.lua`. It reads
+players live from the shared Players service, lets you pick a target on the left,
+then drives four features from the toolbar:
+
+| Feature | What it does |
+|---------|--------------|
+| **ESP** | Overlay for the **selected player** by default (switch the panel to *All players* for everyone): a tag showing the **in-game overhead name** (`Humanoid.DisplayName`, falling back to the account DisplayName) — nothing else, no health/studs — plus a box / highlight outline. The tag colour still tracks health (green → yellow → red) and staff get a red outline. Refreshes are throttled (never per-frame). |
+| **BEAM** | Draws a beam from you to the selected target. Customise colour, thickness, transparency and style (Solid / Pulse / Rainbow). Re-homes itself after respawns. |
+| **VIEW** | Scriptable camera on the target: smooth third-person Follow, First-person, or an automatic Orbit. Smoothness, distance, height, orbit speed and radius are sliders. Restores your camera on disable. |
+| **TP** | Guarded teleport with a disable-condition submenu showing live status. |
+
+**Quick toggle:** click a player's **name** in the list — that turns ESP + Beam on for
+them; click the **same** name again to turn them off. No checkbox needed. VIEW and TP
+keep using the selected target.
+
+**Unloading** (Settings → Unload Script, the ✕ button, or `ctx.adminMenuCleanup()`)
+destroys every ESP tag / box / highlight, removes the beam and restores your camera.
+Re-pointing the beam at a new target always destroys the old beam first, so it can
+never get stuck rendering to a previous player.
+
+**TP disable conditions** (all default **ON** so a misclick can never teleport you):
+`Require confirm click`, `Cooldown`, `Block if target is dead`, `Block if you are dead`,
+`Block if target is staff`, `Block if in a safe zone`, `Block if you are in combat`.
+Click a row to toggle it; the status column shows `OK`, `BLOCKED`, `ARMED` or `OFF`.
+
+### Customising
+
+Every tunable lives at the top of `IndoVoice/modules/adminmenu.lua`:
+
+```lua
+local ESP_CFG  = { Interval, MaxDistance, Outline, Scope, UseInGameName, ShowName,
+                   ColorMode, StaticColor, RequireLineOfSight }
+local BEAM_CFG = { Interval, Color, Thickness, Transparency, Style }
+local VIEW_CFG = { Smoothness, Mode, Distance, Height, OrbitSpeed, OrbitRadius }
+local TP       = { RequireConfirm, ConfirmWindow, Cooldown, BlockTargetDead,
+                   BlockSelfDead, BlockStaff, BlockSafeZone, BlockInCombat }
+```
+
+Features can also be driven programmatically through the shared context:
+
+```lua
+ctx.adminMenu.selectTarget(player)
+ctx.adminMenu.setESP(true)         -- ESP for the current scope (target / all)
+ctx.adminMenu.toggleTarget(player) -- the click-a-name switch: ESP + Beam on/off
+ctx.adminMenu.setESPScope("all")   -- "target" (default) or "all"
+ctx.adminMenu.setBeam(true)     -- beam to the selected target
+ctx.adminMenu.setView(true)     -- camera on the selected target
+ctx.adminMenu.teleport(target)  -- guarded teleport (honours every condition)
+ctx.adminMenu.getState()        -- { target, espOn, beamOn, viewOn, espCount, espScope }
+```
+
+The `E` key (config `Keys.ESP`) toggles the global ESP overlay.
 
 ## File Structure
 
@@ -46,6 +101,7 @@ Comprehensive automation toolkit for IndoVoice on Roblox.
 ├── gui.lua             # Tabbed UI
 ├── core.lua            # Shared state
 ├── modules/
+│   ├── adminmenu.lua   # Player Admin Menu (ESP / Beam / View / TP)
 │   ├── fishing.lua     # Auto Fish
 │   ├── mining.lua      # Auto Mine
 │   ├── gacha.lua       # Gacha automation
@@ -53,7 +109,9 @@ Comprehensive automation toolkit for IndoVoice on Roblox.
 │   ├── tokenshop.lua   # LuckTicket purchasing
 │   ├── shopgacha.lua   # Shop Gacha
 │   ├── antiafk.lua     # Anti-Idle
-│   └── ui.lua          # Window controls
+│   ├── ui.lua          # Window controls
+│   ├── SettingsProfiles.lua    # Saved settings profiles (storage/CRUD)
+│   └── settingsintegration.lua # Collect/apply settings + wire the profile UI
 └── README.md
 ```
 
@@ -79,14 +137,43 @@ IndoVoice/
 ├── gui.lua             # Full GUI layout and elements
 ├── core.lua            # Shared state, utilities, players, zones, clicker, webhook, settings
 ├── modules/
+│   ├── adminmenu.lua   # Player Admin Menu (ESP / Beam / View / TP)
 │   ├── fishing.lua     # Auto Fish system
 │   ├── mining.lua      # Auto Mine + Auto Sell Ore
 │   ├── gacha.lua       # Auto Gacha (Blind Box)
 │   ├── shopgacha.lua   # Shop Gacha (Pet / Aura / Trail)
 │   ├── tokenshop.lua   # Token Shop (LuckTicket I - VI)
 │   ├── rodshop.lua     # Rod Shop purchases
-│   └── ui.lua          # UI bindings, heartbeat loop, startup
+│   ├── ui.lua          # UI bindings, heartbeat loop, startup
+│   ├── SettingsProfiles.lua    # Saved settings profiles (storage/CRUD)
+│   └── settingsintegration.lua # Settings snapshot/apply + profile UI wiring
 └── README.md           # This file
+```
+
+## Saved Settings Profiles
+
+Named snapshots of every user-configurable setting, stored per user/device in
+the executor workspace (`LyraHubProfiles/<slug>.json` + `index.json`, with a
+`getgenv()` fallback and an in-memory last resort).
+
+- **Storage/CRUD:** `modules/SettingsProfiles.lua` — versioned, corruption-safe
+  JSON; `create` refuses duplicate names, `delete` refuses the active profile.
+- **Integration:** `modules/settingsintegration.lua` — gathers settings from
+  `ctx`, applies a loaded profile via each feature's setter, and wires the UI.
+- **UI:** `gui.lua` returns `gui.Settings.Profiles.{Dropdown, SaveButton,
+  LoadButton, CreateButton, RenameButton, DeleteButton, CurrentLabel,
+  StatusLabel, ...}`.
+
+API (reusable by any module, loaded separately in `main.lua`):
+
+```lua
+SettingsProfiles.List()
+SettingsProfiles.Create(name)
+SettingsProfiles.Save(name)          -- snapshots the current settings
+SettingsProfiles.Load(name)          -- returns the saved settings table
+SettingsProfiles.Rename(oldName, newName)
+SettingsProfiles.Delete(name)
+SettingsProfiles.GetCurrent()
 ```
 
 ## Architecture

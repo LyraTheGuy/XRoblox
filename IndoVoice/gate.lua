@@ -11,6 +11,8 @@ return function(config, opts)
     local Players = game:GetService("Players")
     local TweenService = game:GetService("TweenService")
     local lp = Players.LocalPlayer
+    -- Centralized Halloween theme (config.Theme) — no hardcoded colors here.
+    local T = (config and config.Theme) or {}
 
     -- ------------------------------------------------------------------
     -- PASSWORD BYPASS: skip the whole gate UI when main.lua already
@@ -59,7 +61,7 @@ return function(config, opts)
     -- Background overlay
     local Overlay = Instance.new("Frame")
     Overlay.Size = UDim2.new(1, 0, 1, 0)
-    Overlay.BackgroundColor3 = Color3.fromRGB(5, 3, 12)
+    Overlay.BackgroundColor3 = T.bg or Color3.fromRGB(12, 12, 12)
     Overlay.BackgroundTransparency = 0.15
     Overlay.BorderSizePixel = 0
     Overlay.Parent = GateGui
@@ -69,13 +71,13 @@ return function(config, opts)
     Card.Size = UDim2.new(0, 360, 0, 320)
     Card.AnchorPoint = Vector2.new(0.5, 0.5)
     Card.Position = UDim2.new(0.5, 0, 0.5, 0)
-    Card.BackgroundColor3 = Color3.fromRGB(14, 12, 24)
+    Card.BackgroundColor3 = T.panel or Color3.fromRGB(20, 20, 20)
     Card.BorderSizePixel = 0
     Card.Parent = GateGui
     Instance.new("UICorner", Card).CornerRadius = UDim.new(0, 14)
 
     local CardStroke = Instance.new("UIStroke", Card)
-    CardStroke.Color = Color3.fromRGB(155, 89, 255)
+    CardStroke.Color = T.accent or Color3.fromRGB(255, 165, 0)
     CardStroke.Thickness = 1.5
     CardStroke.Transparency = 0.3
 
@@ -85,7 +87,7 @@ return function(config, opts)
     Title.Position = UDim2.new(0, 0, 0, 20)
     Title.BackgroundTransparency = 1
     Title.Text = "LYRA HUB"
-    Title.TextColor3 = Color3.fromRGB(155, 89, 255)
+    Title.TextColor3 = T.accentGlow or Color3.fromRGB(255, 205, 80)
     Title.Font = Enum.Font.GothamBlack
     Title.TextSize = 26
     Title.Parent = Card
@@ -95,7 +97,7 @@ return function(config, opts)
     Subtitle.Position = UDim2.new(0, 0, 0, 55)
     Subtitle.BackgroundTransparency = 1
     Subtitle.Text = "Gate"
-    Subtitle.TextColor3 = Color3.fromRGB(130, 120, 170)
+    Subtitle.TextColor3 = T.dim or Color3.fromRGB(190, 190, 190)
     Subtitle.Font = Enum.Font.GothamBold
     Subtitle.TextSize = 14
     Subtitle.Parent = Card
@@ -106,10 +108,10 @@ return function(config, opts)
     InputBox.Size = UDim2.new(0, 280, 0, 38)
     InputBox.AnchorPoint = Vector2.new(0.5, 0)
     InputBox.Position = UDim2.new(0.5, 0, 0, 90)
-    InputBox.BackgroundColor3 = Color3.fromRGB(22, 20, 38)
-    InputBox.TextColor3 = Color3.fromRGB(240, 235, 255)
+    InputBox.BackgroundColor3 = T.bg2 or Color3.fromRGB(18, 18, 18)
+    InputBox.TextColor3 = T.text or Color3.fromRGB(255, 255, 255)
     InputBox.PlaceholderText = ""
-    InputBox.PlaceholderColor3 = Color3.fromRGB(90, 80, 130)
+    InputBox.PlaceholderColor3 = T.faint or Color3.fromRGB(138, 138, 138)
     InputBox.Text = ""
     InputBox.Font = Enum.Font.GothamBold
     InputBox.TextSize = 14
@@ -118,7 +120,7 @@ return function(config, opts)
     InputBox.Parent = Card
     Instance.new("UICorner", InputBox).CornerRadius = UDim.new(0, 8)
     local InputStroke = Instance.new("UIStroke", InputBox)
-    InputStroke.Color = Color3.fromRGB(60, 50, 100)
+    InputStroke.Color = T.divider or Color3.fromRGB(70, 55, 25)
     InputStroke.Thickness = 1
 
     -- Mask password input with asterisks
@@ -148,7 +150,7 @@ return function(config, opts)
     StatusLbl.Position = UDim2.new(0, 0, 0, 132)
     StatusLbl.BackgroundTransparency = 1
     StatusLbl.Text = ""
-    StatusLbl.TextColor3 = Color3.fromRGB(255, 80, 100)
+    StatusLbl.TextColor3 = T.danger or Color3.fromRGB(210, 95, 55)
     StatusLbl.Font = Enum.Font.Gotham
     StatusLbl.TextSize = 11
     StatusLbl.Parent = Card
@@ -158,7 +160,7 @@ return function(config, opts)
     EnterBtn.Size = UDim2.new(0, 280, 0, 36)
     EnterBtn.AnchorPoint = Vector2.new(0.5, 0)
     EnterBtn.Position = UDim2.new(0.5, 0, 0, 155)
-    EnterBtn.BackgroundColor3 = Color3.fromRGB(155, 89, 255)
+    EnterBtn.BackgroundColor3 = T.accent or Color3.fromRGB(255, 165, 0)
     EnterBtn.TextColor3 = Color3.new(1, 1, 1)
     EnterBtn.Font = Enum.Font.GothamBold
     EnterBtn.TextSize = 14
@@ -171,7 +173,7 @@ return function(config, opts)
     local DiscordBtn = Instance.new("TextButton")
     DiscordBtn.Size = UDim2.new(0, 135, 0, 30)
     DiscordBtn.Position = UDim2.new(0, 40, 0, 205)
-    DiscordBtn.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+    DiscordBtn.BackgroundColor3 = T.accentDark or Color3.fromRGB(120, 74, 8)
     DiscordBtn.TextColor3 = Color3.new(1, 1, 1)
     DiscordBtn.Font = Enum.Font.GothamBold
     DiscordBtn.TextSize = 11
@@ -184,7 +186,7 @@ return function(config, opts)
     local SaweriaBtn = Instance.new("TextButton")
     SaweriaBtn.Size = UDim2.new(0, 135, 0, 30)
     SaweriaBtn.Position = UDim2.new(0, 185, 0, 205)
-    SaweriaBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
+    SaweriaBtn.BackgroundColor3 = T.accent or Color3.fromRGB(255, 165, 0)
     SaweriaBtn.TextColor3 = Color3.new(1, 1, 1)
     SaweriaBtn.Font = Enum.Font.GothamBold
     SaweriaBtn.TextSize = 11
@@ -199,7 +201,7 @@ return function(config, opts)
     Footer.Position = UDim2.new(0, 0, 1, -50)
     Footer.BackgroundTransparency = 1
     Footer.Text = "LyraHub est. 2026 • by Ahzencal"
-    Footer.TextColor3 = Color3.fromRGB(80, 70, 120)
+    Footer.TextColor3 = T.faint or Color3.fromRGB(138, 138, 138)
     Footer.Font = Enum.Font.Gotham
     Footer.TextSize = 10
     Footer.Parent = Card
@@ -264,7 +266,7 @@ return function(config, opts)
             authenticated = true
             StatusLbl.Text = ""
             EnterBtn.Text = "✓"
-            EnterBtn.BackgroundColor3 = Color3.fromRGB(80, 220, 140)
+            EnterBtn.BackgroundColor3 = T.success or Color3.fromRGB(255, 205, 80)
             -- Fade out
             task.wait(0.3)
             local fadeOut = TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
@@ -282,7 +284,7 @@ return function(config, opts)
             GateGui:Destroy()
         else
             StatusLbl.Text = "Invalid password"
-            StatusLbl.TextColor3 = Color3.fromRGB(255, 80, 100)
+            StatusLbl.TextColor3 = T.danger or Color3.fromRGB(210, 95, 55)
             -- Shake animation
             local orig = Card.Position
             for i = 1, 3 do

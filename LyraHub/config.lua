@@ -1,10 +1,12 @@
 -- LyraHub/config.lua
 -- Model layer: theme palette + window/default settings.
 --
--- LyraHub UI kit uses a very dark blue / charcoal palette, white and muted
--- blue text, and black/dark-grey accents with subtle transparency and glow.
+-- Halloween palette: near-black / charcoal backgrounds, gold + warm-orange
+-- accents, clean white text and subtle gold borders. No purple / blue / pink /
+-- green. This mirrors IndoVoice/config.lua so the shared kit widgets (toast,
+-- keybind, update chip) match the main UI.
 
-local accentColor = Color3.fromRGB(118, 140, 185) -- shared by Theme + Defaults.tint
+local accentColor = Color3.fromRGB(255, 165, 0) -- warm orange, shared by Theme + Defaults.tint
 
 return {
     Window = {
@@ -21,29 +23,29 @@ return {
     },
 
     Theme = {
-        -- Backgrounds (very dark blue / charcoal grey)
-        bg = Color3.fromRGB(9, 11, 17),
-        bg2 = Color3.fromRGB(13, 16, 24),
-        panel = Color3.fromRGB(17, 20, 30),
-        panel2 = Color3.fromRGB(23, 27, 39),
-        sidebar = Color3.fromRGB(11, 13, 20),
-        topbar = Color3.fromRGB(12, 15, 23),
+        -- Backgrounds (near-black / charcoal)
+        bg = Color3.fromRGB(12, 12, 12),
+        bg2 = Color3.fromRGB(18, 18, 18),
+        panel = Color3.fromRGB(20, 20, 20),
+        panel2 = Color3.fromRGB(32, 30, 26),
+        sidebar = Color3.fromRGB(10, 10, 10),
+        topbar = Color3.fromRGB(16, 16, 16),
 
-        -- Text (white / muted dark blue)
-        text = Color3.fromRGB(242, 246, 255),
-        dim = Color3.fromRGB(150, 158, 182),
-        faint = Color3.fromRGB(108, 116, 140),
+        -- Text (white / muted grey)
+        text = Color3.fromRGB(255, 255, 255),
+        dim = Color3.fromRGB(190, 190, 190),
+        faint = Color3.fromRGB(138, 138, 138),
 
-        -- Accents (black / dark grey with subtle glow)
+        -- Accents (gold / warm orange with subtle glow)
         accent = accentColor,
-        accent2 = Color3.fromRGB(168, 188, 230),
-        glow = Color3.fromRGB(140, 165, 215),
-        divider = Color3.fromRGB(34, 40, 56),
+        accent2 = Color3.fromRGB(255, 190, 90),
+        glow = Color3.fromRGB(255, 205, 80),
+        divider = Color3.fromRGB(70, 55, 25),
 
         -- Semantic colors
-        success = Color3.fromRGB(110, 220, 160),
-        danger = Color3.fromRGB(255, 110, 120),
-        warn = Color3.fromRGB(240, 190, 90),
+        success = Color3.fromRGB(255, 205, 80),
+        danger = Color3.fromRGB(210, 95, 55),
+        warn = Color3.fromRGB(255, 165, 0),
     },
 
     -- Demo defaults — single source of truth: the model seeds from here and
@@ -52,7 +54,7 @@ return {
         enabled = true,
         notifications = true,
         bold = false,
-        accent = "Steel",
+        accent = "Gold",
         scale = 0.7,
         glow = 0.6,
         opacity = 1,
@@ -61,13 +63,14 @@ return {
         tint = accentColor, -- custom accent color
     },
 
-    -- Accent presets used by the dropdown demo (ordered for display).
-    AccentOrder = { "Steel", "Ice", "Violet", "Amber" },
+    -- Accent presets used by the dropdown demo (ordered for display). Names are
+    -- kept for compatibility; colors are all within the Halloween palette.
+    AccentOrder = { "Gold", "Amber", "Ember", "Bone" },
     Accents = {
-        Steel = Color3.fromRGB(118, 140, 185),
-        Ice = Color3.fromRGB(120, 190, 220),
-        Violet = Color3.fromRGB(165, 130, 220),
-        Amber = Color3.fromRGB(230, 170, 90),
+        Gold = Color3.fromRGB(255, 205, 80),
+        Amber = Color3.fromRGB(255, 165, 0),
+        Ember = Color3.fromRGB(210, 95, 55),
+        Bone = Color3.fromRGB(255, 225, 150),
     },
 
     ComponentDefaults = {

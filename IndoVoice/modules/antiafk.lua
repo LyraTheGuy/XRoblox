@@ -322,16 +322,24 @@ return function(ctx)
     end
     ctx.updateAntiAfkBtnUI = updateAntiAfkBtnUI
 
+    -- Set Anti AFK to an explicit state (idempotent). Shared by the button and
+    -- by saved-profile restoration (ctx.setAntiAfk).
+    local function setAntiAfk(on)
+        on = on and true or false
+        if ctx.antiAfkEnabled == on then return end
+        ctx.antiAfkEnabled = on
+        updateAntiAfkBtnUI()
+        log("AntiAFK: " .. (on and "ON" or "OFF"), on and THEME.success or THEME.dim)
+        if on then
+            startPromptWatcher()
+            startAntiAfkLoop()
+        end
+    end
+    ctx.setAntiAfk = setAntiAfk
+
     if gui.Settings.AntiAfkBtn then
         bind(gui.Settings.AntiAfkBtn.MouseButton1Click, function()
-            ctx.antiAfkEnabled = not ctx.antiAfkEnabled
-            updateAntiAfkBtnUI()
-            log("AntiAFK: " .. (ctx.antiAfkEnabled and "ON" or "OFF"),
-                ctx.antiAfkEnabled and THEME.success or THEME.dim)
-            if ctx.antiAfkEnabled then
-                startPromptWatcher()
-                startAntiAfkLoop()
-            end
+            setAntiAfk(not ctx.antiAfkEnabled)
         end)
     end
 

@@ -10,6 +10,9 @@ return function(ctx)
     local getHum = ctx.getHum
     local VIM = ctx.VIM
     local ReplicatedStorage = ctx.ReplicatedStorage
+    -- Was called below without ever being defined as a local (nil global);
+    -- bind it to the shared teardown helper so the follow toggles work.
+    local unfreezeCharacter = ctx.unfreezeCharacter
 
     -- Exposed on ctx (with defaults) so Settings save/load can persist these toggles
     ctx.autoMineHotspotOnly = ctx.autoMineHotspotOnly or false
@@ -637,10 +640,13 @@ return function(ctx)
         log("AutoMine: Stopped", THEME.dim)
     end
 
-    -- Mining toggle button
-    bind(gui.Mining.ToggleBtn.MouseButton1Click, function()
-        ctx.autoMineEnabled = not ctx.autoMineEnabled
-        if ctx.autoMineEnabled then
+    -- Set Auto Mine to an explicit state (idempotent). Shared by the button
+    -- and by saved-profile restoration (ctx.setAutoMine).
+    local function setAutoMine(on)
+        on = on and true or false
+        if ctx.autoMineEnabled == on then return end
+        ctx.autoMineEnabled = on
+        if on then
             gui.Mining.ToggleBtn.Text = "Auto Mine: ON"
             gui.Mining.ToggleBtn.BackgroundColor3 = THEME.success
             task.spawn(autoMineLoop)
@@ -648,6 +654,12 @@ return function(ctx)
             gui.Mining.ToggleBtn.Text = "Auto Mine: OFF"
             gui.Mining.ToggleBtn.BackgroundColor3 = THEME.accent
         end
+    end
+    ctx.setAutoMine = setAutoMine
+
+    -- Mining toggle button
+    bind(gui.Mining.ToggleBtn.MouseButton1Click, function()
+        setAutoMine(not ctx.autoMineEnabled)
     end)
 
     local Players = game:GetService("Players")
@@ -699,18 +711,31 @@ return function(ctx)
     bind(Players.PlayerRemoving, function() populateMineFollowPlayerList() end)
     populateMineFollowPlayerList()
 
-    bind(gui.Mining.FollowBtn.MouseButton1Click, function()
-        ctx.mineFollowEnabled = not ctx.mineFollowEnabled
-        if ctx.mineFollowEnabled then
+    -- Set Mine Follow to an explicit state. `targetPlayer` (optional) selects
+    -- the follow target — used when a saved profile restores a target name.
+    local function setMineFollow(on, targetPlayer)
+        on = on and true or false
+        if on and targetPlayer then
+            ctx.mineFollowTarget = targetPlayer
+            ctx.mineFollowTargetName = targetPlayer.Name
+            if populateMineFollowPlayerList then populateMineFollowPlayerList() end
+        end
+        if ctx.mineFollowEnabled == on then return end
+        ctx.mineFollowEnabled = on
+        if on then
             -- Disable fishing follow if it was active (avoid conflict)
             if ctx.followEnabled then
-                ctx.followEnabled = false
-                ctx.followTarget = nil
-                ctx.followTargetName = "None"
-                gui.FishZone.FollowBtn.Text = "Follow: OFF"
-                gui.FishZone.FollowBtn.BackgroundColor3 = THEME.danger
-                gui.FishZone.FollowSelectedLbl.Text = "Following: None"
-                unfreezeCharacter()
+                if ctx.setFishFollow then
+                    ctx.setFishFollow(false)
+                else
+                    ctx.followEnabled = false
+                    ctx.followTarget = nil
+                    ctx.followTargetName = "None"
+                    gui.FishZone.FollowBtn.Text = "Follow: OFF"
+                    gui.FishZone.FollowBtn.BackgroundColor3 = THEME.danger
+                    gui.FishZone.FollowSelectedLbl.Text = "Following: None"
+                    unfreezeCharacter()
+                end
                 log("Fish Follow disabled — enabling Mine Follow", THEME.dim)
             end
             gui.Mining.FollowBtn.Text = "Follow: ON"
@@ -729,6 +754,11 @@ return function(ctx)
             log("Mine Follow stopped", THEME.dim)
             unfreezeCharacter()
         end
+    end
+    ctx.setMineFollow = setMineFollow
+
+    bind(gui.Mining.FollowBtn.MouseButton1Click, function()
+        setMineFollow(not ctx.mineFollowEnabled)
     end)
 
     -- Mine Follow movement: only move when target is moving, freeze so you can fish/mine
@@ -791,28 +821,36 @@ return function(ctx)
     end
     ctx.updateMineTPBtnUI = updateMineTPBtnUI
 
-    bind(gui.Mining.TPBtn.MouseButton1Click, function()
-        ctx.autoMineTPEnabled = not ctx.autoMineTPEnabled
-        -- Auto TP Stone Hotspot implies hotspot-only filtering
-        -- When turning OFF, also reset hotspot-only filter so user can mine
-        -- any available stone, not just hotspots.
-        if ctx.autoMineTPEnabled then
+    -- Set Auto TP Stone Hotspot to an explicit state (idempotent). Auto TP
+    -- implies hotspot-only filtering; turning it off resets that filter.
+    local function setAutoMineTP(on)
+        on = on and true or false
+        if ctx.autoMineTPEnabled == on then return end
+        ctx.autoMineTPEnabled = on
+        if on then
             ctx.autoMineHotspotOnly = true
         else
             ctx.autoMineHotspotOnly = false
         end
         updateMineTPBtnUI()
-        log("AutoMine: Auto TP " .. (ctx.autoMineTPEnabled and "ON" or "OFF") .. " | HotspotOnly: " .. tostring(ctx.autoMineHotspotOnly),
-            ctx.autoMineTPEnabled and THEME.success or THEME.dim)
-        if ctx.autoMineTPEnabled then
+        log("AutoMine: Auto TP " .. (on and "ON" or "OFF") .. " | HotspotOnly: " .. tostring(ctx.autoMineHotspotOnly),
+            on and THEME.success or THEME.dim)
+        if on then
             startStoneTPLoop()
         end
+    end
+    ctx.setAutoMineTP = setAutoMineTP
+
+    bind(gui.Mining.TPBtn.MouseButton1Click, function()
+        setAutoMineTP(not ctx.autoMineTPEnabled)
     end)
 
-    -- Hotspot ESP toggle
-    bind(gui.Mining.ESPBtn.MouseButton1Click, function()
-        ctx.mineESPOn = not ctx.mineESPOn
-        if ctx.mineESPOn then
+    -- Set Hotspot ESP to an explicit state (idempotent).
+    local function setMineESP(on)
+        on = on and true or false
+        if ctx.mineESPOn == on then return end
+        ctx.mineESPOn = on
+        if on then
             gui.Mining.ESPBtn.Text = "Hotspot ESP: ON"
             gui.Mining.ESPBtn.BackgroundColor3 = THEME.success
             log("AutoMine: Hotspot ESP ON", THEME.success)
@@ -822,6 +860,12 @@ return function(ctx)
             log("AutoMine: Hotspot ESP OFF", THEME.dim)
         end
         refreshMineESP()
+    end
+    ctx.setMineESP = setMineESP
+
+    -- Hotspot ESP toggle
+    bind(gui.Mining.ESPBtn.MouseButton1Click, function()
+        setMineESP(not ctx.mineESPOn)
     end)
 
     -- ═══════════════════════════════════════════
@@ -996,10 +1040,12 @@ return function(ctx)
         end
     end)
 
-    -- Auto sell ore toggle
-    bind(gui.Mining.AutoSellBtn.MouseButton1Click, function()
-        ctx.autoSellOreEnabled = not ctx.autoSellOreEnabled
-        if ctx.autoSellOreEnabled then
+    -- Set Auto Sell Ore to an explicit state (idempotent).
+    local function setAutoSellOre(on)
+        on = on and true or false
+        if ctx.autoSellOreEnabled == on then return end
+        ctx.autoSellOreEnabled = on
+        if on then
             gui.Mining.AutoSellBtn.Text = "Auto Sell Ore: ON"
             gui.Mining.AutoSellBtn.BackgroundColor3 = THEME.success
             log("Auto Sell Ore: ON (interval " .. ctx.ORE_SELL_INTERVAL .. "s)", THEME.success)
@@ -1019,6 +1065,12 @@ return function(ctx)
             gui.Mining.AutoSellBtn.BackgroundColor3 = THEME.warn
             log("Auto Sell Ore: OFF", THEME.dim)
         end
+    end
+    ctx.setAutoSellOre = setAutoSellOre
+
+    -- Auto sell ore toggle
+    bind(gui.Mining.AutoSellBtn.MouseButton1Click, function()
+        setAutoSellOre(not ctx.autoSellOreEnabled)
     end)
 
     -- Sell ore now button

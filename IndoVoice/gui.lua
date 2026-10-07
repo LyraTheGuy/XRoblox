@@ -292,7 +292,7 @@ return function(config, components)
     Title.Parent = Sidebar
 
     local Subtitle = Instance.new("TextLabel")
-    Subtitle.Text = "v1.2 | LyraHub UI"
+    Subtitle.Text = "Spooky Version | LyraHub UI"
     Subtitle.Size = UDim2.new(1, 0, 0, 14)
     Subtitle.Position = UDim2.new(0, 0, 0, 46)
     Subtitle.BackgroundTransparency = 1
@@ -536,7 +536,7 @@ return function(config, components)
     AboutVersion.Size = UDim2.new(1, -20, 0, 20)
     AboutVersion.Position = UDim2.new(0, 10, 1, -24)
     AboutVersion.BackgroundTransparency = 1
-    AboutVersion.Text = "v1.2 | LyraHub UI"
+    AboutVersion.Text = "Spooky Version | LyraHub UI"
     AboutVersion.TextColor3 = LYRA.dim
     AboutVersion.Font = Enum.Font.Code
     AboutVersion.TextSize = 10
@@ -546,42 +546,16 @@ return function(config, components)
     -- ═══════════════════════════════════════════
     -- PLAYERS TAB
     -- ═══════════════════════════════════════════
-    local SearchBox = Instance.new("TextBox")
-    SearchBox.PlaceholderText = "Search player..."
-    SearchBox.Text = ""
-    SearchBox.ClearTextOnFocus = false
-    SearchBox.Size = UDim2.new(1, -20, 0, 32)
-    SearchBox.Position = UDim2.new(0, 10, 0, 10)
-    SearchBox.BackgroundColor3 = LYRA.bg2
-    SearchBox.TextColor3 = LYRA.text
-    SearchBox.PlaceholderColor3 = LYRA.dim
-    SearchBox.Font = Enum.Font.Gotham
-    SearchBox.TextSize = 13
-    SearchBox.BorderSizePixel = 0
-    SearchBox.Parent = Tabs.Players
-    shared.corner(SearchBox, UDim.new(0, 8))
-
-    local PlayerList = Instance.new("ScrollingFrame")
-    PlayerList.Size = UDim2.new(1, -20, 1, -70)
-    PlayerList.Position = UDim2.new(0, 10, 0, 48)
-    PlayerList.BackgroundColor3 = LYRA.bg2
-    PlayerList.BorderSizePixel = 0
-    PlayerList.ScrollBarThickness = 3
-    PlayerList.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    PlayerList.Parent = Tabs.Players
-    shared.corner(PlayerList, UDim.new(0, 8))
-    Instance.new("UIListLayout", PlayerList).Padding = UDim.new(0, 4)
-
-    local PlayerHint = Instance.new("TextLabel")
-    PlayerHint.Text = "Scroll for more players"
-    PlayerHint.Size = UDim2.new(1, -20, 0, 16)
-    PlayerHint.Position = UDim2.new(0, 10, 1, -20)
-    PlayerHint.BackgroundTransparency = 1
-    PlayerHint.TextColor3 = LYRA.dim
-    PlayerHint.Font = Enum.Font.Gotham
-    PlayerHint.TextSize = 10
-    PlayerHint.TextXAlignment = Enum.TextXAlignment.Left
-    PlayerHint.Parent = Tabs.Players
+    -- Admin menu container.
+    -- The Player Admin Menu module (modules/adminmenu.lua) builds the target
+    -- list + ESP / BEAM / VIEW / TP controls inside this frame, replacing the
+    -- old one-row-per-player buttons (ESP / Beam / TP / View).
+    local Admin = Instance.new("Frame")
+    Admin.Name = "AdminMenu"
+    Admin.Size = UDim2.new(1, 0, 1, 0)
+    Admin.BackgroundTransparency = 1
+    Admin.BorderSizePixel = 0
+    Admin.Parent = Tabs.Players
 
     -- ═══════════════════════════════════════════
     -- FISHING TAB (combined FishZone + AutoFish)
@@ -1693,7 +1667,9 @@ return function(config, components)
         scroll.BackgroundTransparency = 1
         scroll.BorderSizePixel = 0
         scroll.ScrollBarThickness = 3
-        scroll.CanvasSize = UDim2.new(0, 0, 0, 680)
+        -- No fixed CanvasSize: AutomaticSize.Y auto-fits to the last widget
+        scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
         scroll.Parent = Tabs.Settings
 
         local hideKeyLbl = Instance.new("TextLabel")
@@ -1831,33 +1807,20 @@ return function(config, components)
         local webhookTestBtn = makeActionButton(scroll, "Test Webhook", 420, LYRA.warn)
         webhookTestBtn.Size = UDim2.new(0.48, -10, 0, 28)
         webhookTestBtn.Position = UDim2.new(0.5, 5, 0, 420)
-        local saveSettingsBtn = makeActionButton(scroll, "Save All Settings", 458, LYRA.success)
-        saveSettingsBtn.Size = UDim2.new(0.48, -10, 0, 30)
-        saveSettingsBtn.Position = UDim2.new(0, 10, 0, 458)
-        local loadSettingsBtn = makeActionButton(scroll, "Load Config", 458, LYRA.tp)
-        loadSettingsBtn.Size = UDim2.new(0.48, -10, 0, 30)
-        loadSettingsBtn.Position = UDim2.new(0.5, 5, 0, 458)
-        local saveStatus = Instance.new("TextLabel")
-        saveStatus.Size = UDim2.new(1, -20, 0, 18)
-        saveStatus.Position = UDim2.new(0, 10, 0, 450)
-        saveStatus.BackgroundTransparency = 1
-        saveStatus.Text = ""
-        saveStatus.TextColor3 = LYRA.success
-        saveStatus.Font = Enum.Font.Gotham
-        saveStatus.TextSize = 10
-        saveStatus.TextXAlignment = Enum.TextXAlignment.Left
-        saveStatus.Parent = scroll
+        -- NOTE: the old "Save All Settings"/"Load Config" row was removed —
+        -- saving/loading now lives in the Saved Profiles section below.
+        -- Status feedback for legacy auto-load also reports there (ProfileStatus).
 
         local themeSep = Instance.new("Frame")
         themeSep.Size = UDim2.new(1, -20, 0, 1)
-        themeSep.Position = UDim2.new(0, 10, 0, 554)
+        themeSep.Position = UDim2.new(0, 10, 0, 490)
         themeSep.BackgroundColor3 = LYRA.panel2
         themeSep.BorderSizePixel = 0
         themeSep.Parent = scroll
 
         local colorTitle = Instance.new("TextLabel")
         colorTitle.Size = UDim2.new(1, -20, 0, 18)
-        colorTitle.Position = UDim2.new(0, 10, 0, 562)
+        colorTitle.Position = UDim2.new(0, 10, 0, 498)
         colorTitle.BackgroundTransparency = 1
         colorTitle.Text = "Theme"
         colorTitle.TextColor3 = LYRA.text
@@ -1868,16 +1831,16 @@ return function(config, components)
 
         local accentPreview = Instance.new("Frame")
         accentPreview.Size = UDim2.new(0, 18, 0, 18)
-        accentPreview.Position = UDim2.new(1, -30, 0, 562)
+        accentPreview.Position = UDim2.new(1, -30, 0, 498)
         accentPreview.BackgroundColor3 = LYRA.accent
         accentPreview.BorderSizePixel = 0
         accentPreview.Parent = scroll
         shared.corner(accentPreview, UDim.new(0, 4))
 
         local darkThemeBtn = Instance.new("TextButton")
-        darkThemeBtn.Text = "Dark (Lyra)"
+        darkThemeBtn.Text = "Halloween (Dark)"
         darkThemeBtn.Size = UDim2.new(0.48, -10, 0, 28)
-        darkThemeBtn.Position = UDim2.new(0, 10, 0, 586)
+        darkThemeBtn.Position = UDim2.new(0, 10, 0, 522)
         darkThemeBtn.BackgroundColor3 = LYRA.accent
         darkThemeBtn.TextColor3 = Color3.new(1, 1, 1)
         darkThemeBtn.Font = Enum.Font.GothamBold
@@ -1887,9 +1850,9 @@ return function(config, components)
         shared.corner(darkThemeBtn, UDim.new(0, 6))
 
         local lightThemeBtn = Instance.new("TextButton")
-        lightThemeBtn.Text = "Light (Lyra)"
+        lightThemeBtn.Text = "Halloween (Ember)"
         lightThemeBtn.Size = UDim2.new(0.48, -10, 0, 28)
-        lightThemeBtn.Position = UDim2.new(0.5, 5, 0, 586)
+        lightThemeBtn.Position = UDim2.new(0.5, 5, 0, 522)
         lightThemeBtn.BackgroundColor3 = LYRA.panel2
         lightThemeBtn.TextColor3 = LYRA.dim
         lightThemeBtn.Font = Enum.Font.GothamBold
@@ -1900,9 +1863,9 @@ return function(config, components)
 
         local settingsInfo = Instance.new("TextLabel")
         settingsInfo.Size = UDim2.new(1, -20, 0, 30)
-        settingsInfo.Position = UDim2.new(0, 10, 0, 624)
+        settingsInfo.Position = UDim2.new(0, 10, 0, 560)
         settingsInfo.BackgroundTransparency = 1
-        settingsInfo.Text = "Settings are saved locally and auto-loaded on next run."
+        settingsInfo.Text = "Settings auto-load on next run. Save them into a profile below."
         settingsInfo.TextColor3 = LYRA.dim
         settingsInfo.Font = Enum.Font.Gotham
         settingsInfo.TextSize = 11
@@ -1911,6 +1874,142 @@ return function(config, components)
         settingsInfo.TextYAlignment = Enum.TextYAlignment.Top
         settingsInfo.Parent = scroll
 
+        -- ── Saved Settings Profiles ───────────────────────────────────
+        -- Storage/CRUD lives in modules/SettingsProfiles.lua and is wired by
+        -- modules/settingsintegration.lua. This block only builds the widgets
+        -- and returns structured references (no FindFirstChild lookups).
+        local profSep = Instance.new("Frame")
+        profSep.Size = UDim2.new(1, -20, 0, 1)
+        profSep.Position = UDim2.new(0, 10, 0, 600)
+        profSep.BackgroundColor3 = LYRA.panel2
+        profSep.BorderSizePixel = 0
+        profSep.Parent = scroll
+
+        local profTitle = Instance.new("TextLabel")
+        profTitle.Size = UDim2.new(1, -20, 0, 18)
+        profTitle.Position = UDim2.new(0, 10, 0, 608)
+        profTitle.BackgroundTransparency = 1
+        profTitle.Text = "Saved Profiles"
+        profTitle.TextColor3 = LYRA.accentGlow
+        profTitle.Font = Enum.Font.GothamBold
+        profTitle.TextSize = 12
+        profTitle.TextXAlignment = Enum.TextXAlignment.Left
+        profTitle.Parent = scroll
+
+        local profCurrent = Instance.new("TextLabel")
+        profCurrent.Size = UDim2.new(1, -20, 0, 16)
+        profCurrent.Position = UDim2.new(0, 10, 0, 628)
+        profCurrent.BackgroundTransparency = 1
+        profCurrent.Text = "Current Profile: —"
+        profCurrent.TextColor3 = LYRA.dim
+        profCurrent.Font = Enum.Font.Gotham
+        profCurrent.TextSize = 10
+        profCurrent.TextXAlignment = Enum.TextXAlignment.Left
+        profCurrent.Parent = scroll
+
+        local profNameInput = Instance.new("TextBox")
+        profNameInput.Size = UDim2.new(1, -20, 0, 24)
+        profNameInput.Position = UDim2.new(0, 10, 0, 648)
+        profNameInput.BackgroundColor3 = LYRA.bg2
+        profNameInput.TextColor3 = LYRA.text
+        profNameInput.PlaceholderText = "Profile name… (for Create / Rename)"
+        profNameInput.PlaceholderColor3 = LYRA.faint
+        profNameInput.Text = ""
+        profNameInput.Font = Enum.Font.Gotham
+        profNameInput.TextSize = 10
+        profNameInput.ClearTextOnFocus = false
+        profNameInput.BorderSizePixel = 0
+        profNameInput.Parent = scroll
+        shared.corner(profNameInput, UDim.new(0, 4))
+        shared.stroke(profNameInput, LYRA.divider, 1, 0.4)
+        Instance.new("UIPadding", profNameInput).PaddingLeft = UDim.new(0, 6)
+
+        local profDropdown = Instance.new("TextButton")
+        profDropdown.Size = UDim2.new(1, -20, 0, 26)
+        profDropdown.Position = UDim2.new(0, 10, 0, 678)
+        profDropdown.BackgroundColor3 = LYRA.panel2
+        profDropdown.TextColor3 = LYRA.text
+        profDropdown.Font = Enum.Font.GothamBold
+        profDropdown.TextSize = 10
+        profDropdown.Text = "Select profile…   ▼"
+        profDropdown.TextXAlignment = Enum.TextXAlignment.Left
+        profDropdown.AutoButtonColor = false
+        profDropdown.BorderSizePixel = 0
+        profDropdown.Parent = scroll
+        shared.corner(profDropdown, UDim.new(0, 6))
+        local profDropdownStroke = shared.stroke(profDropdown, LYRA.divider, 1, 0.4)
+        Instance.new("UIPadding", profDropdown).PaddingLeft = UDim.new(0, 8)
+
+        -- Opaque list so it cleanly covers the action buttons while open.
+        -- When open, this opaque panel covers the Create/Rename/Delete row and
+        -- the whole status line below the dropdown (list spans y 705–820).
+        local profList = Instance.new("ScrollingFrame")
+        profList.Size = UDim2.new(1, -20, 0, 115)
+        profList.Position = UDim2.new(0, 10, 0, 705)
+        profList.BackgroundColor3 = LYRA.bg2
+        profList.BorderSizePixel = 0
+        profList.ScrollBarThickness = 3
+        profList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        profList.CanvasSize = UDim2.new(0, 0, 0, 0)
+        profList.Visible = false
+        profList.ZIndex = 30
+        profList.Parent = scroll
+        shared.corner(profList, UDim.new(0, 6))
+        shared.stroke(profList, LYRA.accentGlow, 1, 0.3)
+        Instance.new("UIListLayout", profList).Padding = UDim.new(0, 2)
+
+        local profEmpty = Instance.new("TextLabel")
+        profEmpty.Size = UDim2.new(1, -8, 0, 24)
+        profEmpty.Position = UDim2.new(0, 4, 0, 4)
+        profEmpty.BackgroundTransparency = 1
+        profEmpty.Text = "No saved profiles yet"
+        profEmpty.TextColor3 = LYRA.dim
+        profEmpty.Font = Enum.Font.Gotham
+        profEmpty.TextSize = 10
+        profEmpty.ZIndex = 31
+        profEmpty.Visible = false
+        profEmpty.Parent = profList
+
+        local profSaveBtn = makeActionButton(scroll, "Save Current Settings", 724, LYRA.accent)
+        profSaveBtn.Size = UDim2.new(0.48, -10, 0, 28)
+        profSaveBtn.Position = UDim2.new(0, 10, 0, 724)
+        profSaveBtn.TextSize = 10
+
+        local profLoadBtn = makeActionButton(scroll, "Load Selected Profile", 724, LYRA.tp)
+        profLoadBtn.Size = UDim2.new(0.48, -10, 0, 28)
+        profLoadBtn.Position = UDim2.new(0.5, 5, 0, 724)
+        profLoadBtn.TextSize = 10
+
+        local profCreateBtn = makeActionButton(scroll, "Create New Profile", 758, LYRA.success)
+        profCreateBtn.Size = UDim2.new(0.32, -9, 0, 28)
+        profCreateBtn.Position = UDim2.new(0, 10, 0, 758)
+        profCreateBtn.TextSize = 9
+
+        local profRenameBtn = makeActionButton(scroll, "Rename Profile", 758, LYRA.warn)
+        profRenameBtn.Size = UDim2.new(0.32, -9, 0, 28)
+        profRenameBtn.Position = UDim2.new(0.33, 3, 0, 758)
+        profRenameBtn.TextSize = 9
+
+        local profDeleteBtn = makeActionButton(scroll, "Delete Profile", 758, LYRA.danger)
+        profDeleteBtn.Size = UDim2.new(0.32, -9, 0, 28)
+        profDeleteBtn.Position = UDim2.new(0.66, -2, 0, 758)
+        profDeleteBtn.TextSize = 9
+
+        -- Shared status line for profiles AND and legacy set/loaded feedback
+        -- (core.lua and settingsintegration.lua both write through ref ProfileStatus).
+        local profStatus = Instance.new("TextLabel")
+        profStatus.Size = UDim2.new(1, -20, 0, 30)
+        profStatus.Position = UDim2.new(0, 10, 0, 788)
+        profStatus.BackgroundTransparency = 1
+        profStatus.Text = ""
+        profStatus.TextColor3 = LYRA.dim
+        profStatus.Font = Enum.Font.Gotham
+        profStatus.TextSize = 10
+        profStatus.TextWrapped = true
+        profStatus.TextXAlignment = Enum.TextXAlignment.Left
+        profStatus.TextYAlignment = Enum.TextYAlignment.Top
+        profStatus.Parent = scroll
+
         return {
             HideKeyLbl = hideKeyLbl, HideUIKeybind = hideUIKey,
             UnloadBtn = unloadBtn, AutoClaimDailyRewardBtn = autoClaimDailyRewardBtn,
@@ -1918,11 +2017,24 @@ return function(config, components)
             AntiIdleBtn = antiIdleBtn, AntiAfkBtn = antiAfkBtn,
             WebhookInput = webhookInput, WebhookToggleBtn = webhookToggleBtn,
             WebhookTestBtn = webhookTestBtn, WebhookRarityButtons = webhookRarityButtons,
-            SaveSettingsBtn = saveSettingsBtn, LoadSettingsBtn = loadSettingsBtn,
-            SaveStatus = saveStatus, ColorTitle = colorTitle,
+            ColorTitle = colorTitle,
             AccentPreview = accentPreview, ColorButtons = {},
             DarkThemeBtn = darkThemeBtn, LightThemeBtn = lightThemeBtn,
-            SettingsInfo = settingsInfo,
+            SettingsInfo = settingsInfo, ProfileStatus = profStatus,
+            Profiles = {
+                Dropdown = profDropdown,
+                DropdownStroke = profDropdownStroke,
+                DropdownList = profList,
+                Empty = profEmpty,
+                NameInput = profNameInput,
+                CurrentLabel = profCurrent,
+                SaveButton = profSaveBtn,
+                LoadButton = profLoadBtn,
+                CreateButton = profCreateBtn,
+                RenameButton = profRenameBtn,
+                DeleteButton = profDeleteBtn,
+                StatusLabel = profStatus,
+            },
         }
     end
     local S = buildSettingsTab()
@@ -1996,9 +2108,7 @@ return function(config, components)
             DashActions = DashActions,
         },
         Players = {
-            SearchBox = SearchBox,
-            PlayerList = PlayerList,
-            PlayerHint = PlayerHint,
+            Admin = Admin,
         },
         FishZone = {
             ZoneESPBtn = ZoneESPBtn,
@@ -2083,15 +2193,14 @@ return function(config, components)
             WebhookToggleBtn = S.WebhookToggleBtn,
             WebhookTestBtn = S.WebhookTestBtn,
             WebhookRarityButtons = S.WebhookRarityButtons,
-            SaveSettingsBtn = S.SaveSettingsBtn,
-            LoadSettingsBtn = S.LoadSettingsBtn,
-            SaveStatus = S.SaveStatus,
+            ProfileStatus = S.ProfileStatus,
             ColorTitle = S.ColorTitle,
             AccentPreview = S.AccentPreview,
             ColorButtons = S.ColorButtons,
             DarkThemeBtn = S.DarkThemeBtn,
             LightThemeBtn = S.LightThemeBtn,
             SettingsInfo = S.SettingsInfo,
+            Profiles = S.Profiles,
         },
         Logs = {
             LogScroll = L.LogScroll,

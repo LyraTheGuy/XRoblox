@@ -68,7 +68,6 @@ return function(gui, config)
     ctx.frozenGyro = nil
     ctx.hideUI = false
     ctx.zoneESPOn = false
-    ctx.playerSearchText = ""
     ctx.minimized = false
     ctx.draggingUI = false
     ctx.draggingSlider = false
@@ -100,12 +99,8 @@ return function(gui, config)
     ctx.webhookSellEnabled = false
 
     -- Collections
-    ctx.espObjects = {}
     ctx.zoneObjects = {}
-    ctx.playerRows = {}
-    ctx.beamStates = {}
     ctx.connections = {}
-    ctx.playerConnections = {}
     ctx.zoneAttributeConnections = {}
     ctx.antiIdleConnections = {}
     ctx.antiAfkConnections = {}
@@ -413,219 +408,6 @@ return function(gui, config)
     end
     ctx.refreshCharacterAdonis = refreshCharacterAdonis
 
-    local function removeESPForPlayer(player)
-        local obj = ctx.espObjects[player]
-        if not obj then return end
-        if obj.billboard then obj.billboard:Destroy() end
-        if obj.box then obj.box:Destroy() end
-        ctx.espObjects[player] = nil
-    end
-    ctx.removeESPForPlayer = removeESPForPlayer
-
-    local function makeESPForPlayer(player)
-        if ctx.espObjects[player] then return end
-
-        local box = Instance.new("BoxHandleAdornment")
-        box.Name = "ESP_Box"
-        box.Size = Vector3.new(2, 5, 1)
-        box.Color3 = THEME.accent
-        box.AlwaysOnTop = true
-        box.Transparency = 0.45
-        box.ZIndex = 5
-        box.SizeRelativeOffset = Vector3.new(0, 0.5, 0)
-
-        local bb = Instance.new("BillboardGui")
-        bb.Name = "ESP_Tag"
-        bb.AlwaysOnTop = true
-        bb.Size = UDim2.new(0, 120, 0, 28)
-        bb.StudsOffset = Vector3.new(0, 3, 0)
-
-        local lbl = Instance.new("TextLabel")
-        lbl.Size = UDim2.new(1, 0, 1, 0)
-        lbl.BackgroundTransparency = 1
-        lbl.Text = player.Name
-        lbl.TextColor3 = THEME.accent
-        lbl.TextStrokeTransparency = 0
-        lbl.Font = Enum.Font.GothamBold
-        lbl.TextSize = 14
-        lbl.Parent = bb
-
-        local function attach(char)
-            local hrp = getHRP(char)
-            if hrp then
-                box.Adornee = hrp
-                box.Parent = hrp
-                bb.Adornee = hrp
-                bb.Parent = hrp
-            end
-        end
-
-        if player.Character then attach(player.Character) end
-        ctx.playerConnections[player] = ctx.playerConnections[player] or {}
-        table.insert(ctx.playerConnections[player], player.CharacterAdded:Connect(attach))
-        ctx.espObjects[player] = { box = box, billboard = bb }
-    end
-    ctx.makeESPForPlayer = makeESPForPlayer
-
-    local function stopBeam(player)
-        local state = ctx.beamStates[player]
-        if not state then return end
-        state.enabled = false
-        if state.beam then state.beam:Destroy() end
-        if state.a0 then state.a0:Destroy() end
-        if state.a1 then state.a1:Destroy() end
-        ctx.beamStates[player] = nil
-    end
-    ctx.stopBeam = stopBeam
-
-    local function startBeam(player)
-        stopBeam(player)
-        local state = { enabled = true }
-        ctx.beamStates[player] = state
-        task.spawn(function()
-            while state.enabled and not ctx.destroyed do
-                local myHRP = getHRP(lp.Character)
-                local targetHRP = getHRP(player.Character)
-                if myHRP and targetHRP then
-                    if state.a0 and state.a0.Parent ~= myHRP then
-                        state.a0:Destroy(); state.a0 = nil
-                    end
-                    if state.a1 and state.a1.Parent ~= targetHRP then
-                        state.a1:Destroy(); state.a1 = nil
-                    end
-                    if not state.a0 then state.a0 = Instance.new("Attachment", myHRP) end
-                    if not state.a1 then state.a1 = Instance.new("Attachment", targetHRP) end
-                    if not state.beam or not state.beam.Parent then
-                        local beam = Instance.new("Beam")
-                        beam.Attachment0 = state.a0
-                        beam.Attachment1 = state.a1
-                        beam.Color = ColorSequence.new(THEME.accent)
-                        beam.Width0 = 0.12
-                        beam.Width1 = 0.12
-                        beam.FaceCamera = true
-                        beam.Parent = workspace
-                        state.beam = beam
-                    end
-                end
-                task.wait(0.25)
-            end
-            stopBeam(player)
-        end)
-    end
-    ctx.startBeam = startBeam
-
-    local function passesSearch(player)
-        if player == lp then return false end
-        if ctx.playerSearchText == "" then return true end
-        return lower(player.Name):find(lower(ctx.playerSearchText), 1, true) ~= nil
-            or lower(player.DisplayName):find(lower(ctx.playerSearchText), 1, true) ~= nil
-    end
-    ctx.passesSearch = passesSearch
-
-    local function refreshPlayerRows()
-        for player, row in pairs(ctx.playerRows) do
-            row.Visible = passesSearch(player)
-        end
-    end
-    ctx.refreshPlayerRows = refreshPlayerRows
-
-    local function makePlayerRow(player)
-        if player == lp or ctx.playerRows[player] then return end
-
-        local row = Instance.new("Frame")
-        row.Size = UDim2.new(1, -8, 0, 38)
-        row.BackgroundColor3 = THEME.panel2
-        row.BorderSizePixel = 0
-        row.Parent = gui.Players.PlayerList
-        Instance.new("UICorner", row).CornerRadius = UDim.new(0, 10)
-
-        local name = Instance.new("TextLabel")
-        name.Text = player.Name
-        name.Size = UDim2.new(0, 140, 1, 0)
-        name.Position = UDim2.new(0, 10, 0, 0)
-        name.BackgroundTransparency = 1
-        name.TextColor3 = THEME.text
-        name.TextXAlignment = Enum.TextXAlignment.Left
-        name.Font = Enum.Font.GothamBold
-        name.TextSize = 12
-        name.TextTruncate = Enum.TextTruncate.AtEnd
-        name.Parent = row
-
-        local function miniBtn(txt, offsetFromRight, color)
-            local b = Instance.new("TextButton")
-            b.Text = txt
-            b.Size = UDim2.new(0, 50, 0, 24)
-            b.Position = UDim2.new(1, -offsetFromRight, 0.5, -12)
-            b.BackgroundColor3 = color
-            b.TextColor3 = Color3.new(1, 1, 1)
-            b.Font = Enum.Font.GothamBold
-            b.TextSize = 10
-            b.BorderSizePixel = 0
-            b.Parent = row
-            Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
-            return b
-        end
-
-        local inspectBtn = miniBtn("View", 56, THEME.dim)
-        local beamBtn = miniBtn("Beam", 112, THEME.beam)
-        local tpBtn = miniBtn("TP", 168, THEME.tp)
-        local espBtn = miniBtn("ESP", 224, THEME.accent)
-        local espOn = false
-        local beamOn = false
-
-        bind(espBtn.MouseButton1Click, function()
-            espOn = not espOn
-            if espOn then
-                makeESPForPlayer(player)
-                espBtn.Text = "ESP ✓"
-                espBtn.BackgroundColor3 = THEME.success
-            else
-                removeESPForPlayer(player)
-                espBtn.Text = "ESP"
-                espBtn.BackgroundColor3 = THEME.accent
-            end
-        end)
-
-        bind(tpBtn.MouseButton1Click, function()
-            tpToPlayer(player)
-        end)
-
-        bind(beamBtn.MouseButton1Click, function()
-            beamOn = not beamOn
-            if beamOn then
-                startBeam(player)
-                beamBtn.Text = "Beam✓"
-                beamBtn.BackgroundColor3 = THEME.warn
-            else
-                stopBeam(player)
-                beamBtn.Text = "Beam"
-                beamBtn.BackgroundColor3 = THEME.beam
-            end
-        end)
-
-        bind(inspectBtn.MouseButton1Click, function()
-            pcall(function()
-                game:GetService("GuiService"):InspectPlayerFromUserId(player.UserId)
-            end)
-        end)
-
-        ctx.playerRows[player] = row
-        row.Visible = passesSearch(player)
-    end
-    ctx.makePlayerRow = makePlayerRow
-
-    local function removePlayerRow(player)
-        if ctx.playerRows[player] then
-            ctx.playerRows[player]:Destroy(); ctx.playerRows[player] = nil
-        end
-        removeESPForPlayer(player)
-        stopBeam(player)
-        if ctx.playerConnections[player] then
-            disconnectList(ctx.playerConnections[player]); ctx.playerConnections[player] = nil
-        end
-    end
-    ctx.removePlayerRow = removePlayerRow
-
     -- ═══════════════════════════════════════════
     -- ZONE ESP
     -- ═══════════════════════════════════════════
@@ -785,8 +567,6 @@ return function(gui, config)
         gui.MainStroke.Color = THEME.accent:Lerp(Color3.new(1, 1, 1), 0.75)
         gui.ContentStroke.Color = THEME.accent:Lerp(Color3.new(0, 0, 0), 0.45)
         gui.Settings.AccentPreview.BackgroundColor3 = THEME.accent
-        gui.Players.SearchBox.BackgroundColor3 = THEME.panel2
-        gui.Players.SearchBox.TextColor3 = THEME.text
         gui.Clicker.SliderFill.BackgroundColor3 = THEME.accent
 
         for name, btn in pairs(gui.TabButtons) do
@@ -796,13 +576,6 @@ return function(gui, config)
             else
                 btn.BackgroundColor3 = THEME.panel2
                 btn.TextColor3 = THEME.dim
-            end
-        end
-
-        for _, obj in pairs(ctx.espObjects) do
-            if obj.box then obj.box.Color3 = THEME.accent end
-            if obj.billboard and obj.billboard:FindFirstChildOfClass("TextLabel") then
-                obj.billboard:FindFirstChildOfClass("TextLabel").TextColor3 = THEME.accent
             end
         end
 
@@ -820,6 +593,19 @@ return function(gui, config)
         updateRewardButtons()
     end
     ctx.applyTheme = applyTheme
+
+    -- Apply a named theme variant from config.ThemeVariants (used by the
+    -- Settings theme buttons and by saved-profile restoration).
+    ctx.applyThemeVariant = function(name)
+        local variant = config.ThemeVariants and config.ThemeVariants[name]
+        if not variant then return false end
+        for k, v in pairs(variant) do
+            THEME[k] = v
+        end
+        ctx.activeThemeVariant = name
+        applyTheme()
+        return true
+    end
 
     local function switchTab(name)
         ctx.activeTab = name
@@ -855,14 +641,14 @@ return function(gui, config)
             CloseFrame.Size = UDim2.new(0, 620, 0, 420)
             CloseFrame.AnchorPoint = Vector2.new(0.5, 0.5)
             CloseFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-            CloseFrame.BackgroundColor3 = Color3.fromRGB(12, 10, 20)
+            CloseFrame.BackgroundColor3 = THEME.bg
             CloseFrame.BackgroundTransparency = 1
             CloseFrame.BorderSizePixel = 0
             CloseFrame.ClipsDescendants = true
             CloseFrame.Parent = CloseGui
             Instance.new("UICorner", CloseFrame).CornerRadius = UDim.new(0, 12)
             local CloseStroke = Instance.new("UIStroke", CloseFrame)
-            CloseStroke.Color = Color3.fromRGB(110, 60, 200)
+            CloseStroke.Color = THEME.accentDark
             CloseStroke.Thickness = 1
 
             local CloseText = Instance.new("TextLabel")
@@ -871,7 +657,7 @@ return function(gui, config)
             CloseText.AnchorPoint = Vector2.new(0.5, 0.5)
             CloseText.Position = UDim2.new(0.5, 0, 0.5, 0)
             CloseText.BackgroundTransparency = 1
-            CloseText.TextColor3 = Color3.fromRGB(180, 130, 255)
+            CloseText.TextColor3 = THEME.accentGlow
             CloseText.Font = Enum.Font.GothamBold
             CloseText.TextSize = 24
             CloseText.TextTransparency = 1
@@ -912,10 +698,11 @@ return function(gui, config)
         disconnectList(ctx.zoneAttributeConnections)
         disconnectList(ctx.antiIdleConnections)
         disconnectList(ctx.antiAfkConnections)
-        for player in pairs(ctx.espObjects) do removeESPForPlayer(player) end
         for part in pairs(ctx.zoneObjects) do removeZoneESP(part) end
-        for player in pairs(ctx.beamStates) do stopBeam(player) end
-        for _, list in pairs(ctx.playerConnections) do disconnectList(list) end
+        -- Player Admin Menu (ESP / beam / camera) teardown
+        pcall(function()
+            if ctx.adminMenuCleanup then ctx.adminMenuCleanup() end
+        end)
         -- Cleanup mine ESP
         pcall(function()
             if ctx.removeMineESP then
@@ -1124,9 +911,12 @@ return function(gui, config)
         end
     end)
 
-    bind(gui.FishZone.AutoSellBtn.MouseButton1Click, function()
-        ctx.autoSellEnabled = not ctx.autoSellEnabled
-        if ctx.autoSellEnabled then
+    -- Set Auto Sell Fish to an explicit state (idempotent).
+    ctx.setAutoSellFish = function(on)
+        on = on and true or false
+        if ctx.autoSellEnabled == on then return end
+        ctx.autoSellEnabled = on
+        if on then
             gui.FishZone.AutoSellBtn.Text = "Auto Sell Fish: ON"
             gui.FishZone.AutoSellBtn.BackgroundColor3 = THEME.success
             log("Auto Sell: ON (interval " .. ctx.AUTO_SELL_INTERVAL .. "s)", THEME.success)
@@ -1146,6 +936,10 @@ return function(gui, config)
             gui.FishZone.AutoSellBtn.BackgroundColor3 = THEME.warn
             log("Auto Sell: OFF", THEME.dim)
         end
+    end
+
+    bind(gui.FishZone.AutoSellBtn.MouseButton1Click, function()
+        ctx.setAutoSellFish(not ctx.autoSellEnabled)
     end)
 
     bind(gui.FishZone.SellNowBtn.MouseButton1Click, function()
@@ -1162,49 +956,63 @@ return function(gui, config)
         end
     end)
 
+    -- Set Auto Claim Daily Reward to an explicit state (idempotent).
+    ctx.setAutoClaimDaily = function(on)
+        on = on and true or false
+        if ctx.autoClaimDailyRewardEnabled == on then return end
+        ctx.autoClaimDailyRewardEnabled = on
+        updateRewardButtons()
+        if on then
+            log("Daily Reward: Auto-claim ON (every 1h)", THEME.success)
+            task.spawn(function()
+                while ctx.autoClaimDailyRewardEnabled and not ctx.destroyed do
+                    local success, message = claimDailyReward()
+                    if success then
+                        log("Daily Reward: CLAIMED - " .. tostring(message), THEME.success)
+                    else
+                        log("Daily Reward: " .. tostring(message), THEME.dim)
+                    end
+                    task.wait(3600)
+                end
+            end)
+        else
+            log("Daily Reward: Auto-claim OFF", THEME.dim)
+        end
+    end
+
     if gui.Settings.AutoClaimDailyRewardBtn then
         bind(gui.Settings.AutoClaimDailyRewardBtn.MouseButton1Click, function()
-            ctx.autoClaimDailyRewardEnabled = not ctx.autoClaimDailyRewardEnabled
-            updateRewardButtons()
-            if ctx.autoClaimDailyRewardEnabled then
-                log("Daily Reward: Auto-claim ON (every 1h)", THEME.success)
-                task.spawn(function()
-                    while ctx.autoClaimDailyRewardEnabled and not ctx.destroyed do
-                        local success, message = claimDailyReward()
-                        if success then
-                            log("Daily Reward: CLAIMED - " .. tostring(message), THEME.success)
-                        else
-                            log("Daily Reward: " .. tostring(message), THEME.dim)
-                        end
-                        task.wait(3600)
-                    end
-                end)
-            else
-                log("Daily Reward: Auto-claim OFF", THEME.dim)
-            end
+            ctx.setAutoClaimDaily(not ctx.autoClaimDailyRewardEnabled)
         end)
+    end
+
+    -- Set Auto Claim Session Reward to an explicit state (idempotent).
+    ctx.setAutoClaimSession = function(on)
+        on = on and true or false
+        if ctx.autoClaimSessionRewardEnabled == on then return end
+        ctx.autoClaimSessionRewardEnabled = on
+        updateRewardButtons()
+        if on then
+            log("Session Reward: Auto-claim ON (every 1h)", THEME.success)
+            task.spawn(function()
+                while ctx.autoClaimSessionRewardEnabled and not ctx.destroyed do
+                    local success, message = claimSessionReward()
+                    if success then
+                        log("Session Reward: " .. tostring(message), THEME.success)
+                    else
+                        log("Session Reward: " .. tostring(message), THEME.dim)
+                    end
+                    task.wait(3600)
+                end
+            end)
+        else
+            log("Session Reward: Auto-claim OFF", THEME.dim)
+        end
     end
 
     if gui.Settings.AutoClaimSessionRewardBtn then
         bind(gui.Settings.AutoClaimSessionRewardBtn.MouseButton1Click, function()
-            ctx.autoClaimSessionRewardEnabled = not ctx.autoClaimSessionRewardEnabled
-            updateRewardButtons()
-            if ctx.autoClaimSessionRewardEnabled then
-                log("Session Reward: Auto-claim ON (every 1h)", THEME.success)
-                task.spawn(function()
-                    while ctx.autoClaimSessionRewardEnabled and not ctx.destroyed do
-                        local success, message = claimSessionReward()
-                        if success then
-                            log("Session Reward: " .. tostring(message), THEME.success)
-                        else
-                            log("Session Reward: " .. tostring(message), THEME.dim)
-                        end
-                        task.wait(3600)
-                    end
-                end)
-            else
-                log("Session Reward: Auto-claim OFF", THEME.dim)
-            end
+            ctx.setAutoClaimSession(not ctx.autoClaimSessionRewardEnabled)
         end)
     end
 
@@ -1248,13 +1056,20 @@ return function(gui, config)
         log("Anti Idle: OFF", THEME.dim)
     end
 
+    -- Set Anti Idle to an explicit state (idempotent).
+    ctx.setAntiIdle = function(on)
+        on = on and true or false
+        if ctx.antiIdleEnabled == on then return end
+        if on then
+            enableAntiIdle()
+        else
+            disableAntiIdle()
+        end
+    end
+
     if gui.Settings.AntiIdleBtn then
         bind(gui.Settings.AntiIdleBtn.MouseButton1Click, function()
-            if ctx.antiIdleEnabled then
-                disableAntiIdle()
-            else
-                enableAntiIdle()
-            end
+            ctx.setAntiIdle(not ctx.antiIdleEnabled)
         end)
     end
 
@@ -1509,76 +1324,17 @@ return function(gui, config)
         end)
     end
 
-    local function saveSettings()
-        -- Ore sell rarities: convert bool-map to a name list (mirrors getActiveSellRarities)
-        local oreSellRaritiesList = {}
-        if ctx.oreSellRarities then
-            for r, on in pairs(ctx.oreSellRarities) do
-                if on then table.insert(oreSellRaritiesList, r) end
-            end
+    -- NOTE: The old "Save All Settings"/"Load Config" button pair was removed —
+    -- settings now persist through Saved Profiles (modules/SettingsProfiles.lua).
+    -- The last saved/loaded profile auto-restores on the next run.
+
+    local function profileStatus(msg, color)
+        local lbl = gui.Settings.ProfileStatus
+        if lbl and lbl.Parent then
+            lbl.Text = msg
+            lbl.TextColor3 = color or THEME.dim
         end
-
-        local data = {
-            -- Webhook
-            webhookURL = ctx.webhookURL,
-            webhookEnabled = ctx.webhookEnabled,
-            webhookLogSells = ctx.webhookLogSells,
-            webhookRarities = getActiveWebhookRarities(),
-
-            -- Fishing: sell interval + rarities
-            sellRarities = getActiveSellRarities(),
-            sellInterval = ctx.AUTO_SELL_INTERVAL,
-
-            -- Mining: sell interval + rarities + toggles
-            oreSellInterval = ctx.ORE_SELL_INTERVAL,
-            oreSellRarities = oreSellRaritiesList,
-            autoMineHotspotOnly = ctx.autoMineHotspotOnly,
-            autoMineTPEnabled = ctx.autoMineTPEnabled,
-            mineESPOn = ctx.mineESPOn,
-
-            -- Settings tab toggles
-            antiIdleEnabled = ctx.antiIdleEnabled,
-            antiAfkEnabled = ctx.antiAfkEnabled,
-            autoClaimDailyRewardEnabled = ctx.autoClaimDailyRewardEnabled,
-            autoClaimSessionRewardEnabled = ctx.autoClaimSessionRewardEnabled,
-
-            -- Auto Clicker (Fun tab)
-            clickCPS = ctx.clickCPS,
-            toggleKey = tostring(ctx.TOGGLE_KEY):gsub("Enum.KeyCode.", ""),
-
-            -- Custom Hotkeys
-            keys = {
-                HideUI = ctx.config.Keys.HideUI and tostring(ctx.config.Keys.HideUI):gsub("Enum.KeyCode.", "") or "K",
-            },
-
-            -- Fishing/mining/gacha stats persistence
-            perfRarityCounts = ctx.perfRarityCounts,
-            perfTotalEarnings = ctx.perfTotalEarnings,
-            perfCatchCount = ctx.perfCatchCount,
-            perfMinedCount = ctx.perfMinedCount,
-            perfGachaCount = ctx.perfGachaCount,
-        }
-        local ok, err = pcall(function()
-            local HttpService = game:GetService("HttpService")
-            local json = HttpService:JSONEncode(data)
-            writefile(SETTINGS_FILE, json)
-        end)
-        if ok then
-            gui.Settings.SaveStatus.Text = "Settings saved!"
-            gui.Settings.SaveStatus.TextColor3 = THEME.success
-            log("Settings saved", THEME.success)
-        else
-            gui.Settings.SaveStatus.Text = "Save failed: " .. tostring(err)
-            gui.Settings.SaveStatus.TextColor3 = THEME.danger
-            log("Settings save failed: " .. tostring(err), THEME.danger)
-        end
-        task.delay(3, function()
-            if gui.Settings.SaveStatus and gui.Settings.SaveStatus.Parent then
-                gui.Settings.SaveStatus.Text = ""
-            end
-        end)
     end
-    ctx.saveSettings = saveSettings
 
     local function loadSettings()
         local ok, result = pcall(function()
@@ -1740,6 +1496,9 @@ return function(gui, config)
             updateSellRarityUI()
             updateWebhookRarityUI()
             log("Settings loaded", THEME.dim)
+            profileStatus("Loaded saved settings from " .. SETTINGS_FILE, THEME.success)
+        else
+            profileStatus("No saved settings found — save a profile", THEME.dim)
         end
     end
     ctx.loadSettings = loadSettings
@@ -1789,7 +1548,6 @@ return function(gui, config)
                 if gui.Settings.HideKeyLbl then
                     gui.Settings.HideKeyLbl.Text = "Hide/Show UI: " .. keyName
                 end
-                saveSettings()
             end
         end)
     end
@@ -1799,29 +1557,8 @@ return function(gui, config)
         ctx.webhookURL = gui.Settings.WebhookInput.Text
     end)
 
-    -- Save settings button
-    bind(gui.Settings.SaveSettingsBtn.MouseButton1Click, function()
-        ctx.webhookURL = gui.Settings.WebhookInput.Text
-        saveSettings()
-    end)
-
-    -- Load config button: re-reads LyraHub_Settings.json and re-applies it
-    if gui.Settings.LoadSettingsBtn then
-        bind(gui.Settings.LoadSettingsBtn.MouseButton1Click, function()
-            loadSettings()
-            updateSellRarityUI()
-            updateWebhookRarityUI()
-            gui.Settings.SaveStatus.Text = "Config loaded!"
-            gui.Settings.SaveStatus.TextColor3 = THEME.success
-            task.delay(3, function()
-                if gui.Settings.SaveStatus and gui.Settings.SaveStatus.Parent then
-                    gui.Settings.SaveStatus.Text = ""
-                end
-            end)
-        end)
-    end
-
-    -- Auto-load settings on start
+    -- Auto-load settings on start (last saved profile, stored by
+    -- modules/settingsintegration.lua, is auto-restored by that module).
     loadSettings()
     updateSellRarityUI()
     updateWebhookRarityUI()

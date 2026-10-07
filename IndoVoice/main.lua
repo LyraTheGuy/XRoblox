@@ -166,6 +166,7 @@ end
 local function showErrorGui(msg)
     local Players = game:GetService("Players")
     local lp = Players.LocalPlayer
+    local THEME = (config and config.Theme) or {}
     local errGui = Instance.new("ScreenGui")
     errGui.Name = "LyraHub_Error"
     errGui.ResetOnSpawn = false
@@ -177,12 +178,12 @@ local function showErrorGui(msg)
     frame.Size = UDim2.new(0, 400, 0, 120)
     frame.AnchorPoint = Vector2.new(0.5, 0.5)
     frame.Position = UDim2.new(0.5, 0, 0.5, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 10, 10)
+    frame.BackgroundColor3 = THEME.panel or Color3.fromRGB(20, 20, 20)
     frame.BorderSizePixel = 0
     frame.Parent = errGui
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
     local stroke = Instance.new("UIStroke", frame)
-    stroke.Color = Color3.fromRGB(255, 80, 80)
+    stroke.Color = THEME.danger or Color3.fromRGB(210, 95, 55)
     stroke.Thickness = 1.5
 
     local lbl = Instance.new("TextLabel")
@@ -190,7 +191,7 @@ local function showErrorGui(msg)
     lbl.Position = UDim2.new(0, 10, 0, 10)
     lbl.BackgroundTransparency = 1
     lbl.Text = "LyraHub Error:\n" .. tostring(msg)
-    lbl.TextColor3 = Color3.fromRGB(255, 100, 100)
+    lbl.TextColor3 = THEME.danger or Color3.fromRGB(210, 95, 55)
     lbl.Font = Enum.Font.GothamBold
     lbl.TextSize = 12
     lbl.TextWrapped = true
@@ -207,6 +208,7 @@ end
 local function showKitToast(msg)
     local Players = game:GetService("Players")
     local lp = Players.LocalPlayer
+    local THEME = (config and config.Theme) or {}
     local toastGui = Instance.new("ScreenGui")
     toastGui.Name = "LyraHubKitToast"
     toastGui.ResetOnSpawn = false
@@ -218,13 +220,13 @@ local function showKitToast(msg)
     toast.Size = UDim2.new(0, 420, 0, 54)
     toast.AnchorPoint = Vector2.new(0.5, 0)
     toast.Position = UDim2.new(0.5, 0, 1, -64)
-    toast.BackgroundColor3 = Color3.fromRGB(26, 22, 14)
+    toast.BackgroundColor3 = THEME.panel2 or Color3.fromRGB(32, 30, 26)
     toast.AutoButtonColor = false
     toast.BorderSizePixel = 0
     toast.Parent = toastGui
     Instance.new("UICorner", toast).CornerRadius = UDim.new(0, 10)
     local toastStroke = Instance.new("UIStroke", toast)
-    toastStroke.Color = Color3.fromRGB(240, 190, 90)
+    toastStroke.Color = THEME.accentGlow or Color3.fromRGB(255, 205, 80)
     toastStroke.Thickness = 1
 
     local toastIcon = Instance.new("TextLabel")
@@ -232,7 +234,7 @@ local function showKitToast(msg)
     toastIcon.Size = UDim2.new(0, 24, 1, 0)
     toastIcon.Position = UDim2.new(0, 8, 0, 0)
     toastIcon.BackgroundTransparency = 1
-    toastIcon.TextColor3 = Color3.fromRGB(240, 190, 90)
+    toastIcon.TextColor3 = THEME.accentGlow or Color3.fromRGB(255, 205, 80)
     toastIcon.Font = Enum.Font.GothamBold
     toastIcon.TextSize = 16
     toastIcon.Parent = toast
@@ -242,7 +244,7 @@ local function showKitToast(msg)
     toastText.Position = UDim2.new(0, 34, 0, 4)
     toastText.BackgroundTransparency = 1
     toastText.Text = msg
-    toastText.TextColor3 = Color3.fromRGB(250, 240, 215)
+    toastText.TextColor3 = THEME.text or Color3.fromRGB(255, 255, 255)
     toastText.Font = Enum.Font.Gotham
     toastText.TextSize = 11
     toastText.TextWrapped = true
@@ -306,6 +308,27 @@ if not coreOk then
     return
 end
 
+-- ----------------------------------------------------------------------------
+-- SAVED SETTINGS PROFILES (storage module)
+-- ----------------------------------------------------------------------------
+-- Loaded with the same fetch/compile/factory pattern as session.lua and exposed
+-- on ctx so modules/SettingsProfiles.lua can be reused by gui / other modules.
+-- Loading is OPTIONAL: a failure degrades gracefully (the Profiles UI reports
+-- storage unavailable) instead of taking the whole script down.
+do
+	local ok, result = pcall(function()
+		local chunk = compile(fetch(BASE_URL .. "modules/SettingsProfiles.lua", "SettingsProfiles.lua"), "SettingsProfiles.lua")
+		local factory = chunk()
+		assert(type(factory) == "function", "SettingsProfiles.lua must return a function")
+		return factory(config)
+	end)
+	if ok then
+		ctx.SettingsProfiles = result
+	else
+		warn("[IndoVoice] Settings profiles unavailable: " .. tostring(result))
+	end
+end
+
 -- teleportConn is declared BEFORE the ctx.destroyAll wrapper below so the
 -- wrapper's closure captures it as an upvalue (assigned in the do-block at
 -- the bottom of this file, disconnected on manual unload).
@@ -356,7 +379,7 @@ pcall(function()
 end)
 
 -- Load modules
-local modules = {"fishing", "mining", "gacha", "shopgacha", "tokenshop", "rodshop", "antiafk", "ui"}
+local modules = {"adminmenu", "fishing", "mining", "gacha", "shopgacha", "tokenshop", "rodshop", "antiafk", "ui", "settingsintegration"}
 for _, name in ipairs(modules) do
     local ok, err = pcall(function()
         local modChunk = loadModule(name)
