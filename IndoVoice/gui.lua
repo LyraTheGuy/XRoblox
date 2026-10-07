@@ -1667,7 +1667,9 @@ return function(config, components)
         scroll.BackgroundTransparency = 1
         scroll.BorderSizePixel = 0
         scroll.ScrollBarThickness = 3
-        scroll.CanvasSize = UDim2.new(0, 0, 0, 940)
+        -- No fixed CanvasSize: AutomaticSize.Y auto-fits to the last widget
+        scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
         scroll.Parent = Tabs.Settings
 
         local hideKeyLbl = Instance.new("TextLabel")
@@ -1805,33 +1807,20 @@ return function(config, components)
         local webhookTestBtn = makeActionButton(scroll, "Test Webhook", 420, LYRA.warn)
         webhookTestBtn.Size = UDim2.new(0.48, -10, 0, 28)
         webhookTestBtn.Position = UDim2.new(0.5, 5, 0, 420)
-        local saveSettingsBtn = makeActionButton(scroll, "Save All Settings", 458, LYRA.success)
-        saveSettingsBtn.Size = UDim2.new(0.48, -10, 0, 30)
-        saveSettingsBtn.Position = UDim2.new(0, 10, 0, 458)
-        local loadSettingsBtn = makeActionButton(scroll, "Load Config", 458, LYRA.tp)
-        loadSettingsBtn.Size = UDim2.new(0.48, -10, 0, 30)
-        loadSettingsBtn.Position = UDim2.new(0.5, 5, 0, 458)
-        local saveStatus = Instance.new("TextLabel")
-        saveStatus.Size = UDim2.new(1, -20, 0, 18)
-        saveStatus.Position = UDim2.new(0, 10, 0, 450)
-        saveStatus.BackgroundTransparency = 1
-        saveStatus.Text = ""
-        saveStatus.TextColor3 = LYRA.success
-        saveStatus.Font = Enum.Font.Gotham
-        saveStatus.TextSize = 10
-        saveStatus.TextXAlignment = Enum.TextXAlignment.Left
-        saveStatus.Parent = scroll
+        -- NOTE: the old "Save All Settings"/"Load Config" row was removed —
+        -- saving/loading now lives in the Saved Profiles section below.
+        -- Status feedback for legacy auto-load also reports there (ProfileStatus).
 
         local themeSep = Instance.new("Frame")
         themeSep.Size = UDim2.new(1, -20, 0, 1)
-        themeSep.Position = UDim2.new(0, 10, 0, 554)
+        themeSep.Position = UDim2.new(0, 10, 0, 490)
         themeSep.BackgroundColor3 = LYRA.panel2
         themeSep.BorderSizePixel = 0
         themeSep.Parent = scroll
 
         local colorTitle = Instance.new("TextLabel")
         colorTitle.Size = UDim2.new(1, -20, 0, 18)
-        colorTitle.Position = UDim2.new(0, 10, 0, 562)
+        colorTitle.Position = UDim2.new(0, 10, 0, 498)
         colorTitle.BackgroundTransparency = 1
         colorTitle.Text = "Theme"
         colorTitle.TextColor3 = LYRA.text
@@ -1842,7 +1831,7 @@ return function(config, components)
 
         local accentPreview = Instance.new("Frame")
         accentPreview.Size = UDim2.new(0, 18, 0, 18)
-        accentPreview.Position = UDim2.new(1, -30, 0, 562)
+        accentPreview.Position = UDim2.new(1, -30, 0, 498)
         accentPreview.BackgroundColor3 = LYRA.accent
         accentPreview.BorderSizePixel = 0
         accentPreview.Parent = scroll
@@ -1851,7 +1840,7 @@ return function(config, components)
         local darkThemeBtn = Instance.new("TextButton")
         darkThemeBtn.Text = "Halloween (Dark)"
         darkThemeBtn.Size = UDim2.new(0.48, -10, 0, 28)
-        darkThemeBtn.Position = UDim2.new(0, 10, 0, 586)
+        darkThemeBtn.Position = UDim2.new(0, 10, 0, 522)
         darkThemeBtn.BackgroundColor3 = LYRA.accent
         darkThemeBtn.TextColor3 = Color3.new(1, 1, 1)
         darkThemeBtn.Font = Enum.Font.GothamBold
@@ -1863,7 +1852,7 @@ return function(config, components)
         local lightThemeBtn = Instance.new("TextButton")
         lightThemeBtn.Text = "Halloween (Ember)"
         lightThemeBtn.Size = UDim2.new(0.48, -10, 0, 28)
-        lightThemeBtn.Position = UDim2.new(0.5, 5, 0, 586)
+        lightThemeBtn.Position = UDim2.new(0.5, 5, 0, 522)
         lightThemeBtn.BackgroundColor3 = LYRA.panel2
         lightThemeBtn.TextColor3 = LYRA.dim
         lightThemeBtn.Font = Enum.Font.GothamBold
@@ -1874,9 +1863,9 @@ return function(config, components)
 
         local settingsInfo = Instance.new("TextLabel")
         settingsInfo.Size = UDim2.new(1, -20, 0, 30)
-        settingsInfo.Position = UDim2.new(0, 10, 0, 624)
+        settingsInfo.Position = UDim2.new(0, 10, 0, 560)
         settingsInfo.BackgroundTransparency = 1
-        settingsInfo.Text = "Settings are saved locally and auto-loaded on next run."
+        settingsInfo.Text = "Settings auto-load on next run. Save them into a profile below."
         settingsInfo.TextColor3 = LYRA.dim
         settingsInfo.Font = Enum.Font.Gotham
         settingsInfo.TextSize = 11
@@ -1891,14 +1880,14 @@ return function(config, components)
         -- and returns structured references (no FindFirstChild lookups).
         local profSep = Instance.new("Frame")
         profSep.Size = UDim2.new(1, -20, 0, 1)
-        profSep.Position = UDim2.new(0, 10, 0, 700)
+        profSep.Position = UDim2.new(0, 10, 0, 600)
         profSep.BackgroundColor3 = LYRA.panel2
         profSep.BorderSizePixel = 0
         profSep.Parent = scroll
 
         local profTitle = Instance.new("TextLabel")
         profTitle.Size = UDim2.new(1, -20, 0, 18)
-        profTitle.Position = UDim2.new(0, 10, 0, 708)
+        profTitle.Position = UDim2.new(0, 10, 0, 608)
         profTitle.BackgroundTransparency = 1
         profTitle.Text = "Saved Profiles"
         profTitle.TextColor3 = LYRA.accentGlow
@@ -1909,7 +1898,7 @@ return function(config, components)
 
         local profCurrent = Instance.new("TextLabel")
         profCurrent.Size = UDim2.new(1, -20, 0, 16)
-        profCurrent.Position = UDim2.new(0, 10, 0, 728)
+        profCurrent.Position = UDim2.new(0, 10, 0, 628)
         profCurrent.BackgroundTransparency = 1
         profCurrent.Text = "Current Profile: —"
         profCurrent.TextColor3 = LYRA.dim
@@ -1920,7 +1909,7 @@ return function(config, components)
 
         local profNameInput = Instance.new("TextBox")
         profNameInput.Size = UDim2.new(1, -20, 0, 24)
-        profNameInput.Position = UDim2.new(0, 10, 0, 748)
+        profNameInput.Position = UDim2.new(0, 10, 0, 648)
         profNameInput.BackgroundColor3 = LYRA.bg2
         profNameInput.TextColor3 = LYRA.text
         profNameInput.PlaceholderText = "Profile name… (for Create / Rename)"
@@ -1937,7 +1926,7 @@ return function(config, components)
 
         local profDropdown = Instance.new("TextButton")
         profDropdown.Size = UDim2.new(1, -20, 0, 26)
-        profDropdown.Position = UDim2.new(0, 10, 0, 778)
+        profDropdown.Position = UDim2.new(0, 10, 0, 678)
         profDropdown.BackgroundColor3 = LYRA.panel2
         profDropdown.TextColor3 = LYRA.text
         profDropdown.Font = Enum.Font.GothamBold
@@ -1952,9 +1941,11 @@ return function(config, components)
         Instance.new("UIPadding", profDropdown).PaddingLeft = UDim.new(0, 8)
 
         -- Opaque list so it cleanly covers the action buttons while open.
+        -- When open, this opaque panel covers the Create/Rename/Delete row and
+        -- the whole status line below the dropdown (list spans y 705–820).
         local profList = Instance.new("ScrollingFrame")
-        profList.Size = UDim2.new(1, -20, 0, 140)
-        profList.Position = UDim2.new(0, 10, 0, 806)
+        profList.Size = UDim2.new(1, -20, 0, 115)
+        profList.Position = UDim2.new(0, 10, 0, 705)
         profList.BackgroundColor3 = LYRA.bg2
         profList.BorderSizePixel = 0
         profList.ScrollBarThickness = 3
@@ -1979,34 +1970,36 @@ return function(config, components)
         profEmpty.Visible = false
         profEmpty.Parent = profList
 
-        local profSaveBtn = makeActionButton(scroll, "Save Current Settings", 810, LYRA.accent)
+        local profSaveBtn = makeActionButton(scroll, "Save Current Settings", 724, LYRA.accent)
         profSaveBtn.Size = UDim2.new(0.48, -10, 0, 28)
-        profSaveBtn.Position = UDim2.new(0, 10, 0, 810)
+        profSaveBtn.Position = UDim2.new(0, 10, 0, 724)
         profSaveBtn.TextSize = 10
 
-        local profLoadBtn = makeActionButton(scroll, "Load Selected Profile", 810, LYRA.tp)
+        local profLoadBtn = makeActionButton(scroll, "Load Selected Profile", 724, LYRA.tp)
         profLoadBtn.Size = UDim2.new(0.48, -10, 0, 28)
-        profLoadBtn.Position = UDim2.new(0.5, 5, 0, 810)
+        profLoadBtn.Position = UDim2.new(0.5, 5, 0, 724)
         profLoadBtn.TextSize = 10
 
-        local profCreateBtn = makeActionButton(scroll, "Create New Profile", 844, LYRA.success)
+        local profCreateBtn = makeActionButton(scroll, "Create New Profile", 758, LYRA.success)
         profCreateBtn.Size = UDim2.new(0.32, -9, 0, 28)
-        profCreateBtn.Position = UDim2.new(0, 10, 0, 844)
+        profCreateBtn.Position = UDim2.new(0, 10, 0, 758)
         profCreateBtn.TextSize = 9
 
-        local profRenameBtn = makeActionButton(scroll, "Rename Profile", 844, LYRA.warn)
+        local profRenameBtn = makeActionButton(scroll, "Rename Profile", 758, LYRA.warn)
         profRenameBtn.Size = UDim2.new(0.32, -9, 0, 28)
-        profRenameBtn.Position = UDim2.new(0.33, 3, 0, 844)
+        profRenameBtn.Position = UDim2.new(0.33, 3, 0, 758)
         profRenameBtn.TextSize = 9
 
-        local profDeleteBtn = makeActionButton(scroll, "Delete Profile", 844, LYRA.danger)
+        local profDeleteBtn = makeActionButton(scroll, "Delete Profile", 758, LYRA.danger)
         profDeleteBtn.Size = UDim2.new(0.32, -9, 0, 28)
-        profDeleteBtn.Position = UDim2.new(0.66, -2, 0, 844)
+        profDeleteBtn.Position = UDim2.new(0.66, -2, 0, 758)
         profDeleteBtn.TextSize = 9
 
+        -- Shared status line for profiles AND and legacy set/loaded feedback
+        -- (core.lua and settingsintegration.lua both write through ref ProfileStatus).
         local profStatus = Instance.new("TextLabel")
         profStatus.Size = UDim2.new(1, -20, 0, 30)
-        profStatus.Position = UDim2.new(0, 10, 0, 878)
+        profStatus.Position = UDim2.new(0, 10, 0, 788)
         profStatus.BackgroundTransparency = 1
         profStatus.Text = ""
         profStatus.TextColor3 = LYRA.dim
@@ -2024,11 +2017,10 @@ return function(config, components)
             AntiIdleBtn = antiIdleBtn, AntiAfkBtn = antiAfkBtn,
             WebhookInput = webhookInput, WebhookToggleBtn = webhookToggleBtn,
             WebhookTestBtn = webhookTestBtn, WebhookRarityButtons = webhookRarityButtons,
-            SaveSettingsBtn = saveSettingsBtn, LoadSettingsBtn = loadSettingsBtn,
-            SaveStatus = saveStatus, ColorTitle = colorTitle,
+            ColorTitle = colorTitle,
             AccentPreview = accentPreview, ColorButtons = {},
             DarkThemeBtn = darkThemeBtn, LightThemeBtn = lightThemeBtn,
-            SettingsInfo = settingsInfo,
+            SettingsInfo = settingsInfo, ProfileStatus = profStatus,
             Profiles = {
                 Dropdown = profDropdown,
                 DropdownStroke = profDropdownStroke,
@@ -2201,9 +2193,7 @@ return function(config, components)
             WebhookToggleBtn = S.WebhookToggleBtn,
             WebhookTestBtn = S.WebhookTestBtn,
             WebhookRarityButtons = S.WebhookRarityButtons,
-            SaveSettingsBtn = S.SaveSettingsBtn,
-            LoadSettingsBtn = S.LoadSettingsBtn,
-            SaveStatus = S.SaveStatus,
+            ProfileStatus = S.ProfileStatus,
             ColorTitle = S.ColorTitle,
             AccentPreview = S.AccentPreview,
             ColorButtons = S.ColorButtons,

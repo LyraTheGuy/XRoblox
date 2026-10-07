@@ -69,6 +69,13 @@ return function(ctx)
         return out
     end
 
+    local function deepCopy(t)
+        if type(t) ~= "table" then return t end
+        local out = {}
+        for k, v in pairs(t) do out[k] = deepCopy(v) end
+        return out
+    end
+
     local function findPlayerByName(name)
         if type(name) ~= "string" or name == "" or name == "None" then return nil end
         for _, plr in ipairs(Players:GetPlayers()) do
@@ -401,6 +408,8 @@ return function(ctx)
     local lastSnapshot = SP.Signature and SP.Signature()
     local lastDirtyCheck = 0
     local dirtyShown = false
+    -- Session bookkeeping:哪些 profile 已在本次会话中 loaded/saved 到 ctx
+    local lastLoadedSession, lastSavedSession = {}, {}
     local loadProfile -- forward declaration (used by the dropdown row closures)
 
     local function setStatus(msg, color)
@@ -470,7 +479,8 @@ return function(ctx)
             return
         end
         local ok, summary = apply(data)
-        selected = name
+        lastLoadedSession[name] = os.clock()
+        lastSavedSession[name] = nil
         resetDirty()
         refreshDropdown()
         refreshCurrentLabel()
@@ -498,6 +508,8 @@ return function(ctx)
         end
         selected = name
         P.NameInput.Text = ""
+        lastSavedSession[name] = os.clock()
+        lastLoadedSession[name] = nil
         resetDirty()
         refreshDropdown()
         refreshCurrentLabel()
@@ -584,7 +596,32 @@ return function(ctx)
         log("Settings profile deleted: " .. target, THEME.danger)
     end
 
-    -- Expose operations for other modules / keybinds.
+    -- Returns the most recently saved/loaded profile (for startup auto-restore).
+    -- Values are os.clock() timestamps (set in loadProfile/saveProfile below).
+    local function latestSessionProfile()
+        local picked, bestAt
+        for _, entry in ipairs({ lastSavedSession, lastLoadedSession }) do
+            for name in pairs(entry) do
+                local at = entry[name]
+                if at and at ~= true and (not bestAt or at > bestAt) then
+                    bestAt, picked = at, name
+                end
+            end
+        end
+        return picked
+    end
+
+    local function loadLastProfile()
+        -- Session map first; fall back to the persisted active profile
+        -- (index.json's "current" survives executor restarts).
+        local name = latestSessionProfile() or SP.GetCurrent()
+        if not name then
+            setStatus("No profile was loaded or saved last run", THEME.dim)
+            return
+        end
+        loadProfile(name)
+    end
+
     ctx.settingsProfilesUI = {
         Refresh = function() refreshDropdown(); refreshCurrentLabel() end,
         Load = loadProfile,
@@ -593,6 +630,7 @@ return function(ctx)
         Rename = renameProfile,
         Delete = deleteProfile,
         GetSelected = function() return selected end,
+        LoadLast = loadLastProfile,
     }
 
     -- ------------------------------------------------------------------
@@ -602,7 +640,15 @@ return function(ctx)
         P.DropdownList.Visible = not P.DropdownList.Visible
         if P.DropdownList.Visible then refreshDropdown() end
     end)
-    bind(P.SaveButton.MouseButton1Click, function() saveProfile() end)
+    -- "Save Current Settings" replaces the old "Save All Settings" button:
+    -- it snapshots every setting (incl. a freshly typed webhook URL) into the
+    -- selected/new profile and marks it for auto-restore on the next run.
+    bind(P.SaveButton.MouseButton1Click, function()
+        if ctx.gui.Settings.WebhookInput then
+            ctx.webhookURL = ctx.gui.Settings.WebhookInput.Text
+        end
+        saveProfile()
+    end)
     bind(P.LoadButton.MouseButton1Click, function() loadProfile(selected) end)
     bind(P.CreateButton.MouseButton1Click, function() createProfile() end)
     bind(P.RenameButton.MouseButton1Click, function() renameProfile() end)
@@ -619,13 +665,24 @@ return function(ctx)
         local isDirty = (sig ~= lastSnapshot)
         if isDirty and not dirtyShown then
             dirtyShown = true
-            setStatus("Unsaved changes — press Save Current Settings", THEME.warn)
+            setStatus("Unsaved changes — press Save Current Settings to keep them", THEME.warn)
         end
     end)
 
     -- Initial render
     refreshDropdown()
     refreshCurrentLabel()
-    setStatus("Profiles ready — " .. SP.Count() .. " saved", THEME.dim)
+    local restoreName = latestSessionProfile() or SP.GetCurrent()
+    setStatus("Profiles ready — " .. SP.Count() .. " saved"
+        .. (restoreName and (" — auto-restoring '" .. restoreName .. "'") or ""), THEME.dim)
     log("Settings profiles ready (" .. SP.Count() .. " saved)", THEME.accentGlow)
+
+    -- Startup auto-restore: if the previous run ended on a saved/loaded
+    -- profile, re-apply it shortly after boot (config-defaults load ran
+    -- earlier in core.lua; this layers the profile's state on top).
+    if restoreName then
+        task.delay(1.0, function()
+            if not ctx.destroyed then loadLastProfile() end
+        end)
+    end
 end

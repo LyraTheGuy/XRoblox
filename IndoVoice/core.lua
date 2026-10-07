@@ -1324,76 +1324,17 @@ return function(gui, config)
         end)
     end
 
-    local function saveSettings()
-        -- Ore sell rarities: convert bool-map to a name list (mirrors getActiveSellRarities)
-        local oreSellRaritiesList = {}
-        if ctx.oreSellRarities then
-            for r, on in pairs(ctx.oreSellRarities) do
-                if on then table.insert(oreSellRaritiesList, r) end
-            end
+    -- NOTE: The old "Save All Settings"/"Load Config" button pair was removed —
+    -- settings now persist through Saved Profiles (modules/SettingsProfiles.lua).
+    -- The last saved/loaded profile auto-restores on the next run.
+
+    local function profileStatus(msg, color)
+        local lbl = gui.Settings.ProfileStatus
+        if lbl and lbl.Parent then
+            lbl.Text = msg
+            lbl.TextColor3 = color or THEME.dim
         end
-
-        local data = {
-            -- Webhook
-            webhookURL = ctx.webhookURL,
-            webhookEnabled = ctx.webhookEnabled,
-            webhookLogSells = ctx.webhookLogSells,
-            webhookRarities = getActiveWebhookRarities(),
-
-            -- Fishing: sell interval + rarities
-            sellRarities = getActiveSellRarities(),
-            sellInterval = ctx.AUTO_SELL_INTERVAL,
-
-            -- Mining: sell interval + rarities + toggles
-            oreSellInterval = ctx.ORE_SELL_INTERVAL,
-            oreSellRarities = oreSellRaritiesList,
-            autoMineHotspotOnly = ctx.autoMineHotspotOnly,
-            autoMineTPEnabled = ctx.autoMineTPEnabled,
-            mineESPOn = ctx.mineESPOn,
-
-            -- Settings tab toggles
-            antiIdleEnabled = ctx.antiIdleEnabled,
-            antiAfkEnabled = ctx.antiAfkEnabled,
-            autoClaimDailyRewardEnabled = ctx.autoClaimDailyRewardEnabled,
-            autoClaimSessionRewardEnabled = ctx.autoClaimSessionRewardEnabled,
-
-            -- Auto Clicker (Fun tab)
-            clickCPS = ctx.clickCPS,
-            toggleKey = tostring(ctx.TOGGLE_KEY):gsub("Enum.KeyCode.", ""),
-
-            -- Custom Hotkeys
-            keys = {
-                HideUI = ctx.config.Keys.HideUI and tostring(ctx.config.Keys.HideUI):gsub("Enum.KeyCode.", "") or "K",
-            },
-
-            -- Fishing/mining/gacha stats persistence
-            perfRarityCounts = ctx.perfRarityCounts,
-            perfTotalEarnings = ctx.perfTotalEarnings,
-            perfCatchCount = ctx.perfCatchCount,
-            perfMinedCount = ctx.perfMinedCount,
-            perfGachaCount = ctx.perfGachaCount,
-        }
-        local ok, err = pcall(function()
-            local HttpService = game:GetService("HttpService")
-            local json = HttpService:JSONEncode(data)
-            writefile(SETTINGS_FILE, json)
-        end)
-        if ok then
-            gui.Settings.SaveStatus.Text = "Settings saved!"
-            gui.Settings.SaveStatus.TextColor3 = THEME.success
-            log("Settings saved", THEME.success)
-        else
-            gui.Settings.SaveStatus.Text = "Save failed: " .. tostring(err)
-            gui.Settings.SaveStatus.TextColor3 = THEME.danger
-            log("Settings save failed: " .. tostring(err), THEME.danger)
-        end
-        task.delay(3, function()
-            if gui.Settings.SaveStatus and gui.Settings.SaveStatus.Parent then
-                gui.Settings.SaveStatus.Text = ""
-            end
-        end)
     end
-    ctx.saveSettings = saveSettings
 
     local function loadSettings()
         local ok, result = pcall(function()
@@ -1555,6 +1496,9 @@ return function(gui, config)
             updateSellRarityUI()
             updateWebhookRarityUI()
             log("Settings loaded", THEME.dim)
+            profileStatus("Loaded saved settings from " .. SETTINGS_FILE, THEME.success)
+        else
+            profileStatus("No saved settings found — save a profile", THEME.dim)
         end
     end
     ctx.loadSettings = loadSettings
@@ -1604,7 +1548,6 @@ return function(gui, config)
                 if gui.Settings.HideKeyLbl then
                     gui.Settings.HideKeyLbl.Text = "Hide/Show UI: " .. keyName
                 end
-                saveSettings()
             end
         end)
     end
@@ -1614,29 +1557,8 @@ return function(gui, config)
         ctx.webhookURL = gui.Settings.WebhookInput.Text
     end)
 
-    -- Save settings button
-    bind(gui.Settings.SaveSettingsBtn.MouseButton1Click, function()
-        ctx.webhookURL = gui.Settings.WebhookInput.Text
-        saveSettings()
-    end)
-
-    -- Load config button: re-reads LyraHub_Settings.json and re-applies it
-    if gui.Settings.LoadSettingsBtn then
-        bind(gui.Settings.LoadSettingsBtn.MouseButton1Click, function()
-            loadSettings()
-            updateSellRarityUI()
-            updateWebhookRarityUI()
-            gui.Settings.SaveStatus.Text = "Config loaded!"
-            gui.Settings.SaveStatus.TextColor3 = THEME.success
-            task.delay(3, function()
-                if gui.Settings.SaveStatus and gui.Settings.SaveStatus.Parent then
-                    gui.Settings.SaveStatus.Text = ""
-                end
-            end)
-        end)
-    end
-
-    -- Auto-load settings on start
+    -- Auto-load settings on start (last saved profile, stored by
+    -- modules/settingsintegration.lua, is auto-restored by that module).
     loadSettings()
     updateSellRarityUI()
     updateWebhookRarityUI()
