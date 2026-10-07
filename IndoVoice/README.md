@@ -43,7 +43,7 @@ then drives four features from the toolbar:
 
 | Feature | What it does |
 |---------|--------------|
-| **ESP** | Overlay for the **selected player** by default (switch the panel to *All players* for everyone): a tag showing the **DisplayName only** plus a box / highlight outline. The tag colour still tracks health (green → yellow → red) and staff get a red outline. Refreshes are throttled (never per-frame). |
+| **ESP** | Overlay for the **selected player** by default (switch the panel to *All players* for everyone): a tag showing the **in-game overhead name** (`Humanoid.DisplayName`, falling back to the account DisplayName) — nothing else, no health/studs — plus a box / highlight outline. The tag colour still tracks health (green → yellow → red) and staff get a red outline. Refreshes are throttled (never per-frame). |
 | **BEAM** | Draws a beam from you to the selected target. Customise colour, thickness, transparency and style (Solid / Pulse / Rainbow). Re-homes itself after respawns. |
 | **VIEW** | Scriptable camera on the target: smooth third-person Follow, First-person, or an automatic Orbit. Smoothness, distance, height, orbit speed and radius are sliders. Restores your camera on disable. |
 | **TP** | Guarded teleport with a disable-condition submenu showing live status. |
@@ -54,6 +54,8 @@ keep using the selected target.
 
 **Unloading** (Settings → Unload Script, the ✕ button, or `ctx.adminMenuCleanup()`)
 destroys every ESP tag / box / highlight, removes the beam and restores your camera.
+Re-pointing the beam at a new target always destroys the old beam first, so it can
+never get stuck rendering to a previous player.
 
 **TP disable conditions** (all default **ON** so a misclick can never teleport you):
 `Require confirm click`, `Cooldown`, `Block if target is dead`, `Block if you are dead`,
@@ -65,7 +67,7 @@ Click a row to toggle it; the status column shows `OK`, `BLOCKED`, `ARMED` or `O
 Every tunable lives at the top of `IndoVoice/modules/adminmenu.lua`:
 
 ```lua
-local ESP_CFG  = { Interval, MaxDistance, Outline, Scope, ShowName,
+local ESP_CFG  = { Interval, MaxDistance, Outline, Scope, UseInGameName, ShowName,
                    ColorMode, StaticColor, RequireLineOfSight }
 local BEAM_CFG = { Interval, Color, Thickness, Transparency, Style }
 local VIEW_CFG = { Smoothness, Mode, Distance, Height, OrbitSpeed, OrbitRadius }

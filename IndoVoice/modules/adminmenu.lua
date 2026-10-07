@@ -52,6 +52,7 @@ return function(ctx)
         MaxDistance = 1500,            -- hide ESP beyond this many studs
         Outline = "box",               -- "box" | "highlight" | "both" | "none"
         Scope = "target",              -- "target" (selected player only) | "all"
+        UseInGameName = true,          -- show the name the GAME displays overhead
         ShowName = true,
         ColorMode = "health",          -- "health" | "accent" | "static"
         StaticColor = Color3.fromRGB(155, 89, 255),
@@ -128,11 +129,12 @@ return function(ctx)
         view = nil,               -- { target = player, angle = 0, savedType = ..., savedSubject = ... }
         rows = {},                -- [player] = { button = ..., hp = ... }
         rowMeta = {},             -- [player] = { hp = TextLabel, dist = TextLabel }
+        nameScan = {},            -- [player] = { char, text } — overhead tag scan (once per character)
     }
 
     -- Forward declarations (these are defined further down but referenced by
     -- closures above them, so they must exist as locals up front).
-    local refreshPlayerList, healthColor, refreshToolbar, syncToggles, setBeam, setView, updateESP, toggleTargetVisuals
+    local refreshPlayerList, healthColor, refreshToolbar, syncToggles, setBeam, setView, updateESP, toggleTargetVisuals, stopBeam, startBeam
 
     -- ==================================================================
     -- SMALL UI HELPERS
@@ -555,11 +557,15 @@ return function(ctx)
         S.target = player
         log("AdminMenu: target → " .. player.Name, THEME.accentGlow or THEME.accent)
         -- Re-point an already-running beam / view at the new target.
+        -- IMPORTANT: destroy the old beam FIRST. Replacing S.beam directly
+        -- orphans the old Beam instance in workspace (the "stuck beam").
         if S.beamOn then
-            S.beam = { target = player, t = (S.beam and S.beam.t) or 0 }
+            stopBeam()
+            startBeam(player)
         end
-        if S.viewOn then
-            S.view = { target = player, angle = 0, savedType = S.view and S.view.savedType, savedSubject = S.view and S.view.savedSubject }
+        if S.viewOn and S.view then
+            S.view.target = player
+            S.view.angle = 0
         end
         -- ESP follows the selection, so refresh it right away.
         if S.espOn then
@@ -676,8 +682,60 @@ return function(ctx)
         return healthColor(ratio)
     end
 
+    -- Name the GAME displays overhead. Roblox's standard overhead name is
+    -- Humanoid.DisplayName (games often override it); other games use
+    -- character attributes or their own BillboardGui tag. Falls back to the
+    -- account DisplayName.
+    local NAME_ATTRS = { "DisplayName", "Nickname", "NickName", "CustomName", "GameName", "OverheadName" }
+
+    local function resolveInGameName(player)
+        local char = player.Character
+        if not char then
+            return player.DisplayName
+        end
+        -- 1) Humanoid.DisplayName — the standard in-game overhead name.
+        local hum = getHum(char)
+        if hum then
+            local d = hum.DisplayName
+            if type(d) == "string" and d ~= "" then
+                return d
+            end
+        end
+        -- 2) Game-specific attributes.
+        for _, attr in ipairs(NAME_ATTRS) do
+            local v = char:GetAttribute(attr) or player:GetAttribute(attr)
+            if type(v) == "string" and v ~= "" then
+                return v
+            end
+        end
+        -- 3) A BillboardGui tag above the head (scanned once per character).
+        local cached = S.nameScan[player]
+        if not (cached and cached.char == char) then
+            local text
+            local head = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+            if head then
+                for _, child in ipairs(head:GetChildren()) do
+                    -- never pick up our own ESP tag
+                    if child:IsA("BillboardGui") and child.Name ~= "AdminESP_Tag" then
+                        local lbl = child:FindFirstChildOfClass("TextLabel")
+                        if lbl and type(lbl.Text) == "string" and lbl.Text ~= "" then
+                            text = lbl.Text
+                            break
+                        end
+                    end
+                end
+            end
+            cached = { char = char, text = text }
+            S.nameScan[player] = cached
+        end
+        if cached.text then
+            return cached.text
+        end
+        return player.DisplayName
+    end
+
     -- ==================================================================
-    -- FEATURE 1 — ESP  (global overlay for every other player)
+    -- FEATURE 1 — ESP  (overlay for the selected player, or everyone)
     -- ==================================================================
     local function destroyESP(player)
         local e = S.esp[player]
@@ -685,6 +743,7 @@ return function(ctx)
             return
         end
         S.esp[player] = nil
+        S.nameScan[player] = nil
         if e.conn then
             e.conn:Disconnect()
         end
@@ -801,8 +860,12 @@ return function(ctx)
         local dist = myHRP and (myHRP.Position - hrp.Position).Magnitude or 0
         local col = espColor(player, ratio)
 
-        -- Tag text = DisplayName only; the colour still tracks health.
-        e.name.Text = ESP_CFG.ShowName and player.DisplayName or ""
+        -- Tag text = in-game name (DisplayName fallback); colour tracks health.
+        local label = player.DisplayName
+        if ESP_CFG.UseInGameName then
+            label = resolveInGameName(player)
+        end
+        e.name.Text = ESP_CFG.ShowName and label or ""
         e.name.TextColor3 = col
         if e.box then
             e.box.Color3 = col
@@ -870,13 +933,16 @@ return function(ctx)
             end
             updateESP()
         end
+        if U.espSet then
+            U.espSet(S.espOn, false)
+        end
         refreshToolbar()
     end
 
     -- ==================================================================
     -- FEATURE 2 — BEAM  (from local player to the target)
     -- ==================================================================
-    local function stopBeam()
+    stopBeam = function()
         local b = S.beam
         if not b then
             return
@@ -893,7 +959,7 @@ return function(ctx)
         end
     end
 
-    local function startBeam(target)
+    startBeam = function(target)
         stopBeam()
         S.beam = { target = target, t = 0 }
     end
@@ -984,6 +1050,9 @@ return function(ctx)
             stopBeam()
             log("Beam: OFF", THEME.dim)
         end
+        if U.beamSet then
+            U.beamSet(S.beamOn, false)
+        end
         refreshToolbar()
         return true
     end
@@ -1073,6 +1142,9 @@ return function(ctx)
             stopView()
             log("View: OFF", THEME.dim)
         end
+        if U.viewSet then
+            U.viewSet(S.viewOn, false)
+        end
         refreshToolbar()
         return true
     end
@@ -1084,26 +1156,15 @@ return function(ctx)
             return false
         end
         if S.target == player and (S.espOn or S.beamOn) then
+            -- setESP / setBeam keep the panel checkboxes in sync themselves.
             setESP(false)
             setBeam(false)
-            if U.espSet then
-                U.espSet(false, false)
-            end
-            if U.beamSet then
-                U.beamSet(false, false)
-            end
             log("ESP + Beam OFF for " .. player.DisplayName, THEME.dim)
             return false
         end
         selectTarget(player)
         setESP(true)
         setBeam(true)
-        if U.espSet then
-            U.espSet(true, false)
-        end
-        if U.beamSet then
-            U.beamSet(true, false)
-        end
         log("ESP + Beam ON for " .. player.DisplayName, THEME.success)
         return true
     end
@@ -1229,6 +1290,10 @@ return function(ctx)
         end)
         y = y + 46
         toggleRow(p, y, "Show name tag", ESP_CFG.ShowName, function(v) ESP_CFG.ShowName = v end)
+        y = y + 28
+        toggleRow(p, y, "Use in-game name tag", ESP_CFG.UseInGameName, function(v)
+            ESP_CFG.UseInGameName = v
+        end)
         y = y + 28
         toggleRow(p, y, "Line of sight only (raycast)", ESP_CFG.RequireLineOfSight, function(v)
             ESP_CFG.RequireLineOfSight = v
@@ -1567,6 +1632,17 @@ return function(ctx)
                 updateESP()
             end
         end
+        -- Watchdog: beam state and instances must stay in sync, otherwise a
+        -- re-point / respawn can leave an orphaned Beam rendering forever.
+        if S.beamOn then
+            if not S.target or not S.target.Parent then
+                setBeam(false)
+            elseif not S.beam then
+                startBeam(S.target)
+            end
+        elseif S.beam then
+            stopBeam()
+        end
         if S.beamOn then
             beamAcc = beamAcc + dt
             if beamAcc >= BEAM_CFG.Interval then
@@ -1626,9 +1702,6 @@ return function(ctx)
             end
             if input.KeyCode == config.Keys.ESP then
                 setESP(not S.espOn)
-                if U.espSet then
-                    U.espSet(S.espOn, false)
-                end
             end
         end)
     end
