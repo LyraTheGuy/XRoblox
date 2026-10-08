@@ -80,7 +80,7 @@ return function(config)
     end)
 
     -- Last-resort in-memory fallback (this VM only).
-    local memory = { profiles = {}, current = nil }
+    local memory = { profiles = {}, current = nil, autoLoad = nil }
 
     -- ------------------------------------------------------------------
     -- (DE)SERIALIZATION
@@ -243,7 +243,7 @@ return function(config)
     end
 
     local function loadIndex()
-        index = { profiles = {}, current = nil }
+        index = { profiles = {}, current = nil, autoLoad = nil }
 
         -- 1) Filesystem index
         local raw = readFile(indexPath())
@@ -252,6 +252,7 @@ return function(config)
             if ok and type(obj) == "table" and obj.__format == FORMAT then
                 index.profiles = normalizeList(obj.profiles)
                 index.current = (type(obj.current) == "string") and obj.current or nil
+                index.autoLoad = (type(obj.autoLoad) == "string") and obj.autoLoad or nil
                 return
             end
         end
@@ -261,12 +262,14 @@ return function(config)
             local g = genv.__LyraHubProfiles
             index.profiles = normalizeList(g.profiles)
             index.current = (type(g.current) == "string") and g.current or nil
+            index.autoLoad = (type(g.autoLoad) == "string") and g.autoLoad or nil
             return
         end
 
         -- 3) In-memory fallback
         index.profiles = normalizeList(memory.profiles)
         index.current = memory.current
+        index.autoLoad = memory.autoLoad
     end
 
     local function persistIndex()
@@ -275,6 +278,7 @@ return function(config)
             version = VERSION,
             profiles = index.profiles,
             current = index.current,
+            autoLoad = index.autoLoad,
         })
         writeFile(indexPath(), payload)
         pcall(function()
@@ -283,11 +287,13 @@ return function(config)
                     version = VERSION,
                     profiles = index.profiles,
                     current = index.current,
+                    autoLoad = index.autoLoad,
                 }
             end
         end)
         memory.profiles = index.profiles
         memory.current = index.current
+        memory.autoLoad = index.autoLoad
     end
 
     -- Discover profile files on disk and merge them into the index, so a
@@ -455,6 +461,31 @@ return function(config)
         return true, nil
     end
 
+    -- The profile explicitly marked to auto-load on startup. Unlike
+    -- "current" (which tracks the last loaded/saved profile), this is only
+    -- changed by the user, so the auto-load target is stable across sessions.
+    function SettingsProfiles.GetAutoLoad()
+        if index.autoLoad and findStoredName(index.autoLoad) then
+            return findStoredName(index.autoLoad)
+        end
+        return nil
+    end
+
+    function SettingsProfiles.SetAutoLoad(name)
+        if name == nil or name == "" then
+            index.autoLoad = nil
+            persistIndex()
+            return true, nil
+        end
+        local stored = findStoredName(name)
+        if not stored then
+            return false, "Profile '" .. tostring(name) .. "' does not exist"
+        end
+        index.autoLoad = stored
+        persistIndex()
+        return true, nil
+    end
+
     function SettingsProfiles.Create(name)
         local clean, err = sanitizeName(name)
         if not clean then return false, err end
@@ -547,8 +578,11 @@ return function(config)
                     break
                 end
             end
-            if index.current and slugOf(index.current) == slugOf(storedOld) then
+                        if index.current and slugOf(index.current) == slugOf(storedOld) then
                 index.current = cleanNew
+            end
+            if index.autoLoad and slugOf(index.autoLoad) == slugOf(storedOld) then
+                index.autoLoad = cleanNew
             end
             persistIndex()
             return true, nil
@@ -572,6 +606,9 @@ return function(config)
         if index.current and slugOf(index.current) == slugOf(storedOld) then
             index.current = cleanNew
         end
+        if index.autoLoad and slugOf(index.autoLoad) == slugOf(storedOld) then
+            index.autoLoad = cleanNew
+        end
         persistIndex()
         return true, nil
     end
@@ -583,6 +620,9 @@ return function(config)
         end
         if index.current and slugOf(index.current) == slugOf(stored) then
             return false, "Cannot delete the active profile — switch to another first"
+        end
+        if index.autoLoad and slugOf(index.autoLoad) == slugOf(stored) then
+            index.autoLoad = nil
         end
         deleteProfileFile(stored)
         for i, n in ipairs(index.profiles) do
@@ -606,6 +646,16 @@ return function(config)
         end
         local ok, str = pcall(function() return HttpService:JSONEncode(encode(data)) end)
         return ok and str or nil
+    end
+
+        -- Re-read the index (and rediscover files) from the storage backend. Used
+    -- by the Settings UI Refresh button so profiles created by another account
+    -- or copied onto disk appear without restarting the script.
+    function SettingsProfiles.Refresh()
+        loadIndex()
+        discoverFromDisk()
+        persistIndex()
+        return true, nil
     end
 
     -- Expose a couple of internals for debugging / other modules.

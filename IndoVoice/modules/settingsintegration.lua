@@ -1,4 +1,4 @@
--- IndoVoice/modules/settingsintegration.lua
+                                                                                                                                                                                                                                                                                                                                                                                                                                     -- IndoVoice/modules/settingsintegration.lua
 -- ============================================================================
 -- SAVED SETTINGS PROFILES — INTEGRATION
 -- ============================================================================
@@ -408,7 +408,7 @@ return function(ctx)
     local lastSnapshot = SP.Signature and SP.Signature()
     local lastDirtyCheck = 0
     local dirtyShown = false
-    -- Session bookkeeping:哪些 profile 已在本次会话中 loaded/saved 到 ctx
+    -- Session bookkeeping: track which profile was loaded/saved this session
     local lastLoadedSession, lastSavedSession = {}, {}
     local loadProfile -- forward declaration (used by the dropdown row closures)
 
@@ -419,8 +419,11 @@ return function(ctx)
 
     local function refreshCurrentLabel()
         local current = SP.GetCurrent()
-        P.CurrentLabel.Text = "Current Profile: " .. (current or "—")
+        local auto = SP.GetAutoLoad and SP.GetAutoLoad()
+        P.CurrentLabel.Text = "Current: " .. (current or "none")
+            .. "   |   AutoLoad: " .. (auto or "none")
     end
+
 
     local function refreshDropdown()
         for _, child in ipairs(P.DropdownList:GetChildren()) do
@@ -432,12 +435,17 @@ return function(ctx)
         P.Dropdown.Text = (selected or "Select profile…") .. "   ▼"
 
         local active = SP.GetCurrent()
+        local autoLoad = SP.GetAutoLoad and SP.GetAutoLoad()
         for _, name in ipairs(names) do
             local row = Instance.new("TextButton")
             row.Size = UDim2.new(1, -6, 0, 24)
-            row.BackgroundColor3 = (name == active) and THEME.accentDark or THEME.panel2
+            do
+                local marks = (name == active) and " [active]" or ""
+                if name == autoLoad then marks = marks .. " [auto]" end
+                row.Text = name .. marks
+            end
+            row.BackgroundColor3 = (name == autoLoad) and THEME.success or ((name == active) and THEME.accentDark or THEME.panel2)
             row.BackgroundTransparency = 0.25
-            row.Text = name .. ((name == active) and "  ●" or "")
             row.TextColor3 = (name == active) and THEME.text or THEME.dim
             row.Font = Enum.Font.GothamBold
             row.TextSize = 10
@@ -451,7 +459,10 @@ return function(ctx)
             local pad = Instance.new("UIPadding", row)
             pad.PaddingLeft = UDim.new(0, 8)
 
-            row.MouseButton1Click:Connect(function()
+                        -- Use MouseButton1Down (not Click): a ScrollingFrame can swallow a
+            -- press+release as a scroll gesture, so Click never fires and
+            -- `selected` is never set. Down fires immediately on press.
+            row.MouseButton1Down:Connect(function()
                 selected = name
                 P.DropdownList.Visible = false
                 loadProfile(name)
@@ -611,10 +622,46 @@ return function(ctx)
         return picked
     end
 
+    -- Re-scan the storage backend (filesystem / getgenv) so profiles created by
+    -- another account or copied onto disk show up without a full rejoin. Also
+    -- re-renders the dropdown and current label.
+    local function refreshProfiles()
+        if SP.Refresh then
+            pcall(function() SP.Refresh() end)
+        end
+        refreshDropdown()
+        refreshCurrentLabel()
+        local auto = SP.GetAutoLoad and SP.GetAutoLoad()
+        setStatus("Profiles refreshed - " .. SP.Count() .. " saved"
+            .. (auto and (" - auto-load: '" .. auto .. "'") or ""), THEME.success)
+    end
+
+    -- Mark the selected profile as the one that auto-loads on startup,
+    -- independently of which profile is currently loaded. Loading a different
+    -- profile later (Load Settings) does NOT change the auto-load target.
+    local function setAutoLoad()
+        local target = selected or SP.GetCurrent()
+        if not target then
+            setStatus("Select a profile to auto-load first", THEME.warn)
+            return
+        end
+        local ok, err = SP.SetAutoLoad(target)
+        if not ok then
+            setStatus("Set AutoLoad failed: " .. tostring(err), THEME.danger)
+            return
+        end
+        refreshDropdown()
+        refreshCurrentLabel()
+        setStatus("AutoLoad set to '" .. target .. "' - loads on next join", THEME.success)
+        log("AutoLoad profile set: " .. target, THEME.accentGlow)
+    end
+
     local function loadLastProfile()
-        -- Session map first; fall back to the persisted active profile
-        -- (index.json's "current" survives executor restarts).
-        local name = latestSessionProfile() or SP.GetCurrent()
+        -- Explicit AutoLoad target wins; then the session map; then the
+        -- persisted active profile (index.json survives executor restarts).
+        local name = (SP.GetAutoLoad and SP.GetAutoLoad())
+            or latestSessionProfile()
+            or SP.GetCurrent()
         if not name then
             setStatus("No profile was loaded or saved last run", THEME.dim)
             return
@@ -623,12 +670,13 @@ return function(ctx)
     end
 
     ctx.settingsProfilesUI = {
-        Refresh = function() refreshDropdown(); refreshCurrentLabel() end,
+        Refresh = refreshProfiles,
         Load = loadProfile,
         Save = saveProfile,
         Create = createProfile,
         Rename = renameProfile,
         Delete = deleteProfile,
+        SetAutoLoad = setAutoLoad,
         GetSelected = function() return selected end,
         LoadLast = loadLastProfile,
     }
@@ -654,6 +702,14 @@ return function(ctx)
     bind(P.RenameButton.MouseButton1Click, function() renameProfile() end)
     bind(P.DeleteButton.MouseButton1Click, function() deleteProfile() end)
 
+    -- Manual AutoLoad selection + Refresh (multi-account / cross-session).
+    if P.AutoLoadButton then
+        bind(P.AutoLoadButton.MouseButton1Click, function() setAutoLoad() end)
+    end
+    if P.RefreshButton then
+        bind(P.RefreshButton.MouseButton1Click, function() refreshProfiles() end)
+    end
+
     -- Unsaved-changes watchdog (throttled; compares encoded signatures).
     bind(ctx.RunService.Heartbeat, function()
         if ctx.destroyed then return end
@@ -672,7 +728,8 @@ return function(ctx)
     -- Initial render
     refreshDropdown()
     refreshCurrentLabel()
-    local restoreName = latestSessionProfile() or SP.GetCurrent()
+    local autoLoadName = SP.GetAutoLoad and SP.GetAutoLoad()
+    local restoreName = autoLoadName or latestSessionProfile() or SP.GetCurrent()
     setStatus("Profiles ready — " .. SP.Count() .. " saved"
         .. (restoreName and (" — auto-restoring '" .. restoreName .. "'") or ""), THEME.dim)
     log("Settings profiles ready (" .. SP.Count() .. " saved)", THEME.accentGlow)

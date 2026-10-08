@@ -31,7 +31,7 @@ Comprehensive automation toolkit for IndoVoice on Roblox.
 - **Saved Settings Profiles** — create / save / load / rename / delete named snapshots of every user setting (Auto Fish, Auto Mine, camera & player settings, keybinds, toggles, zones, targets). See below.
 
 **Session & Persistence**
-- Password Bypass — type the gate password once; rejoins in the same place skip the gate (per-place session file, 7-day TTL, see `config.Gate.SessionTTL`)
+- Password Bypass — type the gate password once; rejoins in the same place skip the gate (per-place session file, 7-day TTL, see `config.Gate.SessionTTL`). Changing `config.Gate.Password` invalidates every saved session and re-exec marker, forcing all users through the gate again ("all sessions must restart")
 - Auto Re-Execute on Rejoin — the script re-runs itself after server hops / reconnects via `queue_on_teleport` + a one-shot re-exec marker (cleared by manual unload)
 - Duplicate-Run Guard — safe re-execution: a second copy never runs while one is alive
 
