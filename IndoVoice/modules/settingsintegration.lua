@@ -408,7 +408,7 @@ return function(ctx)
     local lastSnapshot = SP.Signature and SP.Signature()
     local lastDirtyCheck = 0
     local dirtyShown = false
-    -- Session bookkeeping:哪些 profile 已在本次会话中 loaded/saved 到 ctx
+    -- Session bookkeeping: track which profile was loaded/saved this session
     local lastLoadedSession, lastSavedSession = {}, {}
     local loadProfile -- forward declaration (used by the dropdown row closures)
 
@@ -459,7 +459,10 @@ return function(ctx)
             local pad = Instance.new("UIPadding", row)
             pad.PaddingLeft = UDim.new(0, 8)
 
-            row.MouseButton1Click:Connect(function()
+                        -- Use MouseButton1Down (not Click): a ScrollingFrame can swallow a
+            -- press+release as a scroll gesture, so Click never fires and
+            -- `selected` is never set. Down fires immediately on press.
+            row.MouseButton1Down:Connect(function()
                 selected = name
                 P.DropdownList.Visible = false
                 loadProfile(name)

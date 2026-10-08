@@ -25,7 +25,7 @@ Automation suite for Build A Beehive game.
 ### 🎣 IndoVoice
 Comprehensive automation toolkit for IndoVoice.
 
-**Features:** Auto fishing, auto mining with hotspot ESP, gacha automation, rod shop, player ESP, anti-idle, Discord webhook integration, per-rarity filtering, dark/light theme.
+**Features:** Auto fishing, auto mining with hotspot ESP, gacha automation, rod shop, token shop, player ESP, admin menu (ESP / beam / scriptable view / guarded teleport), anti-idle, Discord webhook integration, per-rarity filtering, settings profiles, dark/light theme.
 
 **Quick Start:** Run `bootstrap.lua` → Authenticate → Select features → Configure settings
 
@@ -77,6 +77,7 @@ XRoblox/
 │   ├── gate.lua
 │   ├── gui.lua
 │   ├── core.lua
+│   ├── session.lua
 │   ├── modules/
 │   └── README.md
 ├── LyraHub/             # UI framework

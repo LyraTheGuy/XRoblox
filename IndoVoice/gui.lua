@@ -1948,9 +1948,12 @@ return function(config, components)
         profList.Position = UDim2.new(0, 10, 0, 705)
         profList.BackgroundColor3 = LYRA.bg2
         profList.BorderSizePixel = 0
-        profList.ScrollBarThickness = 3
+                profList.ScrollBarThickness = 3
         profList.AutomaticCanvasSize = Enum.AutomaticSize.Y
         profList.CanvasSize = UDim2.new(0, 0, 0, 0)
+        -- Keep the list non-scrollable so it never swallows a row press as a
+        -- drag gesture (which would prevent the row's click from registering).
+        profList.ScrollingEnabled = false
         profList.Visible = false
         profList.ZIndex = 30
         profList.Parent = scroll

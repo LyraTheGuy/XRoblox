@@ -28,6 +28,7 @@ return function(ctx)
     local ReplicatedStorage = ctx.ReplicatedStorage
 
     ctx.antiAfkEnabled = ctx.antiAfkEnabled or false
+    ctx.antiAfkConnections = ctx.antiAfkConnections or {}
 
     -- CONFIRMED from PlayerGui.HUD.AFKCheckController (decompiled):
     --   AFKCheckEvent.OnClientEvent passes ONE arg: seconds until the server
@@ -215,9 +216,9 @@ return function(ctx)
         return buttons[1]
     end
 
-    -- Assigned to the forward-declared local above so both the remote
+            -- Assigned to the forward-declared local above so both the remote
     -- handler and the GUI watcher can call it.
-    function scanForPrompt()
+    scanForPrompt = function()
         local playerGui = lp:FindFirstChild("PlayerGui")
         if not playerGui then return end
 
@@ -279,16 +280,24 @@ return function(ctx)
             VirtualUser:ClickButton2(Vector2.new())
         end)
 
-        -- Some games track movement rather than raw input. Skipped while a
+                -- Some games track movement rather than raw input. Skipped while a
         -- mine/fish attempt is mid-flight so it can't disturb one.
+        --
+        -- We nudge via Humanoid:MoveTo rather than writing HRP.CFrame directly:
+        -- setting CFrame on a character with an active Humanoid fights the
+        -- character controller and can cause visible jitter / rubber-banding.
+        -- MoveTo asks the controller to walk a tiny step, which the game's
+        -- movement-based idle detection still registers.
         if not ctx.autoFishEnabled and not ctx.autoMineEnabled then
             pcall(function()
-                local hrp = getHRP(lp.Character)
-                if hrp then
-                    local original = hrp.CFrame
-                    hrp.CFrame = original * CFrame.new(0, 0.2, 0)
-                    task.wait(0.1)
-                    hrp.CFrame = original
+                local char = lp.Character
+                local hrp = getHRP(char)
+                local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+                if hrp and humanoid then
+                    local target = hrp.Position + Vector3.new(0, 0, 0.5)
+                    humanoid:MoveTo(target)
+                    task.wait(0.15)
+                    humanoid:MoveTo(hrp.Position) -- settle back
                 end
             end)
         end
