@@ -127,8 +127,9 @@ return function(ctx)
         esp = {},                 -- [player] = { billboard = ..., box = ..., hl = ... }
         beam = nil,               -- { target = player, a0 = ..., a1 = ..., beam = ..., t = 0 }
         view = nil,               -- { target = player, angle = 0, savedType = ..., savedSubject = ... }
-        rows = {},                -- [player] = { button = ..., hp = ... }
-        rowMeta = {},             -- [player] = { hp = TextLabel, dist = TextLabel }
+                rows = {},                -- [player] = row frame
+
+        
         nameScan = {},            -- [player] = { char, text } — overhead tag scan (once per character)
     }
 
@@ -596,29 +597,20 @@ return function(ctx)
             TextTruncate = Enum.TextTruncate.AtEnd,
             TextColor3 = selected and Color3.new(1, 1, 1) or THEME.text,
         })
-        local hp = makeLabel(row, {
-            Text = "",
-            Position = UDim2.new(1, -58, 0, 0),
-            Size = UDim2.new(0, 52, 1, 0),
-            TextSize = 9,
-            TextXAlignment = Enum.TextXAlignment.Right,
-            TextColor3 = THEME.dim,
-        })
+                -- (Health indicator removed from the player list — request: no HP text.)
         -- The name row IS the switch: click = ESP + Beam on for this player,
         -- click again = off. VIEW / TP keep using the selected target.
         bind(row.MouseButton1Click, function()
             toggleTargetVisuals(player)
         end)
         S.rows[player] = row
-        S.rowMeta[player] = { hp = hp }
     end
 
     refreshPlayerList = function()
         for _, row in pairs(S.rows) do
             row:Destroy()
         end
-        S.rows = {}
-        S.rowMeta = {}
+                S.rows = {}
 
         local query = string.lower(U.search.Text or "")
         local list_players = {}
@@ -643,20 +635,8 @@ return function(ctx)
     end
     ctx.adminRefreshPlayerList = refreshPlayerList
 
-    -- Live HP readout on each row (called from the throttled loop).
-    local function updateRows()
-        for player, meta in pairs(S.rowMeta) do
-            local hum = getHum(player.Character)
-            if hum then
-                local ratio = math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1)
-                meta.hp.Text = string.format("%d%%", math.floor(ratio * 100))
-                meta.hp.TextColor3 = healthColor(ratio)
-            else
-                meta.hp.Text = "--"
-                meta.hp.TextColor3 = THEME.dim
-            end
-        end
-    end
+        -- (Live HP readout removed from the player list.)
+
 
     -- ==================================================================
     -- HEALTH COLOUR HELPERS
@@ -1619,7 +1599,8 @@ return function(ctx)
     -- ==================================================================
     -- MAIN LOOP (single throttled RenderStepped)
     -- ==================================================================
-    local espAcc, beamAcc, rowAcc, tpAcc = 0, 0, 0, 0
+        local espAcc, beamAcc, tpAcc = 0, 0, 0
+
     bind(RunService.RenderStepped, function(dt)
         if ctx.destroyed then
             return
@@ -1654,11 +1635,8 @@ return function(ctx)
             updateView(dt)
         end
 
-        rowAcc = rowAcc + dt
-        if rowAcc >= 0.4 then
-            rowAcc = 0
-            updateRows()
-        end
+                -- (Player-list HP refresh loop removed with the HP indicator.)
+
         tpAcc = tpAcc + dt
         if tpAcc >= 0.15 then
             tpAcc = 0

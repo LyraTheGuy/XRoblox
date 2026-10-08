@@ -1990,16 +1990,27 @@ return function(config, components)
         profRenameBtn.Position = UDim2.new(0.33, 3, 0, 758)
         profRenameBtn.TextSize = 9
 
-        local profDeleteBtn = makeActionButton(scroll, "Delete Profile", 758, LYRA.danger)
+                local profDeleteBtn = makeActionButton(scroll, "Delete Profile", 758, LYRA.danger)
         profDeleteBtn.Size = UDim2.new(0.32, -9, 0, 28)
         profDeleteBtn.Position = UDim2.new(0.66, -2, 0, 758)
         profDeleteBtn.TextSize = 9
+
+        -- Explicit AutoLoad picker + Refresh (multi-account / cross-session).
+        local profAutoLoadBtn = makeActionButton(scroll, "Set AutoLoad (Selected)", 790, LYRA.tp)
+        profAutoLoadBtn.Size = UDim2.new(0.48, -10, 0, 28)
+        profAutoLoadBtn.Position = UDim2.new(0, 10, 0, 790)
+        profAutoLoadBtn.TextSize = 9
+
+        local profRefreshBtn = makeActionButton(scroll, "Refresh Profiles", 790, LYRA.warn)
+        profRefreshBtn.Size = UDim2.new(0.48, -10, 0, 28)
+        profRefreshBtn.Position = UDim2.new(0.5, 5, 0, 790)
+        profRefreshBtn.TextSize = 9
 
         -- Shared status line for profiles AND and legacy set/loaded feedback
         -- (core.lua and settingsintegration.lua both write through ref ProfileStatus).
         local profStatus = Instance.new("TextLabel")
         profStatus.Size = UDim2.new(1, -20, 0, 30)
-        profStatus.Position = UDim2.new(0, 10, 0, 788)
+        profStatus.Position = UDim2.new(0, 10, 0, 822)
         profStatus.BackgroundTransparency = 1
         profStatus.Text = ""
         profStatus.TextColor3 = LYRA.dim
@@ -2031,8 +2042,10 @@ return function(config, components)
                 SaveButton = profSaveBtn,
                 LoadButton = profLoadBtn,
                 CreateButton = profCreateBtn,
-                RenameButton = profRenameBtn,
+                                RenameButton = profRenameBtn,
                 DeleteButton = profDeleteBtn,
+                AutoLoadButton = profAutoLoadBtn,
+                RefreshButton = profRefreshBtn,
                 StatusLabel = profStatus,
             },
         }
