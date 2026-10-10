@@ -614,7 +614,35 @@ return function(ctx)
 
             -- POST DELAY: randomized 2-3s pause after a successful mine to
             -- avoid hammering the server with back-to-back attempts, which
-            -- appears to trigger the temporary mining ban.
+            -- can trigger anti-cheat measures.
+
+            if not minigameStarted then
+                amSetStage("No minigame response, retrying...")
+                log("AutoMine: No minigame in 5s, retrying same stone", THEME.warn)
+                handleFailure()
+                task.wait(randomStepDelay())
+                continue
+            end
+
+            -- ★★★ NEWLY ADDED: Play legit mining animation/effect ★★★
+            -- Fired ONLY here — after the stone was clicked AND the minigame
+            -- has actually started (all occupied/unequipped/no-response checks
+            -- above have passed). Fires exactly once per mining attempt.
+            local stonePos = stone:GetPivot().Position
+            local effectArgs = {
+                "MiningEffect",
+                vector.create(stonePos.X, stonePos.Y, stonePos.Z)
+            }
+            pcall(function()
+                game:GetService("ReplicatedStorage")
+                    :WaitForChild("GameRemoteEvents")
+                    :WaitForChild("ClientEffectRequestEvent")
+                    :FireServer(unpack(effectArgs))
+            end)
+            -- ★★★ END NEWLY ADDED ★★★
+
+            -- SKIP MINIGAME (random 8-15s delay then fire MineResult)
+
             amSetStage("Resetting...")
             local postMineDelay = AM_POST_MINE_DELAY_MIN + math.random() * (AM_POST_MINE_DELAY_MAX - AM_POST_MINE_DELAY_MIN)
             task.wait(postMineDelay)
