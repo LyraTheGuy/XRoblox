@@ -462,10 +462,11 @@ return function(ctx)
                         -- Use MouseButton1Down (not Click): a ScrollingFrame can swallow a
             -- press+release as a scroll gesture, so Click never fires and
             -- `selected` is never set. Down fires immediately on press.
-            row.MouseButton1Down:Connect(function()
+                        row.MouseButton1Down:Connect(function()
                 selected = name
                 P.DropdownList.Visible = false
-                loadProfile(name)
+                                P.Dropdown.Text = selected .. "   ▼"
+                setStatus("Selected '" .. name .. "' — press Load Selected Profile to apply", THEME.dim)
             end)
         end
     end
