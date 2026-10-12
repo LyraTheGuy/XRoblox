@@ -29,7 +29,11 @@
                                                      If nil, re-runs this same
                                                      script's stored source.
        SOURCE             (string, optional)      - explicit source to re-run.
-     ========================================================================== ]]
+          ========================================================================== ]]
+
+-- Unmissable startup marker: if you see this, the script IS running.
+print("[AntiAFK] >>> SCRIPT STARTED <<<")
+warn("[AntiAFK] >>> SCRIPT STARTED <<<")
 
 -- ============================================================================
 -- CONFIG / ENVIRONMENT
@@ -58,10 +62,10 @@ local MARKER_FILE    = FOLDER .. "/_reexec_" .. tostring(game.PlaceId)
 do
 	if genv[RUN_KEY] then
 		if type(genv.__StandaloneAntiAfkDestroy) == "function" then
-			warn("[AntiAFK] Already running — skipping duplicate execution.")
+			warn("[AntiAFK] Already running ??? skipping duplicate execution.")
 			return
 		end
-		warn("[AntiAFK] Stale run flag found (previous copy crashed) — continuing.")
+		warn("[AntiAFK] Stale run flag found (previous copy crashed) ??? continuing.")
 		genv[RUN_KEY] = nil
 	end
 	genv[RUN_KEY] = true
@@ -326,7 +330,7 @@ local function hookAfkRemotes()
 		log("Hooked AFK check remote: " .. checkEvent:GetFullName())
 		track(checkEvent.OnClientEvent:Connect(function(...)
 			if destroyed then return end
-			log("AFK check received — answering")
+			log("AFK check received ??? answering")
 			if decisionEvent then
 				-- No-arg answer first (most common), then with explicit stay.
 				answerRemote(decisionEvent)
@@ -342,7 +346,7 @@ local function hookAfkRemotes()
 		log("Hooked AFK return remote: " .. returnEvent:GetFullName())
 		track(returnEvent.OnClientEvent:Connect(function(...)
 			if destroyed then return end
-			log("AFK return prompt received — requesting return")
+			log("AFK return prompt received ??? requesting return")
 			answerRemote(returnEvent, true)
 		end))
 	end
@@ -421,7 +425,7 @@ scanForPrompt = function()
 		if gui and (gui:IsA("ScreenGui") or gui:IsA("GuiObject")) then
 			local enabled = (not gui:IsA("ScreenGui")) or gui.Enabled
 			if enabled and containerHasAfk(gui) then
-				log("AFK prompt UI detected (" .. name .. ") — clicking")
+				log("AFK prompt UI detected (" .. name .. ") ??? clicking")
 				-- Answer the remote first (what actually matters).
 				if genv.__StandaloneAntiAfkAnswer then
 					pcall(genv.__StandaloneAntiAfkAnswer)
@@ -558,7 +562,7 @@ genv.__StandaloneAntiAfkDestroy = destroyAll
 -- ============================================================================
 -- Consume any pending re-exec flag from a previous run (informational).
 if consumeReexec() then
-	log("Rejoin detected — auto-executing.")
+	log("Rejoin detected ??? auto-executing.")
 end
 
 -- Small on-screen status (clickable to unload).
