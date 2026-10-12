@@ -342,45 +342,47 @@ return function(config)
 					delfile(reexecPath(currentPlaceId))
 				end
 			end
-		end)
-		return flag
-	end function Session.SetReexecute(flag)
-	flag = flag and true or false
-	pcall(function()
-		if genv then
-			genv.__IndoVoiceAutoReexec = flag
-			-- Bind the flag to the current password fingerprint so a later
-			-- password change drops stale bypass flags (see ShouldReexecute).
-			if flag then
-				genv.__IndoVoicePassHash = PASS_HASH
-			else
-				genv.__IndoVoicePassHash = nil
-			end
-			-- Place-aware: the queued payload checks this so a teleport into a
-			-- DIFFERENT game never auto-runs IndoVoice there.
-			if flag then
-				genv.__IndoVoiceReexecPlaceId = currentPlaceId
-			else
-				genv.__IndoVoiceReexecPlaceId = nil
-			end
-		end
-		if hasFS then
-			if flag then
-				pcall(function()
-					if type(isfolder) == "function" and type(makefolder) == "function" then
-						if not isfolder(SESSION_FOLDER) then
-							makefolder(SESSION_FOLDER)
-						end
-					end
-					writefile(reexecPath(currentPlaceId), PASS_HASH)
 				end)
-			elseif isfile(reexecPath(currentPlaceId)) and type(delfile) == "function" then
-				delfile(reexecPath(currentPlaceId))
+		return flag
+	end
+
+	function Session.SetReexecute(flag)
+		flag = flag and true or false
+		pcall(function()
+			if genv then
+				genv.__IndoVoiceAutoReexec = flag
+				-- Bind the flag to the current password fingerprint so a later
+				-- password change drops stale bypass flags (see ShouldReexecute).
+				if flag then
+					genv.__IndoVoicePassHash = PASS_HASH
+				else
+					genv.__IndoVoicePassHash = nil
+				end
+				-- Place-aware: the queued payload checks this so a teleport into a
+				-- DIFFERENT game never auto-runs IndoVoice there.
+				if flag then
+					genv.__IndoVoiceReexecPlaceId = currentPlaceId
+				else
+					genv.__IndoVoiceReexecPlaceId = nil
+				end
 			end
-		end
-	end)
-	return true
-end
+			if hasFS then
+				if flag then
+					pcall(function()
+						if type(isfolder) == "function" and type(makefolder) == "function" then
+							if not isfolder(SESSION_FOLDER) then
+								makefolder(SESSION_FOLDER)
+							end
+						end
+						writefile(reexecPath(currentPlaceId), PASS_HASH)
+					end)
+				elseif isfile(reexecPath(currentPlaceId)) and type(delfile) == "function" then
+					delfile(reexecPath(currentPlaceId))
+				end
+			end
+		end)
+		return true
+	end
 
 	-- ---------------------------------------------------------------
 	-- Debug helper (see the testing notes at the bottom of main.lua)
