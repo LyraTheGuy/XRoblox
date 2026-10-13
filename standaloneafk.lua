@@ -76,9 +76,14 @@ local Players            = game:GetService("Players")
 local ReplicatedStorage  = game:GetService("ReplicatedStorage")
 local VirtualUser        = game:GetService("VirtualUser")
 local lp                 = Players.LocalPlayer
+local RunService         = game:GetService("RunService")
 
 -- Track whether we're being unloaded on purpose (so re-exec stays cancelled).
 local destroyed = false
+
+-- Stats shown by the status panel.
+local lastActivity = os.clock()  -- timestamp of the last input we sent (AFK timer)
+local fpsAccum, fpsTime, lastFps = 0, 0, 0
 
 -- ============================================================================
 -- SMALL HELPERS
@@ -484,13 +489,16 @@ local function generateActivity()
 		local char = lp.Character
 		local hrp = getHRP(char)
 		local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-		if hrp and humanoid then
+
+				if hrp and humanoid then
 			local pos = hrp.Position
 			humanoid:MoveTo(pos + Vector3.new(0, 0, 0.5))
 			task.wait(0.15)
 			humanoid:MoveTo(pos)
 		end
 	end)
+
+	lastActivity = os.clock()
 end
 
 -- ============================================================================
@@ -533,27 +541,30 @@ genv.__StandaloneAntiAfkAnswer = function()
 			end
 		end
 	end
-end
-
--- ============================================================================
--- UNLOAD HOOK
--- ============================================================================
-local function destroyAll()
-	if destroyed then return end
-	destroyed = true
-	for _, conn in ipairs(connections) do
-		pcall(function() conn:Disconnect() end)
 	end
 	connections = {}
 	genv.__StandaloneAntiAfkAnswer = nil
 	-- Manual unload = user asked it to stop: cancel the auto re-exec flag.
 	setReexec(false)
 	genv[RUN_KEY] = nil
-	genv.__StandaloneAntiAfkDestroy = nil
+		genv.__StandaloneAntiAfkDestroy = nil
+	-- Destroy the GUI via the stored reference (works whether it was parented
+	-- to CoreGui or PlayerGui). Then fall back to name lookups.
 	pcall(function()
-		local gui = lp:FindFirstChild("PlayerGui") and lp.PlayerGui:FindFirstChild("StandaloneAntiAfk")
+		local gui = genv.__StandaloneAntiAfkGui
 		if gui then gui:Destroy() end
 	end)
+	pcall(function()
+		local gui = lp.PlayerGui and lp.PlayerGui:FindFirstChild("StandaloneAntiAfk")
+		if gui then gui:Destroy() end
+	end)
+	pcall(function()
+		local cg = game:GetService("CoreGui")
+		local gui = cg and cg:FindFirstChild("StandaloneAntiAfk")
+		if gui then gui:Destroy() end
+	end)
+	genv.__StandaloneAntiAfkGui = nil
+	genv.__StandaloneAntiAfkPanel = nil
 	log("Unloaded.")
 end
 
@@ -567,35 +578,132 @@ if consumeReexec() then
 	log("Rejoin detected -- auto-executing.")
 end
 
--- Small on-screen status (clickable to unload).
+-- ============================================================================
+-- STATUS PANEL  (Time / FPS / AFK timer / next-nudge countdown)
+-- ============================================================================
+-- Draggable, clickable-to-unload panel. Stored in genv so destroyAll() can
+-- always tear it down no matter which container it was parented to.
 do
 	pcall(function()
 		local gui = Instance.new("ScreenGui")
 		gui.Name = "StandaloneAntiAfk"
 		gui.ResetOnSpawn = false
 		gui.DisplayOrder = 9999
+		gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 		local parentOk = pcall(function() gui.Parent = game:GetService("CoreGui") end)
 		if not parentOk or not gui.Parent then gui.Parent = lp:WaitForChild("PlayerGui") end
+		genv.__StandaloneAntiAfkGui = gui
 
-		local btn = Instance.new("TextButton")
-		btn.Size = UDim2.new(0, 130, 0, 28)
-		btn.Position = UDim2.new(1, -140, 0, 10)
-		btn.BackgroundColor3 = Color3.fromRGB(46, 110, 168)
-		btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-		btn.Font = Enum.Font.GothamBold
-		btn.TextSize = 12
-		btn.Text = "Anti-AFK: ON"
-		btn.BorderSizePixel = 0
-		btn.Parent = gui
-		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+		-- Outer frame (the draggable header + body)
+		local frame = Instance.new("Frame")
+		frame.Name = "Panel"
+		frame.Size = UDim2.new(0, 190, 0, 118)
+		frame.Position = UDim2.new(1, -200, 0, 10)
+		frame.BackgroundColor3 = Color3.fromRGB(24, 26, 32)
+		frame.BorderSizePixel = 0
+		frame.Active = true
+		frame.Draggable = true -- simple drag; harmless if executor strips it
+		frame.Parent = gui
+		Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
+		local stroke = Instance.new("UIStroke", frame)
+		stroke.Color = Color3.fromRGB(60, 66, 80)
+		stroke.Thickness = 1
 
-		btn.MouseButton1Click:Connect(function()
+		-- Header
+		local header = Instance.new("TextLabel")
+		header.Size = UDim2.new(1, 0, 0, 26)
+		header.BackgroundColor3 = Color3.fromRGB(46, 110, 168)
+		header.BorderSizePixel = 0
+		header.Font = Enum.Font.GothamBold
+		header.TextSize = 13
+		header.TextColor3 = Color3.fromRGB(255, 255, 255)
+		header.Text = "Anti-AFK: ON"
+		header.Parent = frame
+		Instance.new("UICorner", header).CornerRadius = UDim.new(0, 8)
+
+		-- A tiny patch to square off the header's bottom corners
+		local headerFix = Instance.new("Frame")
+		headerFix.Size = UDim2.new(1, 0, 0, 8)
+		headerFix.Position = UDim2.new(0, 0, 1, -8)
+		headerFix.BackgroundColor3 = Color3.fromRGB(46, 110, 168)
+		headerFix.BorderSizePixel = 0
+		headerFix.ZIndex = header.ZIndex
+		headerFix.Parent = header
+
+		-- Rows (label + value)
+		local function makeRow(yOffset, labelText)
+			local label = Instance.new("TextLabel")
+			label.Size = UDim2.new(0.55, 0, 0, 18)
+			label.Position = UDim2.new(0, 12, 0, yOffset)
+			label.BackgroundTransparency = 1
+			label.Font = Enum.Font.Gotham
+			label.TextSize = 12
+			label.TextXAlignment = Enum.TextXAlignment.Left
+			label.TextColor3 = Color3.fromRGB(150, 156, 168)
+			label.Text = labelText
+			label.Parent = frame
+
+			local value = Instance.new("TextLabel")
+			value.Size = UDim2.new(0.40, 0, 0, 18)
+			value.Position = UDim2.new(0.58, 0, 0, yOffset)
+			value.BackgroundTransparency = 1
+			value.Font = Enum.Font.GothamBold
+			value.TextSize = 12
+			value.TextXAlignment = Enum.TextXAlignment.Right
+			value.TextColor3 = Color3.fromRGB(235, 238, 245)
+			value.Text = "--"
+			value.Parent = frame
+			return value
+		end
+
+		local timeValue = makeRow(34, "Time")
+		local fpsValue  = makeRow(54, "FPS")
+		local afkValue  = makeRow(74, "AFK timer")
+		local nudgeValue = makeRow(94, "Next nudge")
+
+		-- Click the header (or panel) to unload.
+		local clickBtn = Instance.new("TextButton")
+		clickBtn.Size = UDim2.new(1, 0, 0, 26)
+		clickBtn.BackgroundTransparency = 1
+		clickBtn.Text = ""
+		clickBtn.ZIndex = 5
+		clickBtn.Parent = header
+		clickBtn.MouseButton1Click:Connect(function()
 			destroyAll()
-			btn.Text = "Anti-AFK: OFF"
-			btn.BackgroundColor3 = Color3.fromRGB(120, 120, 120)
 		end)
 
-		genv.__StandaloneAntiAfkButton = btn
+		-- Live updater -----------------------------------------------------
+		track(RunService.RenderStepped:Connect(function(dt)
+			if destroyed then return end
+			-- FPS via a rolling average (dt is seconds between frames)
+			if dt > 0 then
+				fpsAccum = fpsAccum + 1
+				fpsTime = fpsTime + dt
+				if fpsTime >= 0.5 then
+					lastFps = math.floor(fpsAccum / fpsTime + 0.5)
+					fpsAccum = 0
+					fpsTime = 0
+				end
+			end
+		end))
+
+		track(task.spawn(function()
+			while not destroyed do
+				local ok = pcall(function()
+					local now = os.clock()
+					timeValue.Text = os.date("%H:%M:%S")
+					fpsValue.Text = tostring(lastFps)
+					local idleFor = now - lastActivity
+					afkValue.Text = string.format("%.0fs", idleFor)
+					local remaining = math.max(0, NUDGE_INTERVAL - idleFor)
+					nudgeValue.Text = string.format("%.0fs", remaining)
+				end)
+				if not ok then end
+				task.wait(0.25)
+			end
+		end))
+
+		genv.__StandaloneAntiAfkPanel = frame
 	end)
 end
 
