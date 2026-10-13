@@ -1,4 +1,5 @@
 --[[ ==========================================================================
+
      STANDALONE ANTI-AFK
      ==========================================================================
      A self-contained anti-AFK that can be executed anywhere (any game),
@@ -294,7 +295,8 @@ local function looksLikeAfkDecision(name)
 end
 
 local function answerRemote(re, ...)
-	pcall(function() re:FireServer(...) end)
+	local args = { ... }
+	pcall(function() re:FireServer(table.unpack(args)) end)
 end
 
 local function hookAfkRemotes()
