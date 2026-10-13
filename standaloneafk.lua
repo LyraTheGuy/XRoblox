@@ -1,5 +1,4 @@
 --[[ ==========================================================================
-
      STANDALONE ANTI-AFK
      ==========================================================================
      A self-contained anti-AFK that can be executed anywhere (any game),
@@ -12,13 +11,9 @@
        3) GUI        - fallback that finds and clicks/closes the AFK prompt.
 
      AUTO RE-EXEC ON SERVER RESTART / REJOIN:
-       Uses the same approach as IndoVoice:
-         * queue_on_teleport(payload)  -> primary path, re-runs on next place VM
-         * getgenv() one-shot flag     -> fallback (survives re-exec in-session)
-         * on-disk marker file         -> fallback for executors with FS access
-       The payload re-checks the flag before re-running, so a manual unload
-       (which clears the flag) stays unloaded. Place-aware so it never fires
-       in a different game.
+       queue_on_teleport + getgenv one-shot flag + on-disk marker, so a manual
+       unload (which clears the flag) stays unloaded. Place-aware so it never
+       fires in a different game.
 
      Everything is pcall-wrapped so missing executor functions degrade
      gracefully instead of crashing.
@@ -27,10 +22,11 @@
        NUDGE_INTERVAL     (seconds, default 120)  - how often to nudge
        RECONNECT          (bool, default true)    - re-exec on teleport/rejoin
        CONFIG_URL         (string, optional)      - raw URL to re-run on rejoin.
-                                                     If nil, re-runs this same
-                                                     script's stored source.
        SOURCE             (string, optional)      - explicit source to re-run.
-          ========================================================================== ]]
+
+     A draggable status panel shows Time / FPS / AFK timer / Next nudge.
+     Click the header to unload.
+     ========================================================================== ]]
 
 -- Unmissable startup marker: if you see this, the script IS running.
 print("[AntiAFK] >>> SCRIPT STARTED <<<")
@@ -57,9 +53,6 @@ local MARKER_FILE    = FOLDER .. "/_reexec_" .. tostring(game.PlaceId)
 -- ============================================================================
 -- DUPLICATE-RUN GUARD
 -- ============================================================================
--- If a live copy is already running (destroy function registered), abort.
--- If the flag is set but the destroy hook is gone, the previous copy died
--- (crash / manual re-exec) -> clear the stale flag and continue.
 do
 	if genv[RUN_KEY] and type(genv.__StandaloneAntiAfkDestroy) == "function" then
 		warn("[AntiAFK] Already running -- skipping duplicate execution.")
@@ -75,8 +68,8 @@ end
 local Players            = game:GetService("Players")
 local ReplicatedStorage  = game:GetService("ReplicatedStorage")
 local VirtualUser        = game:GetService("VirtualUser")
-local lp                 = Players.LocalPlayer
 local RunService         = game:GetService("RunService")
+local lp                 = Players.LocalPlayer
 
 -- Track whether we're being unloaded on purpose (so re-exec stays cancelled).
 local destroyed = false
@@ -102,16 +95,12 @@ end
 
 local function getHRP(char)
 	if not char then return nil end
-	return char:FindFirstChild("HumanoidRootPart")
-		or char.PrimaryPart
+	return char:FindFirstChild("HumanoidRootPart") or char.PrimaryPart
 end
 
 -- ============================================================================
 -- AUTO RE-EXEC PERSISTENCE (server restart / rejoin)
 -- ============================================================================
--- We store the script's own source so that, with no CONFIG_URL, a rejoin can
--- re-run it directly. queue_on_teleport is the primary mechanism; the getgenv
--- flag and on-disk marker are fallbacks.
 local SELF_SOURCE = nil
 do
 	-- Best-effort capture of our own source.
@@ -132,7 +121,6 @@ do
 	if not SELF_SOURCE and type(USER_CFG.SOURCE) == "string" then
 		SELF_SOURCE = USER_CFG.SOURCE
 	end
-	-- Cache whatever we have so the next VM can read it even if capture fails.
 	if SELF_SOURCE then
 		pcall(function() genv[SRC_KEY] = SELF_SOURCE end)
 		if hasFS() then
@@ -144,7 +132,6 @@ do
 			end)
 		end
 	else
-		-- Try to recover source saved by a previous run.
 		pcall(function() SELF_SOURCE = genv[SRC_KEY] end)
 		if not SELF_SOURCE and hasFS() and isfile(FOLDER .. "/source.lua") then
 			pcall(function() SELF_SOURCE = readfile(FOLDER .. "/source.lua") end)
@@ -204,14 +191,11 @@ end
 local function armAutoReexec()
 	if not RECONNECT then return end
 
-	-- (a) Flag for the next boot (fallback path).
 	setReexec(true)
 
-	-- (b) Primary: queue a payload for the next place VM.
 	if type(queue_on_teleport) == "function" then
 		local payload = ([[
 local ok, err = pcall(function()
-	-- Respect a manual unload: skip auto-exec when the flag was cleared.
 	local flag = false
 	pcall(function()
 		local g = (type(getgenv) == "function") and getgenv() or nil
@@ -226,7 +210,6 @@ local ok, err = pcall(function()
 		end)
 	end
 	if not flag then return end
-	-- Never double-start if a live copy somehow survived the teleport.
 	if _G.%s and type(_G.__StandaloneAntiAfkDestroy) == "function" then return end
 
 	local src
@@ -268,7 +251,7 @@ if not ok then warn("[AntiAFK] Auto re-exec failed: " .. tostring(err)) end
 		pcall(function() queue_on_teleport(payload) end)
 	end
 
-	-- (c) Safety net: re-arm the marker the moment a teleport STARTS.
+	-- Safety net: re-arm the marker the moment a teleport STARTS.
 	pcall(function()
 		lp.OnTeleport:Connect(function(state)
 			if destroyed then return end
@@ -291,8 +274,6 @@ end
 -- ============================================================================
 -- LAYER 2: REMOTE HANDLERS
 -- ============================================================================
--- Game-agnostic: look for any remote whose name looks AFK-related in the usual
--- containers and answer the check immediately.
 local function looksLikeAfkDecision(name)
 	local n = string.lower(name)
 	return string.find(n, "afk", 1, true) ~= nil
@@ -339,7 +320,6 @@ local function hookAfkRemotes()
 			if destroyed then return end
 			log("AFK check received -- answering")
 			if decisionEvent then
-				-- No-arg answer first (most common), then with explicit stay.
 				answerRemote(decisionEvent)
 				task.wait(0.15)
 				answerRemote(decisionEvent, true)
@@ -433,7 +413,6 @@ scanForPrompt = function()
 			local enabled = (not gui:IsA("ScreenGui")) or gui.Enabled
 			if enabled and containerHasAfk(gui) then
 				log("AFK prompt UI detected (" .. name .. ") -- clicking")
-				-- Answer the remote first (what actually matters).
 				if genv.__StandaloneAntiAfkAnswer then
 					pcall(genv.__StandaloneAntiAfkAnswer)
 				end
@@ -460,7 +439,6 @@ local function watchPrompts()
 		end
 	end
 
-	-- Catch prompts that appear later.
 	track(playerGui.ChildAdded:Connect(function(child)
 		if destroyed then return end
 		for _, name in ipairs(PROMPT_NAMES) do
@@ -477,20 +455,16 @@ end
 -- LAYER 1: PREVENTION (idle-timer reset)
 -- ============================================================================
 local function generateActivity()
-	-- Real input via VirtualUser so the game's idle detector resets.
 	pcall(function()
 		VirtualUser:CaptureController()
 		VirtualUser:ClickButton2(Vector2.new())
 	end)
 
-	-- Tiny movement nudge via Humanoid:MoveTo so it doesn't fight the
-	-- character controller / cause rubber-banding.
 	pcall(function()
 		local char = lp.Character
 		local hrp = getHRP(char)
 		local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-
-				if hrp and humanoid then
+		if hrp and humanoid then
 			local pos = hrp.Position
 			humanoid:MoveTo(pos + Vector3.new(0, 0, 0.5))
 			task.wait(0.15)
@@ -518,7 +492,6 @@ local function startLoop()
 	end)
 end
 
--- Character respawn: re-answer anything and reset the idle state.
 track(lp.CharacterAdded:Connect(function()
 	if destroyed then return end
 	task.wait(1)
@@ -541,15 +514,24 @@ genv.__StandaloneAntiAfkAnswer = function()
 			end
 		end
 	end
+end
+
+-- ============================================================================
+-- UNLOAD HOOK
+-- ============================================================================
+local function destroyAll()
+	if destroyed then return end
+	destroyed = true
+	for _, conn in ipairs(connections) do
+		pcall(function() conn:Disconnect() end)
 	end
 	connections = {}
 	genv.__StandaloneAntiAfkAnswer = nil
-	-- Manual unload = user asked it to stop: cancel the auto re-exec flag.
 	setReexec(false)
 	genv[RUN_KEY] = nil
-		genv.__StandaloneAntiAfkDestroy = nil
+	genv.__StandaloneAntiAfkDestroy = nil
 	-- Destroy the GUI via the stored reference (works whether it was parented
-	-- to CoreGui or PlayerGui). Then fall back to name lookups.
+	-- to CoreGui or PlayerGui), then fall back to name lookups.
 	pcall(function()
 		local gui = genv.__StandaloneAntiAfkGui
 		if gui then gui:Destroy() end
@@ -573,7 +555,6 @@ genv.__StandaloneAntiAfkDestroy = destroyAll
 -- ============================================================================
 -- BOOT
 -- ============================================================================
--- Consume any pending re-exec flag from a previous run (informational).
 if consumeReexec() then
 	log("Rejoin detected -- auto-executing.")
 end
@@ -594,7 +575,6 @@ do
 		if not parentOk or not gui.Parent then gui.Parent = lp:WaitForChild("PlayerGui") end
 		genv.__StandaloneAntiAfkGui = gui
 
-		-- Outer frame (the draggable header + body)
 		local frame = Instance.new("Frame")
 		frame.Name = "Panel"
 		frame.Size = UDim2.new(0, 190, 0, 118)
@@ -602,14 +582,13 @@ do
 		frame.BackgroundColor3 = Color3.fromRGB(24, 26, 32)
 		frame.BorderSizePixel = 0
 		frame.Active = true
-		frame.Draggable = true -- simple drag; harmless if executor strips it
+		frame.Draggable = true
 		frame.Parent = gui
 		Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
 		local stroke = Instance.new("UIStroke", frame)
 		stroke.Color = Color3.fromRGB(60, 66, 80)
 		stroke.Thickness = 1
 
-		-- Header
 		local header = Instance.new("TextLabel")
 		header.Size = UDim2.new(1, 0, 0, 26)
 		header.BackgroundColor3 = Color3.fromRGB(46, 110, 168)
@@ -621,7 +600,6 @@ do
 		header.Parent = frame
 		Instance.new("UICorner", header).CornerRadius = UDim.new(0, 8)
 
-		-- A tiny patch to square off the header's bottom corners
 		local headerFix = Instance.new("Frame")
 		headerFix.Size = UDim2.new(1, 0, 0, 8)
 		headerFix.Position = UDim2.new(0, 0, 1, -8)
@@ -630,7 +608,6 @@ do
 		headerFix.ZIndex = header.ZIndex
 		headerFix.Parent = header
 
-		-- Rows (label + value)
 		local function makeRow(yOffset, labelText)
 			local label = Instance.new("TextLabel")
 			label.Size = UDim2.new(0.55, 0, 0, 18)
@@ -656,12 +633,11 @@ do
 			return value
 		end
 
-		local timeValue = makeRow(34, "Time")
-		local fpsValue  = makeRow(54, "FPS")
-		local afkValue  = makeRow(74, "AFK timer")
+		local timeValue  = makeRow(34, "Time")
+		local fpsValue   = makeRow(54, "FPS")
+		local afkValue   = makeRow(74, "AFK timer")
 		local nudgeValue = makeRow(94, "Next nudge")
 
-		-- Click the header (or panel) to unload.
 		local clickBtn = Instance.new("TextButton")
 		clickBtn.Size = UDim2.new(1, 0, 0, 26)
 		clickBtn.BackgroundTransparency = 1
@@ -672,10 +648,8 @@ do
 			destroyAll()
 		end)
 
-		-- Live updater -----------------------------------------------------
 		track(RunService.RenderStepped:Connect(function(dt)
 			if destroyed then return end
-			-- FPS via a rolling average (dt is seconds between frames)
 			if dt > 0 then
 				fpsAccum = fpsAccum + 1
 				fpsTime = fpsTime + dt
@@ -689,16 +663,13 @@ do
 
 		track(task.spawn(function()
 			while not destroyed do
-				local ok = pcall(function()
-					local now = os.clock()
+				pcall(function()
+					local idleFor = os.clock() - lastActivity
 					timeValue.Text = os.date("%H:%M:%S")
 					fpsValue.Text = tostring(lastFps)
-					local idleFor = now - lastActivity
 					afkValue.Text = string.format("%.0fs", idleFor)
-					local remaining = math.max(0, NUDGE_INTERVAL - idleFor)
-					nudgeValue.Text = string.format("%.0fs", remaining)
+					nudgeValue.Text = string.format("%.0fs", math.max(0, NUDGE_INTERVAL - idleFor))
 				end)
-				if not ok then end
 				task.wait(0.25)
 			end
 		end))
@@ -713,5 +684,5 @@ watchPrompts()
 startLoop()
 armAutoReexec()
 
-log(string.format("Running (nudge=%ds, reconnect=%s). Click the on-screen button to unload.",
+log(string.format("Running (nudge=%ds, reconnect=%s). Click the header to unload.",
 	NUDGE_INTERVAL, tostring(RECONNECT)))
