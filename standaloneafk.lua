@@ -60,11 +60,11 @@ local MARKER_FILE    = FOLDER .. "/_reexec_" .. tostring(game.PlaceId)
 -- If the flag is set but the destroy hook is gone, the previous copy died
 -- (crash / manual re-exec) -> clear the stale flag and continue.
 do
+	if genv[RUN_KEY] and type(genv.__StandaloneAntiAfkDestroy) == "function" then
+		warn("[AntiAFK] Already running -- skipping duplicate execution.")
+		return
+	end
 	if genv[RUN_KEY] then
-		if type(genv.__StandaloneAntiAfkDestroy) == "function" then
-			warn("[AntiAFK] Already running -- skipping duplicate execution.")
-			return
-		end
 		warn("[AntiAFK] Stale run flag found (previous copy crashed) -- continuing.")
 		genv[RUN_KEY] = nil
 	end
