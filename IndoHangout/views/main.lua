@@ -653,40 +653,102 @@ return function(config, components)
     end
 
     --------------------------------------------------------------------
-    -- WINDOW BEHAVIOR: DRAG + MINIMIZE
+    -- WINDOW BEHAVIOR: DRAG + MINIMIZE (IndoVoice-style free drag)
     --------------------------------------------------------------------
-    local dragConn
-    dragHit.InputBegan:Connect(function(input)
-        if input.UserInputType ~= Enum.UserInputType.MouseButton1 then
-            return
+    -- `main` lives inside the centered canvas, so its offset is measured from
+    -- screen center. Clamp the offset instead of the position: the window can
+    -- be dragged anywhere on screen but never fully off it.
+    local dragging = false
+    local dragConn = nil
+    local dragStartMouse = nil
+    local dragStartOffset = nil
+
+    local function viewportSize()
+        local camera = workspace.CurrentCamera
+        return (camera and camera.ViewportSize) or Vector2.new(1920, 1080)
+    end
+
+    local function applyWindowOffset(offsetX, offsetY)
+        local screen = viewportSize()
+        local limitX = math.max((screen.X - W) / 2 - 8, 0)
+        local limitY = math.max((screen.Y - H) / 2 - 8, 0)
+        offsetX = math.clamp(offsetX, -limitX, limitX)
+        offsetY = math.clamp(offsetY, -limitY, limitY)
+        main.Position = UDim2.fromOffset(offsetX, offsetY)
+        if view.Shadow then
+            view.Shadow.Position = UDim2.fromOffset(offsetX - 4, offsetY)
         end
-        local startPos = main.Position
-        local startMouse = input.Position
+    end
+
+    local function isDragInput(input)
+        return input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch
+    end
+
+    local function beginDrag(input)
+        if not isDragInput(input) then return end
+        dragging = true
+        dragStartMouse = Vector2.new(input.Position.X, input.Position.Y)
+        dragStartOffset = Vector2.new(main.Position.X.Offset, main.Position.Y.Offset)
         if dragConn then dragConn:Disconnect() end
         dragConn = UserInputService.InputChanged:Connect(function(i)
-            if i.UserInputType ~= Enum.UserInputType.MouseMovement and i.UserInputType ~= Enum.UserInputType.Touch then
+            if not dragging then return end
+            if i.UserInputType ~= Enum.UserInputType.MouseMovement
+                and i.UserInputType ~= Enum.UserInputType.Touch then
                 return
             end
-            local delta = i.Position - startMouse
-            local newPos = UDim2.new(
-                startPos.X.Scale, startPos.X.Offset + delta.X,
-                startPos.Y.Scale, startPos.Y.Offset + delta.Y
-            )
-            main.Position = newPos
-            if view.Shadow then
-                view.Shadow.Position = UDim2.new(newPos.X.Scale, newPos.X.Offset - 4, newPos.Y.Scale, newPos.Y.Offset)
-            end
+            -- input.Position is a Vector3; flatten to 2D before subtracting.
+            local pointer = Vector2.new(i.Position.X, i.Position.Y)
+            local delta = pointer - dragStartMouse
+            applyWindowOffset(dragStartOffset.X + delta.X, dragStartOffset.Y + delta.Y)
         end)
-        local endConn = UserInputService.InputEnded:Connect(function(i)
-            if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-                if dragConn then
-                    dragConn:Disconnect()
-                    dragConn = nil
-                end
-                endConn:Disconnect()
-            end
-        end)
-    end)
+    end
+
+    local function endDrag(input)
+        if not isDragInput(input) then return end
+        dragging = false
+        if dragConn then
+            dragConn:Disconnect()
+            dragConn = nil
+        end
+    end
+
+    UserInputService.InputEnded:Connect(endDrag)
+    view.DisconnectDrag = function()
+        dragging = false
+        if dragConn then
+            dragConn:Disconnect()
+            dragConn = nil
+        end
+    end
+
+    -- Drag from the whole title bar, the invisible hit strip, and the bottom grip.
+    topbar.InputBegan:Connect(beginDrag)
+    dragHit.InputBegan:Connect(beginDrag)
+
+    local gripBar = Instance.new("Frame")
+    gripBar.Name = "DragBar"
+    gripBar.Size = UDim2.fromOffset(80, 4)
+    gripBar.AnchorPoint = Vector2.new(0.5, 0)
+    gripBar.Position = UDim2.new(0.5, 0, 1, -12)
+    gripBar.BackgroundColor3 = theme.accentDark
+    gripBar.BorderSizePixel = 0
+    gripBar.ZIndex = 3
+    gripBar.Parent = main
+    shared.corner(gripBar, UDim.new(1, 0))
+
+    local gripHit = Instance.new("TextButton")
+    gripHit.Name = "DragHitBottom"
+    gripHit.Size = UDim2.new(0, 160, 0, 18)
+    gripHit.AnchorPoint = Vector2.new(0.5, 0)
+    gripHit.Position = UDim2.new(0.5, 0, 1, -18)
+    gripHit.BackgroundTransparency = 1
+    gripHit.Text = ""
+    gripHit.AutoButtonColor = false
+    gripHit.BorderSizePixel = 0
+    gripHit.ZIndex = 4
+    gripHit.Parent = main
+    gripHit.InputBegan:Connect(beginDrag)
 
     -- Minimize chip (LyraHub-style): window fades out, small pill fades in.
     local minimized = Instance.new("Frame")
@@ -768,6 +830,9 @@ return function(config, components)
     -- TEARDOWN
     --------------------------------------------------------------------
     view.Destroy = function()
+        if view.DisconnectDrag then
+            pcall(view.DisconnectDrag)
+        end
         pcall(function()
             if canvas and canvas.Parent then
                 canvas:Destroy()

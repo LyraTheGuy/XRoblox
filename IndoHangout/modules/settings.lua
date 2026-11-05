@@ -282,6 +282,7 @@ return function(ctx)
                 StreakThreshold = ctx.config.Fishing.StreakThreshold,
                 AutoSellFish = ctx.config.Fishing.AutoSellFish,
                 SellAtCount = ctx.config.Fishing.SellAtCount,
+                SellCategory = ctx.config.Fishing.SellCategory,
                 ProtectedFish = {},
                 LockedSpot = ctx.config.Fishing.LockedSpot,
             },
@@ -366,6 +367,9 @@ return function(ctx)
             ctx.config.Fishing.StreakThreshold = safeNum(data.Fishing.StreakThreshold, ctx.config.Fishing.StreakThreshold)
             ctx.config.Fishing.AutoSellFish = data.Fishing.AutoSellFish and true or false
             ctx.config.Fishing.SellAtCount = math.max(1, math.floor(safeNum(data.Fishing.SellAtCount, ctx.config.Fishing.SellAtCount)))
+            if type(data.Fishing.SellCategory) == "string" then
+                ctx.config.Fishing.SellCategory = data.Fishing.SellCategory
+            end
             if type(data.Fishing.ProtectedFish) == "table" then
                 ctx.config.Fishing.ProtectedFish = data.Fishing.ProtectedFish
             end

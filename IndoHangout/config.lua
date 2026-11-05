@@ -73,6 +73,13 @@ return {
         ProtectedFish = {},       -- fish names that must never be sold
         LockedSpot = nil,         -- CFrame, saved by "Lock Current Spot"
         SellDelay = 0.6,          -- delay between individual sells
+        SellCategory = "Sell All",
+        SellCategories = {
+            "Sell All",
+            "All under 50 Kg",
+            "All under 400 Kg",
+            "All under 600 Kg",
+        },
         CooldownBetweenCasts = 1.0,
     },
 
@@ -81,8 +88,10 @@ return {
     -- ------------------------------------------------------------------------
     Mining = {
         AutoMine = false,
-        MaxDistance = 12,         -- studs between character and crystal
-        HitsPerCrystal = 3,
+        MaxDistance = 12,         -- detection radius; every crystal inside is a candidate
+        HitsPerCrystal = 3,       -- clicks per crystal
+        HitDelay = 1.5,           -- seconds between those clicks
+        StandOffset = 4,          -- studs to stand away from the crystal
         AutoSellCrystals = false,
         SellEveryX = 10,
         SellCooldown = 3,         -- seconds

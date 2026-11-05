@@ -41,6 +41,7 @@ return function(ctx)
     local streakProtection = ctx.config.Fishing.StreakProtection
     local streakThreshold = ctx.config.Fishing.StreakThreshold or 0.07
     local sellAtCount = ctx.config.Fishing.SellAtCount or 10
+    local sellCategory = ctx.config.Fishing.SellCategory or "Sell All"
     local castCooldown = ctx.config.Fishing.CooldownBetweenCasts or 1.0
 
     -- Runtime state
@@ -403,12 +404,24 @@ return function(ctx)
         return count
     end
 
-    function sellFishAction()
+    -- Same sell contract as crystals: invoke the remote with the category
+    -- string. Only the remote name differs (SellFish vs SellCrystal).
+    function sellFishAction(category)
         local remote = getSellFishRemote()
         if not remote then
             return false, "SellFish remote not found"
         end
 
+        category = category or sellCategory or "Sell All"
+
+        local ok, err = invokeSell(remote, "SellFish", category)
+        if ok then
+            ctx.log("Fish sold — " .. tostring(category), THEME.success)
+            updateStats()
+            return true
+        end
+
+        -- Fallback: per-fish sweep of the open sell list, protected fish skipped.
         local sold = 0
         local pgui = lp:FindFirstChild("PlayerGui")
         local sellGui = pgui and pgui:FindFirstChild("SellFish")
@@ -420,19 +433,12 @@ return function(ctx)
                 if btn:IsA("ImageButton") then
                     local fishName = btn.Name
                     if not isProtected(fishName) then
-                        local ok = invokeSell(remote, "SellFish", fishName)
-                        if ok then
+                        if invokeSell(remote, "SellFish", fishName) then
                             sold += 1
                             task.wait(0.08)
                         end
                     end
                 end
-            end
-        else
-            -- Bulk fallback when the sell GUI is not open
-            local ok = invokeSell(remote, "SellFish", "Sell this fish")
-            if ok then
-                sold = 1
             end
         end
 
@@ -441,7 +447,7 @@ return function(ctx)
             updateStats()
             return true
         end
-        return false, "nothing sold"
+        return false, tostring(err or "nothing sold")
     end
 
     ---------------------------------------------------------------------
@@ -490,6 +496,16 @@ return function(ctx)
 
     function Fishing.setSellAtCount(count)
         sellAtCount = math.max(1, math.floor(tonumber(count) or 10))
+    end
+
+    function Fishing.setSellCategory(category)
+        sellCategory = tostring(category or "Sell All")
+        ctx.config.Fishing.SellCategory = sellCategory
+        ctx.log("Fish sell category: " .. sellCategory, THEME.dim)
+    end
+
+    function Fishing.getSellCategory()
+        return sellCategory
     end
 
     function Fishing.setProtectedFish(list)
@@ -545,7 +561,7 @@ return function(ctx)
     end
 
     function Fishing.sellNow()
-        return sellFishAction()
+        return sellFishAction(sellCategory)
     end
 
     function Fishing.applySettings(data)
@@ -553,6 +569,7 @@ return function(ctx)
         if data.StreakProtection ~= nil then Fishing.setStreakProtection(data.StreakProtection) end
         if data.StreakThreshold then Fishing.setThreshold(data.StreakThreshold) end
         if data.SellAtCount then Fishing.setSellAtCount(data.SellAtCount) end
+        if data.SellCategory then Fishing.setSellCategory(data.SellCategory) end
         if type(data.ProtectedFish) == "table" then
             protectedFish = data.ProtectedFish
             Fishing.setProtectedFish(protectedFish)
@@ -629,18 +646,23 @@ return function(ctx)
         end)
         protectedLabel = c.createSectionLabel(page.container, "Protected: (none)")
 
-        c.createSectionLabel(page.container, "Auto Sell Fish")
-        c.createToggle(page.container, "Auto Sell Fish", false, function(val)
-            Fishing.setAutoSellFish(val)
-        end)
-        c.createSlider(page.container, "Sell At Count", 1, 50, sellAtCount, 1, function(val)
-            Fishing.setSellAtCount(val)
-        end)
+        c.createSectionLabel(page.container, "Selling")
         c.createButton(page.container, "Sell Fish Now", function()
             local ok, err = Fishing.sellNow()
             if not ok then
                 ctx.log("Sell failed: " .. tostring(err), THEME.danger)
             end
+        end)
+        c.createDropdown(page.container, "Sell Category", ctx.config.Fishing.SellCategories or { "Sell All" }, 1, function(opt)
+            Fishing.setSellCategory(opt)
+        end)
+
+        c.createSectionLabel(page.container, "Auto Sell")
+        c.createToggle(page.container, "Auto Sell Fish", false, function(val)
+            Fishing.setAutoSellFish(val)
+        end)
+        c.createSlider(page.container, "Sell At Count", 1, 50, sellAtCount, 1, function(val)
+            Fishing.setSellAtCount(val)
         end)
 
         c.createSectionLabel(page.container, "Session Stats")
