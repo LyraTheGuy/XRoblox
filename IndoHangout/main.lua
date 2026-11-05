@@ -76,10 +76,13 @@ local function showErrorGui(msg)
     frame.BackgroundColor3 = THEME.panel or Color3.fromRGB(20, 20, 20)
     frame.BorderSizePixel = 0
     frame.Parent = errGui
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
-    local stroke = Instance.new("UIStroke", frame)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = frame
+    local stroke = Instance.new("UIStroke")
     stroke.Color = THEME.danger or Color3.fromRGB(222, 92, 92)
     stroke.Thickness = 1.5
+    stroke.Parent = frame
 
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(1, -20, 1, -20)
@@ -132,18 +135,47 @@ if not gateOk then
 end
 
 -- ----------------------------------------------------------------------------
--- LOAD GUI
+-- LOAD GUI (LyraHub-style view layer: components kit + views/main.lua)
 -- ----------------------------------------------------------------------------
-local guiChunk = compile(fetch(BASE_URL .. "gui.lua", "gui.lua"), "gui.lua")
+local shared = nil
+local components = { shared = nil }
+do
+    local sharedChunk = compile(fetch(BASE_URL .. "views/components/shared.lua", "shared.lua"), "shared.lua")
+    local sharedFactory = sharedChunk()
+    if type(sharedFactory) ~= "function" then
+        showErrorGui("views/components/shared.lua returned: " .. type(sharedFactory) .. " (expected function)")
+        return
+    end
+    shared = sharedFactory(config)
+    components.shared = shared
+end
+
+for _, name in ipairs({ "button", "toggle", "dropdown", "slider", "textinput" }) do
+    local ok, comp = pcall(function()
+        local chunk = compile(fetch(BASE_URL .. "views/components/" .. name .. ".lua", name), name)
+        local factory = chunk()
+        if type(factory) ~= "function" then
+            error("views/components/" .. name .. ".lua returned " .. type(factory) .. " (expected function)")
+        end
+        return factory(config, shared)
+    end)
+    if not ok then
+        showErrorGui("Component '" .. name .. "' failed:\n" .. tostring(comp))
+        return
+    end
+    components[name] = comp
+end
+
+local guiChunk = compile(fetch(BASE_URL .. "views/main.lua", "views/main.lua"), "views/main.lua")
 local guiFactory = guiChunk()
 if type(guiFactory) ~= "function" then
-    showErrorGui("gui.lua returned: " .. type(guiFactory) .. " (expected function)")
+    showErrorGui("views/main.lua returned: " .. type(guiFactory) .. " (expected function)")
     return
 end
 
-local guiOk, gui = pcall(guiFactory, config)
+local guiOk, gui = pcall(guiFactory, config, components)
 if not guiOk then
-    showErrorGui("gui.lua execution failed:\n" .. tostring(gui))
+    showErrorGui("views/main.lua execution failed:\n" .. tostring(gui))
     return
 end
 

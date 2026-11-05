@@ -88,16 +88,38 @@ return function(gui, config)
     -- Called whenever the local character changes. Feature modules can hook
     -- into ctx.onCharacter to reapply things like walk speed, fly, noclip.
     ctx.onCharacter = nil
+    -- Multiple modules can react to respawns (_misc_ uses ctx.onCharacter;
+    -- fishing registers via ctx.addCharacterHandler, which supports removal).
+    ctx.characterHandlers = {}
+    function ctx.addCharacterHandler(fn)
+        if type(fn) ~= "function" then return nil end
+        table.insert(ctx.characterHandlers, fn)
+        return fn
+    end
+    function ctx.removeCharacterHandler(fn)
+        for i, handler in ipairs(ctx.characterHandlers) do
+            if handler == fn then
+                table.remove(ctx.characterHandlers, i)
+                return true
+            end
+        end
+        return false
+    end
+
     local characterAddedConn = nil
     local function handleCharacter(char)
         if not char then return end
         ctx.character = char
         ctx.humanoid = char:FindFirstChildOfClass("Humanoid")
+        -- pcall + task.spawn so a failing/yielding handler never blocks others
         pcall(function()
             if ctx.onCharacter then
-                ctx.onCharacter(char)
+                task.spawn(ctx.onCharacter, char)
             end
         end)
+        for _, fn in ipairs(ctx.characterHandlers) do
+            task.spawn(fn, char)
+        end
     end
 
     local function watchCharacter()
@@ -107,7 +129,7 @@ return function(gui, config)
         characterAddedConn = lp.CharacterAdded:Connect(handleCharacter)
         ctx.connections = ctx.connections or {}
         table.insert(ctx.connections, characterAddedConn)
-        spawn(function()
+        task.spawn(function()
             local char = lp.Character or lp.CharacterAdded:Wait()
             handleCharacter(char)
         end)

@@ -24,7 +24,15 @@ IndoHangout/
 ├── config.lua           Theme, remotes, feature defaults, profile settings
 ├── session.lua          Lightweight key/value persistence backend
 ├── core.lua             Shared ctx: state, bind(), cleanup engine, destroyAll
-├── gui.lua              UI factory: dark minimalist interface + components
+├── views/
+│   ├── main.lua         Window chrome, sidebar tabs, pages, component adapter
+│   └── components/      Reusable UI kit (LyraHub pattern)
+│       ├── shared.lua   corner / stroke / glow / shadow / tween primitives
+│       ├── button.lua   rounded button + hover + press squish
+│       ├── toggle.lua   pill toggle switch
+│       ├── dropdown.lua animated dropdown (with runtime SetItems)
+│       ├── slider.lua   horizontal/vertical slider
+│       └── textinput.lua rounded text input + clear button
 └── modules/
     ├── utils.lua        Generic helpers (resolve, tools, CFrame serialise)
     ├── fishing.lua      Auto fish, streak protection, fish selling, locked spot
@@ -47,10 +55,12 @@ IndoHangout/
    - runs registered cleanup handlers in reverse order,
    - disconnects all tracked connections,
    - destroys the ScreenGui and clears `_G` guards.
-4. **`gui.lua`** — builds the interface: title bar, collapsible sidebar, five
-   tabs (About, Fishing, Mining, Misc, Settings), shared component builders
-   (toggle, slider, dropdown, textbox, button). Duplicate-GUI guard via
-   `_G.__IndoHangout_Gui`.
+4. **`views/main.lua`** — builds the interface (LyraHub-style view layer):
+   CanvasGroup canvas, drop shadow, top bar with window buttons, pill sidebar
+   tabs (About, Fishing, Mining, Misc, Settings), five scrollable pages, a
+   status strip, and the component adapter consumed by feature modules.
+   Components live in `views/components/` and are fetched and wired by
+   `main.lua`. Duplicate-GUI guard via `_G.__IndoHangout_Gui`.
 5. **Feature modules** — each returns an instance table with `Init`,
    `Start`, `Stop`, `Destroy`, plus public setters used by the settings module
    and by the GUI. Every module registers a cleanup handler.

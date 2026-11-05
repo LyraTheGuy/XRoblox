@@ -10,10 +10,21 @@ return function(ctx)
 
     local page = gui.TabPages.Mining
     local Mining = {}
+    local invokeSell = ctx.Utils
+        and ctx.Utils.invokeSell
+        or function(remote, remoteArg, arg)
+            if not remote then return false, "remote not found" end
+            local ok, err = pcall(function()
+                remote:InvokeServer(remoteArg, arg)
+            end)
+            return ok, err
+        end
 
     -- Runtime state
     local autoMineEnabled = false
     local maxDistance = ctx.config.Mining.MaxDistance or 12
+    -- Spec: interact only when ~within 1 stud (or touching the border).
+    local interactDistance = ctx.config.Mining.InteractDistance or 1
     local hitsPerCrystal = 3
     local autoSellEnabled = false
     local sellEveryX = ctx.config.Mining.SellEveryX or 10
@@ -110,13 +121,13 @@ return function(ctx)
         if not hrp then return false end
         local center = getCrystalCenter(model)
         if not center then return false end
-        return (center - hrp.Position).Magnitude <= 2.5
+        return (center - hrp.Position).Magnitude <= interactDistance
     end
 
     ---------------------------------------------------------------------
     -- MINING INTERACTION
     ---------------------------------------------------------------------
-    local VirtualUser = game:GetService("VirtualUser")
+    local VirtualInputManager = game:GetService("VirtualInputManager")
 
     local function hitCrystal(model)
         if not model then return false end
@@ -138,9 +149,10 @@ return function(ctx)
             return true
         end
         pcall(function()
-            VirtualUser:Button1Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+            local cameraPos = workspace.CurrentCamera and workspace.CurrentCamera.CFrame.Position or Vector3.zero
+            VirtualInputManager:SendMouseButtonEvent(cameraPos.X, cameraPos.Y, 0, true, game, 1)
             task.wait(0.1)
-            VirtualUser:Button1Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+            VirtualInputManager:SendMouseButtonEvent(cameraPos.X, cameraPos.Y, 0, false, game, 1)
         end)
         return true
     end
@@ -214,9 +226,9 @@ return function(ctx)
         local remote = getSellCrystalRemote()
         if not remote then return false, "SellCrystal remote not found" end
         category = category or sellCategory or "Sell All"
-        local ok, err = pcall(function()
-            remote:InvokeServer("SellCrystal", category)
-        end)
+        -- Shared sell routine: same invoke pattern as fish selling, only the
+        -- remote and its first argument differ.
+        local ok, err = invokeSell(remote, "SellCrystal", category)
         if ok then
             ctx.log("Crystals sold (" .. tostring(category) .. ")", THEME.success)
             return true

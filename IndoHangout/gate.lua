@@ -58,12 +58,15 @@ return function(config)
     Card.BackgroundColor3 = T.panel or Color3.fromRGB(22, 22, 27)
     Card.BorderSizePixel = 0
     Card.Parent = GateGui
-    Instance.new("UICorner", Card).CornerRadius = UDim.new(0, 14)
+    local CardCorner = Instance.new("UICorner")
+    CardCorner.CornerRadius = UDim.new(0, 14)
+    CardCorner.Parent = Card
 
-    local CardStroke = Instance.new("UIStroke", Card)
+    local CardStroke = Instance.new("UIStroke")
     CardStroke.Color = T.accent or Color3.fromRGB(92, 140, 255)
     CardStroke.Thickness = 1.5
     CardStroke.Transparency = 0.3
+    CardStroke.Parent = Card
 
     local Title = Instance.new("TextLabel")
     Title.Size = UDim2.new(1, 0, 0, 40)
@@ -100,10 +103,13 @@ return function(config)
     InputBox.ClearTextOnFocus = false
     InputBox.BorderSizePixel = 0
     InputBox.Parent = Card
-    Instance.new("UICorner", InputBox).CornerRadius = UDim.new(0, 8)
-    local InputStroke = Instance.new("UIStroke", InputBox)
+    local InputCorner = Instance.new("UICorner")
+    InputCorner.CornerRadius = UDim.new(0, 8)
+    InputCorner.Parent = InputBox
+    local InputStroke = Instance.new("UIStroke")
     InputStroke.Color = T.border or Color3.fromRGB(46, 48, 58)
     InputStroke.Thickness = 1
+    InputStroke.Parent = InputBox
 
     InputBox:GetPropertyChangedSignal("Text"):Connect(function()
         local currentText = InputBox.Text
@@ -140,7 +146,9 @@ return function(config)
     EnterBtn.Text = "Enter"
     EnterBtn.BorderSizePixel = 0
     EnterBtn.Parent = Card
-    Instance.new("UICorner", EnterBtn).CornerRadius = UDim.new(0, 8)
+    local EnterCorner = Instance.new("UICorner")
+    EnterCorner.CornerRadius = UDim.new(0, 8)
+    EnterCorner.Parent = EnterBtn
 
     local Footer = Instance.new("TextLabel")
     Footer.Size = UDim2.new(1, 0, 0, 30)

@@ -17,8 +17,11 @@ return function(ctx)
     local flyEnabled = false
     local flySpeed = ctx.config.Misc.FlySpeed
     local flyConnection = nil
-    local flyBodyVelocity = nil
-    local flyBodyGyro = nil
+    -- Modern actuators: LinearVelocity + AlignOrientation on an Attachment
+    -- (replaces the deprecated BodyVelocity/BodyGyro).
+    local flyAttachment = nil
+    local flyLinearVelocity = nil
+    local flyAlignOrientation = nil
 
     local walkSpeedEnabled = false
     local walkSpeedValue = ctx.config.Misc.WalkSpeed
@@ -58,16 +61,22 @@ return function(ctx)
             flyConnection = nil
         end
         local char = getCharacter()
-        if flyBodyVelocity then pcall(function() flyBodyVelocity:Destroy() end); flyBodyVelocity = nil end
-        if flyBodyGyro then pcall(function() flyBodyGyro:Destroy() end); flyBodyGyro = nil end
+        if flyAttachment then pcall(function() flyAttachment:Destroy() end); flyAttachment = nil end
+        if flyLinearVelocity then pcall(function() flyLinearVelocity:Destroy() end); flyLinearVelocity = nil end
+        if flyAlignOrientation then pcall(function() flyAlignOrientation:Destroy() end); flyAlignOrientation = nil end
         local hum = getHumanoid()
         if hum then
             pcall(function()
                 hum.PlatformStand = false
                 local hrp = getRoot()
                 if hrp then
+                    -- Remove our actuators plus any legacy Body* handlers
                     for _, v in ipairs(hrp:GetChildren()) do
-                        if v:IsA("BodyVelocity") or v:IsA("BodyGyro") then
+                        if v.Name == "IndoFlyAttachment" or v.Name == "IndoFlyVelocity"
+                            or v.Name == "IndoFlyOrientation"
+                            or v:IsA("BodyVelocity") or v:IsA("BodyGyro")
+                            or v:IsA("LinearVelocity") or v:IsA("AlignOrientation")
+                            or (v:IsA("Attachment") and v.Name:find("IndoFly")) then
                             pcall(function() v:Destroy() end)
                         end
                     end
@@ -81,23 +90,36 @@ return function(ctx)
         local hum = getHumanoid()
         local hrp = getRoot()
         if not char or not hum or not hrp then return false end
+        local camera = workspace.CurrentCamera
 
         -- Set character to platform stand to prevent gravity fighting
         pcall(function() hum.PlatformStand = true end)
 
-        -- Create BodyVelocity for movement
-        local bv = Instance.new("BodyVelocity")
-        bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-        bv.Velocity = Vector3.zero
-        bv.Parent = hrp
-        flyBodyVelocity = bv
+        -- Create the attachment + modern actuators (LinearVelocity/AlignOrientation)
+        local att = Instance.new("Attachment")
+        att.Name = "IndoFlyAttachment"
+        att.Parent = hrp
+        flyAttachment = att
 
-        local bg = Instance.new("BodyGyro")
-        bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-        bg.P = 1000
-        bg.D = 50
-        bg.Parent = hrp
-        flyBodyGyro = bg
+        local lv = Instance.new("LinearVelocity")
+        lv.Name = "IndoFlyVelocity"
+        lv.Attachment0 = att
+        lv.MaxForce = 1e6
+        lv.RelativeTo = Enum.ActuatorRelativeTo.World
+        lv.Velocity = Vector3.zero
+        lv.Parent = hrp
+        flyLinearVelocity = lv
+
+        local ao = Instance.new("AlignOrientation")
+        ao.Name = "IndoFlyOrientation"
+        ao.Attachment0 = att
+        ao.Mode = Enum.OrientationAlignmentMode.OneAttachment
+        ao.RigidityEnabled = true
+        ao.Responsiveness = 50
+        ao.MaxTorque = 1e6
+        ao.CFrame = camera.CFrame
+        ao.Parent = hrp
+        flyAlignOrientation = ao
 
         flyEnabled = true
 
@@ -135,8 +157,8 @@ return function(ctx)
                 direction = direction.Unit
             end
 
-            bv.Velocity = direction * flySpeed
-            bg.CFrame = camera.CFrame
+            lv.Velocity = direction * flySpeed
+            ao.CFrame = camera.CFrame
         end)
 
         ctx.log("Fly: ON", THEME.success)

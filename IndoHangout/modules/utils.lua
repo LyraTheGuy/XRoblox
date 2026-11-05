@@ -21,15 +21,15 @@ end
 
 -- Wait for a path with a timeout, using WaitForChild with per-level timeouts.
 function Utils.waitForPath(container, path, timeout)
-    local deadline = tick() + (timeout or 15)
+    local deadline = os.clock() + (timeout or 15)
     local obj = container
     for _, childName in ipairs(path or {}) do
         if type(obj) ~= "Instance" then return nil end
         local found = nil
         local ok = pcall(function()
-            found = obj:WaitForChild(childName, math.max(1, deadline - tick()))
+            found = obj:WaitForChild(childName, math.max(1, deadline - os.clock()))
         end)
-        if ok and found and tick() <= deadline then
+        if ok and found and os.clock() <= deadline then
             obj = found
         else
             return nil, "timeout waiting for " .. tostring(childName)
@@ -47,8 +47,8 @@ end
 -- Round-robin small delay (no sleepspike). Delay can be fractional seconds.
 function Utils.wait(seconds)
     if seconds <= 0 then return end
-    local endTime = tick() + seconds
-    while tick() < endTime do
+    local endTime = os.clock() + seconds
+    while os.clock() < endTime do
         task.wait(math.min(0.05, seconds))
     end
 end
@@ -56,6 +56,20 @@ end
 -- Clamp helper.
 function Utils.clamp(v, min, max)
     return math.max(min or v, math.min(max or v, v))
+end
+
+-- Shared sell routine. Fish selling and crystal selling use the identical
+-- invoke pattern (RemoteFunction:InvokeServer(firstArg, stringArg)); only the
+-- remote and its first argument differ:
+-- fishing: Utils.invokeSell(SellFishRemote,   "SellFish",   fishName)
+-- mining:  Utils.invokeSell(SellCrystalRemote, "SellCrystal", category)
+-- Always wrap the caller's remote lookup in its own existence check.
+function Utils.invokeSell(remote, remoteArg, arg)
+    if not remote then return false, "remote not found" end
+    local ok, err = pcall(function()
+        remote:InvokeServer(remoteArg, arg)
+    end)
+    return ok, err
 end
 
 -- Safe interaction: only fire when close enough (within tolerance studs).

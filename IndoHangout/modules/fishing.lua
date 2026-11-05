@@ -1,36 +1,68 @@
 -- IndoHangout/modules/fishing.lua
--- Auto Fish: equip rod -> cast -> detect reeling minigame -> catch.
--- Streak protection keeps the catch progress above a threshold.
--- Auto-sell fish through the SellFish RemoteFunction, with a protected list.
--- Locked spot repositions the character to a saved CFrame before casting.
+-- Auto Fish: equip rod -> cast with RodRemote:FireServer("Throw") -> track the
+-- Reeling GUI (MainFrame.Frame.WhiteBar / RedBar / ProgressBg.ProgressBar) with
+-- RunService.Heartbeat -> hold/release input via VirtualInputManager.
+-- Streak protection releases the hold and fires RodRemote("Catch", "Err") when
+-- progress dips to/below the threshold, counting it as a save (never a miss).
+-- Auto Sell Fish uses the shared sell routine (same invoke pattern as crystal
+-- selling, different remote), never sells protected fish.
+-- Jumping is blocked while Auto Fish is active and restored on disable.
 
 return function(ctx)
     local Players = game:GetService("Players")
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local VirtualUser = game:GetService("VirtualUser")
+    local RunService = game:GetService("RunService")
     local lp = Players.LocalPlayer
     local THEME = ctx.config.Theme
     local gui = ctx.gui
+    local Utils = ctx.Utils or {}
+    local invokeSell = Utils.invokeSell
+        or function(remote, remoteArg, arg)
+            if not remote then return false, "remote not found" end
+            local ok, err = pcall(function()
+                remote:InvokeServer(remoteArg, arg)
+            end)
+            return ok, err
+        end
 
     local page = gui.TabPages.Fishing
     local Fishing = {}
 
-    -- Config-backed runtime state
-    local autoFishEnabled = false
+    -- Config-backed settings
     local streakProtection = ctx.config.Fishing.StreakProtection
     local streakThreshold = ctx.config.Fishing.StreakThreshold or 0.07
-    local autoSellFish = false
     local sellAtCount = ctx.config.Fishing.SellAtCount or 10
+    local sellDelay = ctx.config.Fishing.SellDelay or 0.6
+    local castCooldown = ctx.config.Fishing.CooldownBetweenCasts or 1.0
+
+    -- Runtime state
+    local autoFishEnabled = false
+    local autoSellFish = false
     local selectedRod = nil
     local protectedFish = {}
     local lockedSpot = nil
+    local streakSaves = 0
+    local reelConnection = nil
+    local jumpBlocked = false
 
-    -- Runtime thread handles
-    local fishThread = nil
-    local sellThread = nil
+    -- UI handles (populated in buildUI)
+    local spotLabel = nil
+    local protectedLabel = nil
+    local statsLabel = nil
+
+    local function isProtected(name)
+        if type(name) ~= "string" then return false end
+        local lower = name:lower()
+        for _, protected in ipairs(protectedFish) do
+            if type(protected) == "string" and protected:lower():find(lower, 1, true) then
+                return true
+            end
+        end
+        return false
+    end
 
     ---------------------------------------------------------------------
-    -- REMOTE / TOOL LOOKUP
+    -- REMOTE LOOKUP (exact spec paths)
     ---------------------------------------------------------------------
     local cachedRodRemote = nil
     local function getRodRemote()
@@ -70,7 +102,6 @@ return function(ctx)
         return char and char:FindFirstChildOfClass("Humanoid")
     end
 
-    -- Find all rods in backpack/character
     local function findRods()
         local rods = {}
         local containers = {}
@@ -110,6 +141,22 @@ return function(ctx)
     end
 
     ---------------------------------------------------------------------
+    -- JUMP BLOCKING (restore on disable/stop)
+    ---------------------------------------------------------------------
+    local function setJumpBlocked(blocked)
+        local enabled = not blocked
+        local hum = getHumanoid()
+        if hum then
+            pcall(function()
+                hum.Jump = false
+                hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, enabled)
+                hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, enabled)
+            end)
+        end
+        jumpBlocked = blocked and true or false
+    end
+
+    ---------------------------------------------------------------------
     -- LOCKED SPOT
     ---------------------------------------------------------------------
     local function teleportToLockedSpot()
@@ -122,99 +169,114 @@ return function(ctx)
         end)
     end
 
+    local function updateSpotLabel()
+        if spotLabel then
+            spotLabel.Text = "Spot: " .. (lockedSpot and "locked" or "not locked")
+        end
+    end
+
     ---------------------------------------------------------------------
-    -- REELING MINIGAME DETECTION
+    -- REELING GUI TRACKING (exact spec paths)
     ---------------------------------------------------------------------
-    -- Detect the Reeling GUI: PlayerGui.Reeling.MainFrame.Frame
-    -- The catch bar is typically the "Frame" child with a fill bar.
-    local function getReelingGui()
+    local function getReelingParts()
         local playerGui = lp:FindFirstChild("PlayerGui")
-        if not playerGui then return nil end
+        if not playerGui then return nil, nil, nil end
         local reeling = playerGui:FindFirstChild("Reeling")
-        if not reeling then return nil end
-        return reeling
+        if not reeling then return nil, nil, nil end
+        local mainFrame = reeling:FindFirstChild("MainFrame")
+        if not mainFrame then return nil, nil, nil end
+        if not mainFrame.Visible then return nil, nil, nil end
+        local frame = mainFrame:FindFirstChild("Frame")
+        if not frame then return nil, nil, nil end
+        return frame:FindFirstChild("WhiteBar"), frame:FindFirstChild("RedBar"),
+            frame:FindFirstChild("ProgressBg") and frame.ProgressBg:FindFirstChild("ProgressBar")
     end
 
     local function isReelingVisible()
-        local reeling = getReelingGui()
-        if not reeling then return false end
-        local mainFrame = reeling:FindFirstChild("MainFrame")
-        if not mainFrame then return false end
-        return mainFrame.Visible
+        local white, red, progress = getReelingParts()
+        return (white or red or progress) ~= nil
     end
 
-    -- Try to infer the current catch progress from known bar UI.
-    -- Many fishing games use a moving indicator or a fill Frame. We look for
-    -- a Frame whose name suggests a progress bar and read its Size.X.Scale.
-    local function getCatchProgress()
-        local reeling = getReelingGui()
-        if not reeling then return nil end
-        local mainFrame = reeling:FindFirstChild("MainFrame")
-        if not mainFrame then return nil end
-        local barFrame = mainFrame:FindFirstChild("Frame") or mainFrame:FindFirstChild("ProgressBar") or mainFrame:FindFirstChild("Bar")
-        if barFrame then
-            -- The fill child of the bar
-            local fill = barFrame:FindFirstChild("Fill") or barFrame:FindFirstChild("Bar")
-            if fill and fill:IsA("GuiObject") then
-                return fill.Size.X.Scale
-            end
-            -- Or the bar's own scale
-            if barFrame:IsA("GuiObject") then
-                return barFrame.Size.X.Scale
-            end
+    local function getProgressScale()
+        local _, _, progress = getReelingParts()
+        if progress and progress:IsA("GuiObject") then
+            return progress.Size.X.Scale
         end
         return nil
     end
 
     ---------------------------------------------------------------------
-    -- CAST + CATCH
+    -- HOLD / RELEASE (VirtualInputManager, tracked by core for cleanup)
     ---------------------------------------------------------------------
-    -- Cast: equip rod, click (VirtualUser), then wait for reeling GUI.
-    local function cast()
-        if not equipRod() then return false end
-        task.wait(0.2)
-        pcall(function()
-            VirtualUser:Button1Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-            task.wait(0.1)
-            VirtualUser:Button1Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-        end)
-        return true
+    local function setHold(holding)
+        ctx.pressVirtualButton(0, holding and true or false)
     end
 
-    -- Catch: while reeling is visible, click to keep the fish.
-    -- Streak protection watches a progress bar and clicks to raise it.
-    local function performCatch()
-        local startTime = tick()
-        local timeout = 30
-
-        while isReelingVisible() and tick() - startTime < timeout and ctx.destroyed == false do
-            -- Click to catch
-            pcall(function()
-                VirtualUser:Button1Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-                task.wait(0.05)
-                VirtualUser:Button1Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-            end)
-            task.wait(0.1)
-
-            -- Streak protection: if the progress dips below the threshold,
-            -- click extra hard to recover it
-            if streakProtection then
-                local progress = getCatchProgress()
-                if progress and progress < streakThreshold then
-                    pcall(function()
-                        VirtualUser:Button1Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-                        task.wait(0.05)
-                        VirtualUser:Button1Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-                    end)
-                end
+    ---------------------------------------------------------------------
+    -- REEL SESSION (Heartbeat-driven)
+    ---------------------------------------------------------------------
+    local function reelSession()
+        local deadline = os.clock() + 45
+        local function finish()
+            if reelConnection then
+                pcall(function() reelConnection:Disconnect() end)
+                reelConnection = nil
             end
+            setHold(false) -- release input immediately when reeling ends
         end
-        return true
+
+        reelConnection = RunService.Heartbeat:Connect(function()
+            if not autoFishEnabled or ctx.destroyed then
+                finish()
+                return
+            end
+            if not isReelingVisible() or os.clock() > deadline then
+                finish()
+                return
+            end
+
+            local progress = getProgressScale()
+            local saving = false
+            if streakProtection and progress and progress <= streakThreshold then
+                -- Streak protection: stop holding, graceful catch, no miss.
+                setHold(false)
+                local rodRemote = getRodRemote()
+                pcall(function()
+                    rodRemote:FireServer("Catch", "Err")
+                end)
+                streakSaves += 1
+                saving = true
+                if statsLabel then
+                    statsLabel.Text = "Streak saves: " .. streakSaves
+                end
+                ctx.log("Streak protection: saved streak #" .. streakSaves, THEME.warn)
+            end
+            if not saving then
+                setHold(true)
+            end
+        end)
     end
 
     ---------------------------------------------------------------------
-    -- AUTO FISH LOOP
+    -- CAST + AUTO FISH LOOP
     ---------------------------------------------------------------------
+    local function cast()
+        local rodRemote = getRodRemote()
+        if not rodRemote then
+            ctx.log("Fishing: Rod remote not found", THEME.danger)
+            return false
+        end
+        if not equipRod() then
+            ctx.log("Fishing: no rod found", THEME.warn)
+            return false
+        end
+        task.wait(0.15)
+        local ok = pcall(function()
+            rodRemote:FireServer("Throw")
+        end)
+        return ok
+    end
+
     local function fishLoop()
         while autoFishEnabled and not ctx.destroyed do
             if not lp.Character then
@@ -234,57 +296,86 @@ return function(ctx)
                     waited += 0.1
                 end
                 if isReelingVisible() then
-                    performCatch()
+                    reelSession()
                 end
             end
 
-            task.wait(ctx.config.Fishing.CooldownBetweenCasts or 1.0)
+            task.wait(castCooldown)
         end
-        fishThread = nil
-    end
-
-    local function startFishLoop()
-        if fishThread then return end
-        fishThread = task.spawn(fishLoop)
-        ctx.log("Fishing: Auto Fish ON", THEME.success)
-    end
-
-    local function stopFishLoop()
-        autoFishEnabled = false
-        fishThread = nil
+        setHold(false)
+        if jumpBlocked then
+            setJumpBlocked(false) -- restore jumping
+        end
     end
 
     ---------------------------------------------------------------------
-    -- AUTO SELL
+    -- SELLING (shared routine: differs from crystals only by remote)
     ---------------------------------------------------------------------
-    local function countFish()
-        local count = 0
-        local lp_ = Players.LocalPlayer
-        local backpack = lp_ and lp_:FindFirstChild("Backpack")
+    local function listFishTools()
+        local fish = {}
         local containers = {}
+        local backpack = lp:FindFirstChild("Backpack")
         if backpack then table.insert(containers, backpack) end
-        if lp_ and lp_.Character then table.insert(containers, lp_.Character) end
+        local char = getCharacter()
+        if char then table.insert(containers, char) end
         for _, container in ipairs(containers) do
             for _, child in ipairs(container:GetChildren()) do
-                if child:IsA("Tool") and not child.Name:lower():find("rod", 1, true) then
-                    count += 1
+                if child:IsA("Tool") then
+                    local lower = child.Name:lower()
+                    -- Exclude rods and pickaxes per spec
+                    if not lower:find("rod", 1, true) and not lower:find("pickaxe", 1, true) then
+                        table.insert(fish, child)
+                    end
                 end
             end
         end
-        return count
+        return fish
+    end
+
+    local function countFish()
+        return #listFishTools()
     end
 
     local function sellFish()
         local remote = getSellFishRemote()
         if not remote then return false, "SellFish remote not found" end
-        local ok, err = pcall(function()
-            remote:InvokeServer("SellFish", "All")
-        end)
-        if ok then
-            ctx.log("Fish sold", THEME.success)
+
+        -- Wait briefly for the SellFish GUI (spec path) before selling
+        local playerGui = lp:FindFirstChild("PlayerGui")
+        local sellGui = playerGui and playerGui:FindFirstChild("SellFish")
+        if sellGui then
+            task.wait(0.2)
+        end
+
+        local fish = listFishTools()
+        local sold = 0
+        local failed = 0
+        for _, tool in ipairs(fish) do
+            if not isProtected(tool.Name) then
+                local ok = invokeSell(remote, "SellFish", tool.Name)
+                if ok then
+                    sold += 1
+                    task.wait(sellDelay)
+                else
+                    failed += 1
+                end
+            end
+        end
+
+        -- Fallback per spec: bulk sell when individual selling is unavailable
+        if sold == 0 and failed == #fish then
+            local ok = invokeSell(remote, "SellFish", "Sell this fish")
+            if ok then
+                sold = 1
+                failed = 0
+            end
+        end
+
+        if sold > 0 then
+            ctx.log("Fish sold: " .. sold .. (failed > 0 and (" (failed: " .. failed .. ")") or ""), THEME.success)
             return true
         end
-        return false, err
+        return false, "nothing sold" .. (failed > 0 and (" — " .. failed .. " sell(s) failed") or "")
     end
 
     local function sellLoop()
@@ -297,18 +388,6 @@ return function(ctx)
                 task.wait(1)
             end
         end
-        sellThread = nil
-    end
-
-    local function startSellLoop()
-        if sellThread then return end
-        sellThread = task.spawn(sellLoop)
-        ctx.log("Fishing: Auto Sell ON (at " .. tostring(sellAtCount) .. ")", THEME.success)
-    end
-
-    local function stopSellLoop()
-        autoSellFish = false
-        sellThread = nil
     end
 
     ---------------------------------------------------------------------
@@ -317,7 +396,16 @@ return function(ctx)
     function Fishing.setEnabled(enabled)
         enabled = enabled and true or false
         autoFishEnabled = enabled
-        if enabled then startFishLoop() else stopFishLoop() end
+        if enabled then
+            setJumpBlocked(true) -- prevent jumping while Auto Fish runs
+            task.spawn(fishLoop)
+            ctx.log("Fishing: Auto Fish ON", THEME.success)
+        else
+            autoFishEnabled = false
+            setHold(false) -- release input immediately
+            setJumpBlocked(false) -- restore jumping
+            ctx.log("Fishing: Auto Fish OFF", THEME.dim)
+        end
     end
 
     function Fishing.setStreakProtection(enabled)
@@ -331,7 +419,12 @@ return function(ctx)
     function Fishing.setAutoSellFish(enabled)
         enabled = enabled and true or false
         autoSellFish = enabled
-        if enabled then startSellLoop() else stopSellLoop() end
+        if enabled then
+            task.spawn(sellLoop)
+            ctx.log("Fishing: Auto Sell ON (at " .. tostring(sellAtCount) .. ")", THEME.success)
+        else
+            ctx.log("Fishing: Auto Sell OFF", THEME.dim)
+        end
     end
 
     function Fishing.setSellAtCount(count)
@@ -340,14 +433,35 @@ return function(ctx)
 
     function Fishing.setProtectedFish(list)
         if type(list) == "table" then protectedFish = list end
+        if protectedLabel then
+            protectedLabel.Text = "Protected: " .. (#protectedFish > 0 and table.concat(protectedFish, ", ") or "(none)")
+        end
     end
 
     function Fishing.getProtectedFish()
         return protectedFish
     end
 
+    function Fishing.toggleProtected(name)
+        if isProtected(name) then
+            local lower = name:lower()
+            for i = #protectedFish, 1, -1 do
+                if type(protectedFish[i]) == "string" and protectedFish[i]:lower():find(lower, 1, true) then
+                    table.remove(protectedFish, i)
+                    break
+                end
+            end
+            ctx.log("Protected fish removed: " .. name, THEME.warn)
+        else
+            table.insert(protectedFish, name)
+            ctx.log("Protected fish added: " .. name, THEME.success)
+        end
+        Fishing.setProtectedFish(protectedFish)
+    end
+
     function Fishing.setLockedSpot(cf)
         lockedSpot = cf
+        updateSpotLabel()
     end
 
     function Fishing.getLockedSpot()
@@ -360,6 +474,7 @@ return function(ctx)
         if hrp then
             lockedSpot = hrp.CFrame
             ctx.config.Fishing.LockedSpot = lockedSpot
+            updateSpotLabel()
             ctx.log("Locked current fishing spot.", THEME.success)
             return true
         end
@@ -369,6 +484,7 @@ return function(ctx)
     function Fishing.clearLockedSpot()
         lockedSpot = nil
         ctx.config.Fishing.LockedSpot = nil
+        updateSpotLabel()
     end
 
     function Fishing.sellNow()
@@ -380,18 +496,27 @@ return function(ctx)
         if data.StreakProtection ~= nil then Fishing.setStreakProtection(data.StreakProtection) end
         if data.StreakThreshold then Fishing.setThreshold(data.StreakThreshold) end
         if data.SellAtCount then Fishing.setSellAtCount(data.SellAtCount) end
-        if type(data.ProtectedFish) == "table" then protectedFish = data.ProtectedFish end
+        if type(data.ProtectedFish) == "table" then
+            protectedFish = data.ProtectedFish
+            Fishing.setProtectedFish(protectedFish)
+        end
         if data.LockedSpot ~= nil then
-            -- LockedSpot may be a CFrame already (settings decode) or nil
             lockedSpot = data.LockedSpot
+            updateSpotLabel()
         end
         if data.AutoFish ~= nil then Fishing.setEnabled(data.AutoFish) end
         if data.AutoSellFish ~= nil then Fishing.setAutoSellFish(data.AutoSellFish) end
     end
 
     function Fishing.stopAll()
-        stopFishLoop()
-        stopSellLoop()
+        autoFishEnabled = false
+        autoSellFish = false
+        if reelConnection then
+            pcall(function() reelConnection:Disconnect() end)
+            reelConnection = nil
+        end
+        setHold(false)
+        setJumpBlocked(false)
     end
 
     ---------------------------------------------------------------------
@@ -425,6 +550,30 @@ return function(ctx)
             Fishing.clearLockedSpot()
             ctx.log("Cleared locked spot.", THEME.dim)
         end)
+        spotLabel = c.createSectionLabel(page.container, "Spot: not locked")
+
+        c.createSectionLabel(page.container, "Protected Fish")
+        local protectedInput = c.createTextbox(page.container, "Add/Remove", "Fish name + Enter")
+        do
+            local box = protectedInput.box
+            if box then
+                box.FocusLost:Connect(function(enterPressed)
+                    if not enterPressed then return end
+                    local name = box.Text
+                    if name and name ~= "" then
+                        Fishing.toggleProtected(name)
+                        box.Text = ""
+                        box:ReleaseFocus()
+                    end
+                end)
+            end
+        end
+        c.createButton(page.container, "Clear Protected List", function()
+            protectedFish = {}
+            Fishing.setProtectedFish(protectedFish)
+            ctx.log("Protected list cleared.", THEME.warn)
+        end)
+        protectedLabel = c.createSectionLabel(page.container, "Protected: (none)")
 
         c.createSectionLabel(page.container, "Auto Sell Fish")
         c.createToggle(page.container, "Auto Sell Fish", false, function(val)
@@ -439,6 +588,26 @@ return function(ctx)
                 ctx.log("Sell failed: " .. tostring(err), THEME.danger)
             end
         end)
+
+        c.createSectionLabel(page.container, "Session Stats")
+        statsLabel = c.createSectionLabel(page.container, "Streak saves: 0")
+    end
+
+    ---------------------------------------------------------------------
+    -- RESPAWN HANDLER (re-apply jump block + locked spot while enabled)
+    ---------------------------------------------------------------------
+    local function onCharacter(char)
+        if not autoFishEnabled or ctx.destroyed then return end
+        task.wait(0.5)
+        if not autoFishEnabled or ctx.destroyed then return end
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum and jumpBlocked then
+            pcall(function()
+                hum.Jump = false
+                hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+                hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+            end)
+        end
     end
 
     ---------------------------------------------------------------------
@@ -446,6 +615,15 @@ return function(ctx)
     ---------------------------------------------------------------------
     function Fishing.Init()
         buildUI()
+        updateSpotLabel()
+        Fishing.setProtectedFish(protectedFish)
+        if ctx.addCharacterHandler then
+            ctx.addCharacterHandler(onCharacter)
+        end
+        if ctx.config.Fishing.LockedSpot ~= nil then
+            lockedSpot = ctx.config.Fishing.LockedSpot
+            updateSpotLabel()
+        end
     end
 
     function Fishing.Start() end
