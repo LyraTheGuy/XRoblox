@@ -60,11 +60,14 @@ return function(config, components)
     view.ScreenGui = gui
     view.Gui = gui
 
+    -- Full-screen canvas: a CanvasGroup draws into a texture the size of the
+    -- group itself, so a W×H canvas clips the window as soon as it is dragged
+    -- away from the centre (ClipsDescendants cannot override that).
     local canvas = Instance.new("CanvasGroup")
     canvas.Name = "Canvas"
-    canvas.Size = UDim2.fromOffset(W, H)
-    canvas.AnchorPoint = Vector2.new(0.5, 0.5)
-    canvas.Position = UDim2.new(0.5, 0, 0.5, 0)
+    canvas.Size = UDim2.fromScale(1, 1)
+    canvas.AnchorPoint = Vector2.new(0, 0)
+    canvas.Position = UDim2.fromScale(0, 0)
     canvas.BackgroundTransparency = 1
     canvas.ClipsDescendants = false
     canvas.Parent = gui
@@ -73,6 +76,10 @@ return function(config, components)
     local main = Instance.new("Frame")
     main.Name = "Main"
     main.Size = UDim2.fromOffset(W, H)
+    -- Centered by anchor so its offset is measured from screen centre; the
+    -- drag handler moves that offset and clamps it to the viewport.
+    main.AnchorPoint = Vector2.new(0.5, 0.5)
+    main.Position = UDim2.new(0.5, 0, 0.5, 0)
     main.BackgroundColor3 = theme.bg
     main.BorderSizePixel = 0
     -- Must stay at/below its children: with a global z-index, a higher value
@@ -89,6 +96,9 @@ return function(config, components)
     view.Shadow = shared.shadow(main)
     if view.Shadow then
         view.Shadow.ZIndex = 0
+        -- shadow() positions from the top-left; match main's centred anchor.
+        view.Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+        view.Shadow.Position = UDim2.new(0.5, -4, 0.5, 8)
     end
 
     --------------------------------------------------------------------
@@ -674,9 +684,9 @@ return function(config, components)
         local limitY = math.max((screen.Y - H) / 2 - 8, 0)
         offsetX = math.clamp(offsetX, -limitX, limitX)
         offsetY = math.clamp(offsetY, -limitY, limitY)
-        main.Position = UDim2.fromOffset(offsetX, offsetY)
+        main.Position = UDim2.new(0.5, offsetX, 0.5, offsetY)
         if view.Shadow then
-            view.Shadow.Position = UDim2.fromOffset(offsetX - 4, offsetY)
+            view.Shadow.Position = UDim2.new(0.5, offsetX - 4, 0.5, offsetY + 8)
         end
     end
 

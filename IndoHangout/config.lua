@@ -56,6 +56,9 @@ return {
         SellCrystalRemote = {
             "ReplicatedStorage", "Events", "RemoteFunction", "SellCrystal",
         },
+        PickaxeRemote = {
+            "ReplicatedStorage", "Events", "RemoteEvent", "Pickaxe",
+        },
         ReelingGui = { "PlayerGui", "Reeling", "MainFrame", "Frame" },
         SellFishGui = { "PlayerGui", "SellFish", "MainFrame", "SellList" },
         CrystalsFolder = { "Workspace", "MapContent", "Crystals" },

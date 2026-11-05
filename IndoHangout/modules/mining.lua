@@ -1,7 +1,8 @@
 -- IndoHangout/modules/mining.lua
 -- Auto Mine + Sell Crystals. Crystals live at workspace.MapContent.Crystals.
--- Auto Mine tweens the character to a random crystal in range, aims the camera
--- at it and hits it with plain screen clicks (3 by default, 1.5s apart).
+-- Auto Mine tweens the character to a random crystal in range, then mines it
+-- through ReplicatedStorage.Events.RemoteEvent.Pickaxe:FireServer("Hit")
+-- (3 hits by default, 1.5s apart). No screen clicking involved.
 
 return function(ctx)
     local Players = game:GetService("Players")
@@ -36,7 +37,6 @@ return function(ctx)
     local mineLoopThread = nil
     local autoSellThread = nil
     local moveTween = nil
-    local warnedNoPickaxe = false
 
     local crystalsSellRemote = nil
     local crystalsFolder = nil
@@ -78,59 +78,112 @@ return function(ctx)
         return hrp and hrp.Position or nil
     end
 
+    -- Average of the visible parts is far more reliable than "first descendant",
+    -- which often lands on a sunken hitbox or an anchor part nowhere near the gem.
     local function getCrystalCenter(model)
         if not model then return nil end
-        local primary = model.PrimaryPart
-        if primary then
-            return primary.Position
-        end
+        if model:IsA("BasePart") then return model.Position end
+        if model.PrimaryPart then return model.PrimaryPart.Position end
+
+        local sum, count = Vector3.zero, 0
         for _, part in ipairs(model:GetDescendants()) do
-            if part:IsA("BasePart") then
-                return part.Position
+            -- The "HP" object is a health readout, not part of the gem body.
+            if part:IsA("BasePart") and part.Transparency < 1 and part.Name ~= "HP" then
+                sum = sum + part.Position
+                count += 1
             end
         end
+        if count > 0 then
+            return sum / count
+        end
         return nil
+    end
+
+    -- Only real crystals carry an "HP" object (health/durability). The folder
+    -- also holds decorations, anchors and effects that must be ignored.
+    local function findHP(model)
+        if not model then return nil end
+        local ok, hp = pcall(function() return model:FindFirstChild("HP", true) end)
+        if ok then return hp end
+        return nil
+    end
+
+    local function hasHP(model)
+        if findHP(model) then return true end
+        local ok, value = pcall(function() return model:GetAttribute("HP") end)
+        return ok and value ~= nil
+    end
+
+    -- A crystal whose HP hit zero is depleted; leave it alone.
+    local function isDepleted(model)
+        local hp = findHP(model)
+        local value = nil
+        if hp and hp:IsA("ValueBase") then
+            local ok, v = pcall(function() return tonumber(hp.Value) end)
+            if ok then value = v end
+        elseif not hp then
+            local ok, v = pcall(function() return tonumber(model:GetAttribute("HP")) end)
+            if ok then value = v end
+        end
+        return value ~= nil and value <= 0
+    end
+
+    -- Crystals may sit directly in the folder or one Folder deep.
+    local function collectCrystals(folder, out, depth)
+        if not folder or depth > 2 then return out end
+        for _, child in ipairs(folder:GetChildren()) do
+            if child:IsA("Model") or child:IsA("BasePart") then
+                if hasHP(child) then
+                    table.insert(out, child)
+                end
+            elseif child:IsA("Folder") then
+                collectCrystals(child, out, depth + 1)
+            end
+        end
+        return out
     end
 
     -- Every crystal inside Max Distance, not just the closest one.
     local function findNearbyCrystals()
         local folder = getCrystalsFolder()
         local myPos = getCharacterPosition()
-        if not folder or not myPos then return {} end
+        if not folder or not myPos then return {}, nil end
 
         local nearby = {}
-        for _, model in ipairs(folder:GetChildren()) do
-            if model:IsA("Model") or model:IsA("BasePart") then
-                local center = getCrystalCenter(model)
-                if center and (center - myPos).Magnitude <= maxDistance then
+        local nearestDist = nil
+        for _, model in ipairs(collectCrystals(folder, {}, 1)) do
+            local center = getCrystalCenter(model)
+            if center and not isDepleted(model) then
+                local dist = (center - myPos).Magnitude
+                if not nearestDist or dist < nearestDist then
+                    nearestDist = dist
+                end
+                if dist <= maxDistance then
                     table.insert(nearby, model)
                 end
             end
         end
-        return nearby
+        return nearby, nearestDist
     end
 
     ---------------------------------------------------------------------
     -- MINING INTERACTION
     ---------------------------------------------------------------------
-    local VirtualInputManager = game:GetService("VirtualInputManager")
-
-    local function getViewport()
-        local camera = workspace.CurrentCamera
-        return (camera and camera.ViewportSize) or Vector2.new(1920, 1080)
+    -- The game's mining remote: Pickaxe:FireServer("Hit").
+    local cachedPickaxeRemote = nil
+    local function getPickaxeRemote()
+        if cachedPickaxeRemote and cachedPickaxeRemote.Parent then
+            return cachedPickaxeRemote
+        end
+        local rs = game:GetService("ReplicatedStorage")
+        local events = rs:FindFirstChild("Events")
+        local remoteEvent = events and events:FindFirstChild("RemoteEvent")
+        if not remoteEvent then return nil end
+        cachedPickaxeRemote = remoteEvent:FindFirstChild("Pickaxe")
+        return cachedPickaxeRemote
     end
 
-    -- Where the crystal sits on screen, or nil when it is behind the camera.
-    local function screenPointOf(model)
-        local camera = workspace.CurrentCamera
-        local center = getCrystalCenter(model)
-        if not camera or not center then return nil end
-        local point, onScreen = camera:WorldToViewportPoint(center)
-        if not onScreen then return nil end
-        return Vector2.new(point.X, point.Y)
-    end
-
-    -- Point the camera at the crystal so the click lands on it.
+    -- Point the camera at the crystal; the game may target whatever we look at.
     local function faceCrystal(model)
         local camera = workspace.CurrentCamera
         local center = getCrystalCenter(model)
@@ -140,30 +193,22 @@ return function(ctx)
         end)
     end
 
-    -- A hit is literally one click on screen.
-    local function clickTarget(model)
-        local viewport = getViewport()
-        local point = screenPointOf(model)
-        local baseX = point and point.X or viewport.X * 0.5
-        local baseY = point and point.Y or viewport.Y * 0.5
-        local x = math.clamp(baseX + math.random(-12, 12), 0, viewport.X - 1)
-        local y = math.clamp(baseY + math.random(-12, 12), 0, viewport.Y - 1)
-        local ok = pcall(function()
-            VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
-            task.wait(math.random(4, 9) / 100)
-            VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
-        end)
-        return ok
-    end
+    -- One hit = one Pickaxe:FireServer("Hit").
+    local function hitCrystal(times, delay)
+        local remote = getPickaxeRemote()
+        if not remote then
+            return false, "Pickaxe remote not found"
+        end
 
-    -- hitsPerCrystal clicks, hitDelay seconds apart.
-    local function hitCrystal(model, times, delay)
-        if not model then return false end
         times = math.max(1, tonumber(times) or hitsPerCrystal)
         delay = tonumber(delay) or hitDelay
+
         for i = 1, times do
             if not autoMineEnabled or ctx.destroyed then return false end
-            clickTarget(model)
+            local ok = pcall(function() remote:FireServer("Hit") end)
+            if not ok then
+                return false, "Pickaxe:FireServer failed"
+            end
             if i < times then
                 task.wait(delay)
             end
@@ -334,23 +379,28 @@ return function(ctx)
     -- AUTO MINE LOOP
     ---------------------------------------------------------------------
     local function mineLoop()
+        local emptyScans = 0
         while autoMineEnabled and not ctx.destroyed do
-            local nearby = findNearbyCrystals()
+            local nearby, nearest = findNearbyCrystals()
             if #nearby == 0 then
+                emptyScans += 1
+                -- Say why nothing is happening instead of failing silently.
+                if emptyScans == 4 then
+                    local extra = nearest
+                        and string.format(" (nearest %.1f studs away)", nearest)
+                        or ""
+                    ctx.log(
+                        string.format("Mining: no live crystals within %d studs%s", math.floor(maxDistance), extra),
+                        THEME.warn
+                    )
+                end
                 task.wait(0.75)
                 continue
             end
+            emptyScans = 0
 
-            -- A pickaxe must be in hand before any click counts.
-            if not ensurePickaxe() then
-                if not warnedNoPickaxe then
-                    warnedNoPickaxe = true
-                    ctx.log("Mining: no pickaxe in backpack", THEME.danger)
-                end
-                task.wait(0.5)
-                continue
-            end
-            warnedNoPickaxe = false
+            -- Best effort: the game still accepts hits without a held tool.
+            ensurePickaxe()
 
             -- Random pick among the crystals in range, tween over to it.
             local crystal = nearby[math.random(1, #nearby)]
@@ -361,7 +411,11 @@ return function(ctx)
 
             faceCrystal(crystal)
             task.wait(0.1)
-            hitCrystal(crystal, hitsPerCrystal, hitDelay)
+            local ok, err = hitCrystal(hitsPerCrystal, hitDelay)
+            if not ok and err then
+                ctx.log("Mining: " .. err, THEME.danger)
+                task.wait(1)
+            end
             task.wait(math.random(25, 45) / 100)
         end
         mineLoopThread = nil
@@ -369,7 +423,6 @@ return function(ctx)
 
     local function startMineLoop()
         if mineLoopThread then return end
-        warnedNoPickaxe = false
         if pickaxeDropdown and pickaxeDropdown.setOptions then
             pickaxeDropdown.setOptions(Mining.getPickaxeNames())
         end
@@ -533,6 +586,26 @@ return function(ctx)
         if data.AutoSellCrystals ~= nil then Mining.setAutoSellEnabled(data.AutoSellCrystals) end
     end
 
+    -- Diagnostics: prints what detection actually sees.
+    function Mining.scan()
+        local folder = getCrystalsFolder()
+        if not folder then
+            ctx.log("Mining: MapContent.Crystals not found", THEME.danger)
+            return
+        end
+        local all = collectCrystals(folder, {}, 1)
+        local nearby, nearest = findNearbyCrystals()
+        ctx.log(
+            string.format(
+                "Mining scan: %d crystals with HP, %d in range%s",
+                #all,
+                #nearby,
+                nearest and string.format(", nearest %.1f studs", nearest) or ", no positions"
+            ),
+            THEME.dim
+        )
+    end
+
     function Mining.stopAll()
         stopMineLoop()
         stopAutoSell()
@@ -554,6 +627,9 @@ return function(ctx)
         end)
         pickaxeDropdown = c.createDropdown(page.container, "Pickaxe", Mining.getPickaxeNames(), 1, function(opt)
             Mining.setPickaxe(opt)
+        end)
+        c.createButton(page.container, "Scan Crystals", function()
+            Mining.scan()
         end)
 
         c.createSectionLabel(page.container, "Selling")
