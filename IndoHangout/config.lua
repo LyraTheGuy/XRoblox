@@ -125,17 +125,15 @@ return {
     },
 
     -- ------------------------------------------------------------------------
-    -- AUTH / PASSWORD GATE
+    -- PASSWORD GATE
     -- ------------------------------------------------------------------------
-    -- The expected password is XOR-obfuscated as a byte list so the plaintext
-    -- never appears in source. main.lua reconstructs it with XorKey and
-    -- compares against the text the user enters.
-    Auth = {
+    -- Password is stored base64-encoded so the plaintext never appears in
+    -- source. gate.lua decodes and compares. "UkVMRUFTRQ==" = "RELEASE".
+    Gate = {
         Enabled = true,
-        XorKey = 0x5A,
-        -- "UkVMRUFTRQ==" XOR 0x5A, byte by byte
-        TokenBytes = { 15, 49, 12, 23, 8, 15, 28, 14, 8, 11, 103, 103 },
-        Hint = "Enter access password",
-        MaxAttempts = 5,
+        Password = "UkVMRUFTRQ==",
+        Title = "IndoHangout",
+        Subtitle = "Access Gate",
+        Footer = "IndoHangout",
     },
 }
