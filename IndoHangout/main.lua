@@ -127,7 +127,7 @@ end)
 local gateChunk = compile(fetch(BASE_URL .. "gate.lua", "gate.lua"), "gate.lua")
 local gateFactory = gateChunk()
 assert(type(gateFactory) == "function", "gate.lua must return a function")
-local gateOk, gateErr = pcall(gateFactory, config)
+local gateOk, gateErr = pcall(gateFactory, config, Session)
 if not gateOk then
     _G.INDOHANGOUT_RUNNING = nil
     showErrorGui("Gate failed:\n" .. tostring(gateErr))

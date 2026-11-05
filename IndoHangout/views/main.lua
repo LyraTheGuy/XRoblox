@@ -1,7 +1,7 @@
 -- IndoHangout/views/main.lua
 -- View layer: window chrome + sidebar tab pages, built from the reusable
 -- component factories in views/components/. Restructured after LyraHub's
--- views/ pattern (CanvasGroup canvas, drop shadow, pill sidebar tabs with
+-- views/ pattern (full-screen canvas frame, drop shadow, pill sidebar tabs with
 -- hover/indicator, minimize chip, full-width drag hitbox).
 --
 -- COMPATIBILITY SURFACE (feature modules + core.lua depend on this):
@@ -60,15 +60,16 @@ return function(config, components)
     view.ScreenGui = gui
     view.Gui = gui
 
-    -- Full-screen canvas: a CanvasGroup draws into a texture the size of the
-    -- group itself, so a W×H canvas clips the window as soon as it is dragged
-    -- away from the centre (ClipsDescendants cannot override that).
-    local canvas = Instance.new("CanvasGroup")
+    -- Full-screen plain Frame, not a CanvasGroup: a CanvasGroup renders the UI
+    -- into a downsampled texture (blurry text) and clips to its own size, so
+    -- dragging a W×H window inside one cut it off.
+    local canvas = Instance.new("Frame")
     canvas.Name = "Canvas"
     canvas.Size = UDim2.fromScale(1, 1)
     canvas.AnchorPoint = Vector2.new(0, 0)
     canvas.Position = UDim2.fromScale(0, 0)
     canvas.BackgroundTransparency = 1
+    canvas.BorderSizePixel = 0
     canvas.ClipsDescendants = false
     canvas.Parent = gui
     view.Canvas = canvas
@@ -813,14 +814,21 @@ return function(config, components)
 
     view.Minimized = false
 
+    -- Shrink/grow the window itself (UIScale) instead of fading a CanvasGroup,
+    -- which no longer exists and which caused the blurry rendering.
+    local windowScale = Instance.new("UIScale")
+    windowScale.Scale = 1
+    windowScale.Parent = main
+
     local function setMinimized(minimized_)
         if minimized_ == view.Minimized then return end
         view.Minimized = minimized_
         if minimized_ then
-            local tween = TweenService:Create(canvas, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { GroupTransparency = 1 })
-            tween:Play()
-            tween.Completed:Once(function()
+            TweenService:Create(windowScale, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Scale = 0.94 }):Play()
+            task.delay(0.16, function()
+                if not view.Minimized then return end
                 canvas.Visible = false
+                windowScale.Scale = 1
                 minScale.Scale = 0.9
                 minimized.Visible = true
                 TweenService:Create(minScale, TweenInfo.new(0.24, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
@@ -828,8 +836,8 @@ return function(config, components)
         else
             minimized.Visible = false
             canvas.Visible = true
-            canvas.GroupTransparency = 1
-            TweenService:Create(canvas, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { GroupTransparency = 0 }):Play()
+            windowScale.Scale = 0.94
+            TweenService:Create(windowScale, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
         end
     end
 

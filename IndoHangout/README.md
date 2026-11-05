@@ -56,9 +56,10 @@ IndoHangout/
    - disconnects all tracked connections,
    - destroys the ScreenGui and clears `_G` guards.
 4. **`views/main.lua`** — builds the interface (LyraHub-style view layer):
-   CanvasGroup canvas, drop shadow, top bar with window buttons, pill sidebar
-   tabs (About, Fishing, Mining, Misc, Settings), five scrollable pages, a
-   status strip, and the component adapter consumed by feature modules.
+   a full-screen plain `Frame` canvas (not a CanvasGroup — that blurred text and
+   clipped the window when dragged), drop shadow, top bar with window buttons,
+   pill sidebar tabs (About, Fishing, Mining, Misc, Settings), five scrollable
+   pages, a status strip, and the component adapter consumed by feature modules.
    Components live in `views/components/` and are fetched and wired by
    `main.lua`. Duplicate-GUI guard via `_G.__IndoHangout_Gui`.
 5. **Feature modules** — each returns an instance table with `Init`,
@@ -80,8 +81,11 @@ IndoHangout/
   selling — `SellFishRemote:InvokeServer("SellFish", category)` — only the remote
   differs. If that invoke fails it falls back to sweeping the open `SellList`
   one fish at a time.
-- **Auto Sell Fish** — sells with the selected category once the inventory
-  reaches `SellAtCount`.
+- **Auto Sell Fish** — picks a `Sell Mode`: **Per Count** (sell once the bag
+  reaches N fish) or **Per Minute** (sell on a time interval). The rate is a text
+  input, not a slider, and the row label switches between
+  `Sell Rate (count)` and `Sell Every (min)` to match the mode. Setters:
+  `Fishing.setSellMode`, `Fishing.setSellRate`, `Fishing.getSellRate`.
 - **Protected Fish** — a list of fish names that are never sold (persisted in
   profiles, honored by the `SellList` fallback).
 - **Locked Spot** — saves/restores a CFrame so the character repositions before
@@ -109,9 +113,10 @@ IndoHangout/
   `Level` / `Power` / `Tier` / `Damage` attributes. Choosing a specific pickaxe in
   the dropdown pins it; if it leaves the backpack the module falls back to best.
   This mirrors the automatic rod equip in Fishing.
-- **Auto Sell Crystals** — sells via the `SellCrystal` RemoteFunction every
-  `Sell Every X` crystals, with a configurable cooldown and category
-  (Sell All / under 50 / 400 / 600 Kg).
+- **Auto Sell Crystals** — sells via the `SellCrystal` RemoteFunction with a
+  configurable cooldown and category (Sell All / under 50 / 400 / 600 Kg), on the
+  same **Per Count** / **Per Minute** mode switch as fishing (text-input rate).
+  Setters: `Mining.setSellMode`, `Mining.setSellRate`, `Mining.getSellRate`.
 
 ### Misc
 - **Fly** (camera-relative, WASD + Space/Ctrl), **WalkSpeed**, **Noclip**.

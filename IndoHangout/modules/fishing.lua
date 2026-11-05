@@ -42,6 +42,9 @@ return function(ctx)
     local streakThreshold = ctx.config.Fishing.StreakThreshold or 0.07
     local sellAtCount = ctx.config.Fishing.SellAtCount or 10
     local sellCategory = ctx.config.Fishing.SellCategory or "Sell All"
+    local sellMode = ctx.config.Fishing.SellMode or "Count" -- "Count" | "Minute"
+    local sellEveryMinutes = ctx.config.Fishing.SellEveryMinutes or 1
+    local lastAutoSellAt = 0
     local castCooldown = ctx.config.Fishing.CooldownBetweenCasts or 1.0
 
     -- Runtime state
@@ -64,6 +67,7 @@ return function(ctx)
     local spotLabel = nil
     local protectedLabel = nil
     local statsLabel = nil
+    local sellRateInput = nil
 
     -- Forward declarations (bodies assigned below, used by helper closures)
     local isProtected, countBag, sellFishAction
@@ -312,12 +316,21 @@ return function(ctx)
     ---------------------------------------------------------------------
     local function fishLoop()
         while autoFishEnabled and not ctx.destroyed do
-            -- Auto-sell threshold check first
+            -- Auto-sell check first: either by bag count or by time interval.
             if autoSellFish then
-                local currentFish = countBag()
-                if currentFish >= sellAtCount then
-                    ctx.log("Fishing: threshold (" .. currentFish .. ") reached — selling...", THEME.warn)
+                local shouldSell = false
+                if sellMode == "Minute" then
+                    shouldSell = (os.clock() - lastAutoSellAt) >= (sellEveryMinutes * 60)
+                else
+                    local currentFish = countBag()
+                    if currentFish >= sellAtCount then
+                        ctx.log("Fishing: threshold (" .. currentFish .. ") reached — selling...", THEME.warn)
+                        shouldSell = true
+                    end
+                end
+                if shouldSell then
                     pcall(sellFishAction)
+                    lastAutoSellAt = os.clock()
                     task.wait(1)
                 end
             end
@@ -488,7 +501,11 @@ return function(ctx)
         enabled = enabled and true or false
         autoSellFish = enabled
         if enabled then
-            ctx.log("Fishing: Auto Sell ON (at " .. tostring(sellAtCount) .. ")", THEME.success)
+            lastAutoSellAt = os.clock()
+            local rate = sellMode == "Minute"
+                and (tostring(sellEveryMinutes) .. " min")
+                or ("count " .. tostring(sellAtCount))
+            ctx.log("Fishing: Auto Sell ON (per " .. rate .. ")", THEME.success)
         else
             ctx.log("Fishing: Auto Sell OFF", THEME.dim)
         end
@@ -496,6 +513,36 @@ return function(ctx)
 
     function Fishing.setSellAtCount(count)
         sellAtCount = math.max(1, math.floor(tonumber(count) or 10))
+    end
+
+    function Fishing.setSellMode(mode)
+        sellMode = (tostring(mode or ""):lower():find("minute", 1, true)) and "Minute" or "Count"
+        ctx.config.Fishing.SellMode = sellMode
+        lastAutoSellAt = os.clock()
+        ctx.log("Fishing: auto sell mode — per " .. sellMode, THEME.dim)
+    end
+
+    function Fishing.getSellMode()
+        return sellMode
+    end
+
+    -- Count mode: how many fish in the bag. Minute mode: how often to sell.
+    function Fishing.setSellRate(value)
+        local number = tonumber(value)
+        if not number or number <= 0 then return false end
+        if sellMode == "Minute" then
+            sellEveryMinutes = math.max(0.1, number)
+            ctx.config.Fishing.SellEveryMinutes = sellEveryMinutes
+        else
+            sellAtCount = math.max(1, math.floor(number))
+            ctx.config.Fishing.SellAtCount = sellAtCount
+        end
+        lastAutoSellAt = os.clock()
+        return true
+    end
+
+    function Fishing.getSellRate()
+        return sellMode == "Minute" and sellEveryMinutes or sellAtCount
     end
 
     function Fishing.setSellCategory(category)
@@ -570,6 +617,8 @@ return function(ctx)
         if data.StreakThreshold then Fishing.setThreshold(data.StreakThreshold) end
         if data.SellAtCount then Fishing.setSellAtCount(data.SellAtCount) end
         if data.SellCategory then Fishing.setSellCategory(data.SellCategory) end
+        if data.SellMode then Fishing.setSellMode(data.SellMode) end
+        if data.SellEveryMinutes then sellEveryMinutes = math.max(0.1, tonumber(data.SellEveryMinutes) or 1) end
         if type(data.ProtectedFish) == "table" then
             protectedFish = data.ProtectedFish
             Fishing.setProtectedFish(protectedFish)
@@ -661,9 +710,42 @@ return function(ctx)
         c.createToggle(page.container, "Auto Sell Fish", false, function(val)
             Fishing.setAutoSellFish(val)
         end)
-        c.createSlider(page.container, "Sell At Count", 1, 50, sellAtCount, 1, function(val)
-            Fishing.setSellAtCount(val)
-        end)
+        local function refreshSellRate()
+            if not sellRateInput then return end
+            if sellRateInput.text then
+                sellRateInput.text(tostring(Fishing.getSellRate()))
+            end
+            local row = sellRateInput.container
+            local lbl = row and row:FindFirstChildOfClass("TextLabel")
+            if lbl then
+                lbl.Text = (Fishing.getSellMode() == "Minute")
+                    and "Sell Every (min)"
+                    or "Sell Rate (count)"
+            end
+        end
+
+        c.createDropdown(page.container, "Sell Mode", { "Per Count", "Per Minute" },
+            (Fishing.getSellMode() == "Minute") and 2 or 1, function(opt)
+                Fishing.setSellMode(opt)
+                refreshSellRate()
+            end)
+        sellRateInput = c.createTextbox(page.container, "Sell Rate (count)", "10")
+        if sellRateInput then
+            sellRateInput.text(tostring(Fishing.getSellRate()))
+            refreshSellRate()
+            local box = sellRateInput.box
+            if box then
+                box.FocusLost:Connect(function(enterPressed)
+                    if not enterPressed then return end
+                    if Fishing.setSellRate(box.Text) then
+                        refreshSellRate()
+                    else
+                        box.Text = tostring(Fishing.getSellRate())
+                    end
+                    box:ReleaseFocus()
+                end)
+            end
+        end
 
         c.createSectionLabel(page.container, "Session Stats")
         statsLabel = c.createSectionLabel(page.container, "Catches: 0 | In bag: 0 | Saves: 0")

@@ -83,6 +83,8 @@ return {
             "All under 400 Kg",
             "All under 600 Kg",
         },
+        SellMode = "Count",       -- "Count" (bag size) or "Minute" (interval)
+        SellEveryMinutes = 1,     -- used when SellMode == "Minute"
         CooldownBetweenCasts = 1.0,
     },
 
@@ -97,6 +99,8 @@ return {
         StandOffset = 4,          -- studs to stand away from the crystal
         AutoSellCrystals = false,
         SellEveryX = 10,
+        SellMode = "Count",       -- "Count" (crystals held) or "Minute" (interval)
+        SellEveryMinutes = 1,     -- used when SellMode == "Minute"
         SellCooldown = 3,         -- seconds
         SellCategory = "Sell All",
         SellCategories = {

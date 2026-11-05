@@ -33,6 +33,10 @@ return function(ctx)
     local sellEveryX = ctx.config.Mining.SellEveryX or 10
     local sellCooldown = ctx.config.Mining.SellCooldown or 3
     local sellCategory = ctx.config.Mining.SellCategory or "Sell All"
+    local sellMode = ctx.config.Mining.SellMode or "Count" -- "Count" | "Minute"
+    local sellEveryMinutes = ctx.config.Mining.SellEveryMinutes or 1
+    local lastAutoSellAt = 0
+    local sellRateInput = nil
 
     local mineLoopThread = nil
     local autoSellThread = nil
@@ -479,9 +483,16 @@ return function(ctx)
 
     local function autoSellLoop()
         while autoSellEnabled and not ctx.destroyed do
-            local count = countCrystalsInInventory()
-            if count >= sellEveryX then
+            local shouldSell = false
+            if sellMode == "Minute" then
+                shouldSell = (os.clock() - lastAutoSellAt) >= (sellEveryMinutes * 60)
+            else
+                shouldSell = countCrystalsInInventory() >= sellEveryX
+            end
+
+            if shouldSell then
                 sellCrystals(sellCategory)
+                lastAutoSellAt = os.clock()
                 task.wait(sellCooldown)
             else
                 task.wait(1)
@@ -492,8 +503,12 @@ return function(ctx)
 
     local function startAutoSell()
         if autoSellThread then return end
+        lastAutoSellAt = os.clock()
         autoSellThread = task.spawn(autoSellLoop)
-        ctx.log("Mining: Auto Sell ON (every " .. tostring(sellEveryX) .. ")", THEME.success)
+        local rate = sellMode == "Minute"
+            and (tostring(sellEveryMinutes) .. " min")
+            or ("count " .. tostring(sellEveryX))
+        ctx.log("Mining: Auto Sell ON (per " .. rate .. ")", THEME.success)
     end
 
     local function stopAutoSell()
@@ -562,6 +577,36 @@ return function(ctx)
         sellEveryX = math.max(1, math.floor(tonumber(count) or 10))
     end
 
+    function Mining.setSellMode(mode)
+        sellMode = (tostring(mode or ""):lower():find("minute", 1, true)) and "Minute" or "Count"
+        ctx.config.Mining.SellMode = sellMode
+        lastAutoSellAt = os.clock()
+        ctx.log("Mining: auto sell mode — per " .. sellMode, THEME.dim)
+    end
+
+    function Mining.getSellMode()
+        return sellMode
+    end
+
+    -- Count mode: how many crystals. Minute mode: how often to sell.
+    function Mining.setSellRate(value)
+        local number = tonumber(value)
+        if not number or number <= 0 then return false end
+        if sellMode == "Minute" then
+            sellEveryMinutes = math.max(0.1, number)
+            ctx.config.Mining.SellEveryMinutes = sellEveryMinutes
+        else
+            sellEveryX = math.max(1, math.floor(number))
+            ctx.config.Mining.SellEveryX = sellEveryX
+        end
+        lastAutoSellAt = os.clock()
+        return true
+    end
+
+    function Mining.getSellRate()
+        return sellMode == "Minute" and sellEveryMinutes or sellEveryX
+    end
+
     function Mining.setSellCooldown(seconds)
         sellCooldown = math.max(1, tonumber(seconds) or 3)
     end
@@ -580,6 +625,8 @@ return function(ctx)
         if type(data) ~= "table" then return end
         if data.MaxDistance then Mining.setMaxDistance(data.MaxDistance) end
         if data.SellEveryX then Mining.setSellEvery(data.SellEveryX) end
+        if data.SellMode then Mining.setSellMode(data.SellMode) end
+        if data.SellEveryMinutes then sellEveryMinutes = math.max(0.1, tonumber(data.SellEveryMinutes) or 1) end
         if data.SellCooldown then Mining.setSellCooldown(data.SellCooldown) end
         if data.SellCategory then Mining.setSellCategory(data.SellCategory) end
         if data.AutoMine ~= nil then Mining.setAutoMineEnabled(data.AutoMine) end
@@ -647,9 +694,42 @@ return function(ctx)
         c.createToggle(page.container, "Auto Sell Crystals", false, function(val)
             Mining.setAutoSellEnabled(val)
         end)
-        c.createSlider(page.container, "Sell Every X Crystals", 1, 50, sellEveryX, 1, function(val)
-            Mining.setSellEvery(val)
-        end)
+        local function refreshSellRate()
+            if not sellRateInput then return end
+            if sellRateInput.text then
+                sellRateInput.text(tostring(Mining.getSellRate()))
+            end
+            local row = sellRateInput.container
+            local lbl = row and row:FindFirstChildOfClass("TextLabel")
+            if lbl then
+                lbl.Text = (Mining.getSellMode() == "Minute")
+                    and "Sell Every (min)"
+                    or "Sell Rate (count)"
+            end
+        end
+
+        c.createDropdown(page.container, "Sell Mode", { "Per Count", "Per Minute" },
+            (Mining.getSellMode() == "Minute") and 2 or 1, function(opt)
+                Mining.setSellMode(opt)
+                refreshSellRate()
+            end)
+        sellRateInput = c.createTextbox(page.container, "Sell Rate (count)", "10")
+        if sellRateInput then
+            sellRateInput.text(tostring(Mining.getSellRate()))
+            refreshSellRate()
+            local box = sellRateInput.box
+            if box then
+                box.FocusLost:Connect(function(enterPressed)
+                    if not enterPressed then return end
+                    if Mining.setSellRate(box.Text) then
+                        refreshSellRate()
+                    else
+                        box.Text = tostring(Mining.getSellRate())
+                    end
+                    box:ReleaseFocus()
+                end)
+            end
+        end
         c.createSlider(page.container, "Sell Cooldown (s)", 1, 30, sellCooldown, 1, function(val)
             Mining.setSellCooldown(val)
         end)
