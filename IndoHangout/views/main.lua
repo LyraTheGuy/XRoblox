@@ -49,6 +49,9 @@ return function(config, components)
     gui.ResetOnSpawn = false
     gui.IgnoreGuiInset = true
     gui.DisplayOrder = 1000
+    -- Sibling keeps ZIndex local to each parent, so a child label can never be
+    -- painted over by its own row/panel background. IndoVoice sets this too.
+    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     pcall(function() gui.Parent = game:GetService("CoreGui") end)
     if not gui.Parent then
         gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
@@ -72,7 +75,9 @@ return function(config, components)
     main.Size = UDim2.fromOffset(W, H)
     main.BackgroundColor3 = theme.bg
     main.BorderSizePixel = 0
-    main.ZIndex = 2
+    -- Must stay at/below its children: with a global z-index, a higher value
+    -- here paints the window background over every label inside it.
+    main.ZIndex = 1
     main.ClipsDescendants = true
     main.Parent = canvas
     shared.corner(main, UDim.new(0, 12))
@@ -82,6 +87,9 @@ return function(config, components)
     view.Main = main
     view.MainFrame = main
     view.Shadow = shared.shadow(main)
+    if view.Shadow then
+        view.Shadow.ZIndex = 0
+    end
 
     --------------------------------------------------------------------
     -- TOP BAR (title + window buttons; DragHit sits under them)
@@ -208,6 +216,9 @@ return function(config, components)
         l.TextXAlignment = opts.TextXAlignment or Enum.TextXAlignment.Left
         l.TextYAlignment = opts.TextYAlignment or Enum.TextYAlignment.Center
         l.TextWrapped = opts.Wrapped or false
+        if opts.TextTruncate then l.TextTruncate = opts.TextTruncate end
+        -- Wrapped copy needs to grow or it is clipped to a single line.
+        if opts.Wrapped then l.AutomaticSize = Enum.AutomaticSize.Y end
         l.ZIndex = opts.ZIndex or 1
         l.LayoutOrder = opts.LayoutOrder or 0
         l.Parent = opts.Parent
@@ -272,10 +283,6 @@ return function(config, components)
         scroll.ZIndex = 1
         scroll.Visible = false
         scroll.Parent = main
-        local scrollListener = scroll:GetPropertyChangedSignal("CanvasPosition")
-        scrollListener:Connect(function()
-            scroll.CanvasPosition = Vector2.new(0, 0)
-        end)
         shared.corner(scroll, UDim.new(0, 10))
         shared.stroke(scroll, theme.divider, 1, 0.5)
 
@@ -412,6 +419,8 @@ return function(config, components)
             Parent = row, Text = text or "", Position = UDim2.fromOffset(12, 0),
             Size = UDim2.new(0, width or 110, 1, 0), TextSize = 11, Color = theme.text,
             TextTruncate = Enum.TextTruncate.AtEnd,
+            -- above the row's own ZIndex so the panel can never cover the text
+            ZIndex = 4,
         })
     end
 
