@@ -123,4 +123,19 @@ return {
         Folder = "IndoHangoutSession",
         TTL = 7 * 24 * 60 * 60,  -- 7 days
     },
+
+    -- ------------------------------------------------------------------------
+    -- AUTH / PASSWORD GATE
+    -- ------------------------------------------------------------------------
+    -- The expected password is XOR-obfuscated as a byte list so the plaintext
+    -- never appears in source. main.lua reconstructs it with XorKey and
+    -- compares against the text the user enters.
+    Auth = {
+        Enabled = true,
+        XorKey = 0x5A,
+        -- "UkVMRUFTRQ==" XOR 0x5A, byte by byte
+        TokenBytes = { 15, 49, 12, 23, 8, 15, 28, 14, 8, 11, 103, 103 },
+        Hint = "Enter access password",
+        MaxAttempts = 5,
+    },
 }
