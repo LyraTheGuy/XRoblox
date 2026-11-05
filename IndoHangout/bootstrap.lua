@@ -4,7 +4,7 @@
 local USER = "LyraTheGuy"
 local REPO = "XRoblox"
 local FOLDER = "IndoHangout"
-local BRANCH = "staging" -- change to "main" when promoting off staging
+local BRANCH = "main" -- change to "main" when promoting off staging
 
 local BASE_URL = ("https://raw.githubusercontent.com/%s/%s/%s/%s/"):format(USER, REPO, BRANCH, FOLDER)
 
