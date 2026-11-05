@@ -1,4 +1,4 @@
-﻿-- IndoHangout/gate.lua
+-- IndoHangout/gate.lua
 -- Password gate UI. Must pass before the main UI loads.
 -- Password is stored base64-encoded in config.Gate.Password and decoded here.
 return function(config)
