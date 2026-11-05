@@ -272,6 +272,10 @@ return function(config, components)
         scroll.ZIndex = 1
         scroll.Visible = false
         scroll.Parent = main
+        local scrollListener = scroll:GetPropertyChangedSignal("CanvasPosition")
+        scrollListener:Connect(function()
+            scroll.CanvasPosition = Vector2.new(0, 0)
+        end)
         shared.corner(scroll, UDim.new(0, 10))
         shared.stroke(scroll, theme.divider, 1, 0.5)
 
