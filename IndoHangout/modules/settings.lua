@@ -282,6 +282,9 @@ return function(ctx)
                 StreakThreshold = ctx.config.Fishing.StreakThreshold,
                 AutoSellFish = ctx.config.Fishing.AutoSellFish,
                 SellAtCount = ctx.config.Fishing.SellAtCount,
+                SellCategory = ctx.config.Fishing.SellCategory,
+                SellMode = ctx.config.Fishing.SellMode,
+                SellEveryMinutes = ctx.config.Fishing.SellEveryMinutes,
                 ProtectedFish = {},
                 LockedSpot = ctx.config.Fishing.LockedSpot,
             },
@@ -290,6 +293,8 @@ return function(ctx)
                 MaxDistance = ctx.config.Mining.MaxDistance,
                 AutoSellCrystals = ctx.config.Mining.AutoSellCrystals,
                 SellEveryX = ctx.config.Mining.SellEveryX,
+                SellMode = ctx.config.Mining.SellMode,
+                SellEveryMinutes = ctx.config.Mining.SellEveryMinutes,
                 SellCooldown = ctx.config.Mining.SellCooldown,
                 SellCategory = ctx.config.Mining.SellCategory,
             },
@@ -338,6 +343,12 @@ return function(ctx)
             if data.Mining.SellCategory then
                 ctx.config.Mining.SellCategory = data.Mining.SellCategory
             end
+            if type(data.Mining.SellMode) == "string" then
+                ctx.config.Mining.SellMode = data.Mining.SellMode
+            end
+            if data.Mining.SellEveryMinutes then
+                ctx.config.Mining.SellEveryMinutes = safeNum(data.Mining.SellEveryMinutes, ctx.config.Mining.SellEveryMinutes)
+            end
             pcall(function()
                 if miningMod then
                     miningMod.applySettings(data.Mining)
@@ -366,6 +377,15 @@ return function(ctx)
             ctx.config.Fishing.StreakThreshold = safeNum(data.Fishing.StreakThreshold, ctx.config.Fishing.StreakThreshold)
             ctx.config.Fishing.AutoSellFish = data.Fishing.AutoSellFish and true or false
             ctx.config.Fishing.SellAtCount = math.max(1, math.floor(safeNum(data.Fishing.SellAtCount, ctx.config.Fishing.SellAtCount)))
+            if type(data.Fishing.SellCategory) == "string" then
+                ctx.config.Fishing.SellCategory = data.Fishing.SellCategory
+            end
+            if type(data.Fishing.SellMode) == "string" then
+                ctx.config.Fishing.SellMode = data.Fishing.SellMode
+            end
+            if data.Fishing.SellEveryMinutes then
+                ctx.config.Fishing.SellEveryMinutes = safeNum(data.Fishing.SellEveryMinutes, ctx.config.Fishing.SellEveryMinutes)
+            end
             if type(data.Fishing.ProtectedFish) == "table" then
                 ctx.config.Fishing.ProtectedFish = data.Fishing.ProtectedFish
             end

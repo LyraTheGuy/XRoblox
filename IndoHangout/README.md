@@ -56,9 +56,10 @@ IndoHangout/
    - disconnects all tracked connections,
    - destroys the ScreenGui and clears `_G` guards.
 4. **`views/main.lua`** — builds the interface (LyraHub-style view layer):
-   CanvasGroup canvas, drop shadow, top bar with window buttons, pill sidebar
-   tabs (About, Fishing, Mining, Misc, Settings), five scrollable pages, a
-   status strip, and the component adapter consumed by feature modules.
+   a full-screen plain `Frame` canvas (not a CanvasGroup — that blurred text and
+   clipped the window when dragged), drop shadow, top bar with window buttons,
+   pill sidebar tabs (About, Fishing, Mining, Misc, Settings), five scrollable
+   pages, a status strip, and the component adapter consumed by feature modules.
    Components live in `views/components/` and are fetched and wired by
    `main.lua`. Duplicate-GUI guard via `_G.__IndoHangout_Gui`.
 5. **Feature modules** — each returns an instance table with `Init`,
@@ -75,20 +76,52 @@ IndoHangout/
   clicks to catch.
 - **Streak Protection** — watches the catch progress bar and clicks harder when
   progress dips below the configured threshold.
-- **Auto Sell Fish** — sells through the `SellFish` RemoteFunction once the
-  inventory reaches `SellAtCount`.
+- **Selling** — `Sell Fish Now` plus a **Sell Category** dropdown
+  (Sell All / under 50 / 400 / 600 Kg). It uses the same call shape as crystal
+  selling — `SellFishRemote:InvokeServer("SellFish", category)` — only the remote
+  differs. If that invoke fails it falls back to sweeping the open `SellList`
+  one fish at a time.
+- **Auto Sell Fish** — picks a `Sell Mode`: **Per Count** (sell once the bag
+  reaches N fish) or **Per Minute** (sell on a time interval). The rate is a text
+  input, not a slider, and the row label switches between
+  `Sell Rate (count)` and `Sell Every (min)` to match the mode. Setters:
+  `Fishing.setSellMode`, `Fishing.setSellRate`, `Fishing.getSellRate`.
 - **Protected Fish** — a list of fish names that are never sold (persisted in
-  profiles).
+  profiles, honored by the `SellList` fallback).
 - **Locked Spot** — saves/restores a CFrame so the character repositions before
   each cast.
 
 ### Mining
-- **Auto Mine** — targets the nearest crystal within `Max Distance` and lands
-  three hits (via ProximityPrompt or a simulated click). Only interacts when
-  physically close; no teleport cheating.
-- **Auto Sell Crystals** — sells via the `SellCrystal` RemoteFunction every
-  `Sell Every X` crystals, with a configurable cooldown and category
-  (Sell All / under 50 / 400 / 600 Kg).
+- **Auto Mine** — one cycle is: equip the **best pickaxe** in the backpack, tween
+  the character to a random crystal inside `Max Distance`, then **lock onto that
+  crystal** and keep swinging `ReplicatedStorage.Events.RemoteEvent.Pickaxe`
+  (`Pickaxe:FireServer("Hit")`) `HitDelay` seconds apart (1.5s) until the crystal
+  is in the bag — up to 6 swings, so a dropped hit is retried instead of the bot
+  walking off after one. Success is detected two ways: the model leaves the
+  folder / its `HP` hits 0, **or** the backpack count goes up. Only then does it
+  pick the next crystal. There is no screen clicking — the remote is the only
+  input the game needs. Standing distance is the crystal's own radius plus a gap
+  (minimum `StandOffset`), so the character never tweens inside the gem.
+  Detection scans every crystal in radius (folder children
+  and one level of nested folders), not just the nearest one, and uses the
+  average position of visible parts so hitboxes cannot skew the distance.
+- **Only real crystals are targeted** — a candidate must contain an `HP` child
+  (or `HP` attribute), which the folder's decorations, anchors and effects do not
+  have. Crystals whose `HP` value has dropped to 0 are treated as depleted and
+  skipped.
+  The move is a CFrame tween, so the character glides rather than teleports.
+- **Scan Crystals** — a button that logs how many crystals the folder holds, how
+  many are in range, and the nearest distance, so an empty Auto Mine is easy to
+  diagnose.
+- **Pickaxe selection** — `(Auto = best)` ranks tools by tier word in the name
+  (Mythic → Legendary → Epic → Rare …), then a number in the name, then
+  `Level` / `Power` / `Tier` / `Damage` attributes. Choosing a specific pickaxe in
+  the dropdown pins it; if it leaves the backpack the module falls back to best.
+  This mirrors the automatic rod equip in Fishing.
+- **Auto Sell Crystals** — sells via the `SellCrystal` RemoteFunction with a
+  configurable cooldown and category (Sell All / under 50 / 400 / 600 Kg), on the
+  same **Per Count** / **Per Minute** mode switch as fishing (text-input rate).
+  Setters: `Mining.setSellMode`, `Mining.setSellRate`, `Mining.getSellRate`.
 
 ### Misc
 - **Fly** (camera-relative, WASD + Space/Ctrl), **WalkSpeed**, **Noclip**.

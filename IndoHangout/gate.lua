@@ -1,7 +1,9 @@
 -- IndoHangout/gate.lua
 -- Password gate UI. Must pass before the main UI loads.
 -- Password is stored base64-encoded in config.Gate.Password and decoded here.
-return function(config)
+-- A successful unlock is remembered through the Session backend, so re-executing
+-- (or rejoining) does not ask for the password again.
+return function(config, Session)
     local Players = game:GetService("Players")
     local TweenService = game:GetService("TweenService")
     local lp = Players.LocalPlayer
@@ -9,6 +11,24 @@ return function(config)
     local G = (config and config.Gate) or {}
 
     if G.Enabled == false then
+        return true
+    end
+
+    local SESSION_KEY = "IndoHangoutUnlocked"
+
+    local function readUnlocked()
+        if not (Session and Session.Get) then return false end
+        local ok, value = pcall(Session.Get, SESSION_KEY, false)
+        return ok and value == true
+    end
+
+    local function rememberUnlocked()
+        if not (Session and Session.Set) then return false end
+        local ok = pcall(Session.Set, SESSION_KEY, true)
+        return ok
+    end
+
+    if readUnlocked() then
         return true
     end
 
@@ -201,6 +221,7 @@ return function(config)
             TweenService:Create(InputBox, fadeOut, { BackgroundTransparency = 1, TextTransparency = 1 }):Play()
             TweenService:Create(EnterBtn, fadeOut, { BackgroundTransparency = 1, TextTransparency = 1 }):Play()
             TweenService:Create(Footer, fadeOut, { TextTransparency = 1 }):Play()
+            rememberUnlocked()
             task.wait(0.35)
             GateGui:Destroy()
         else

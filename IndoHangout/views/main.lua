@@ -1,7 +1,7 @@
 -- IndoHangout/views/main.lua
 -- View layer: window chrome + sidebar tab pages, built from the reusable
 -- component factories in views/components/. Restructured after LyraHub's
--- views/ pattern (CanvasGroup canvas, drop shadow, pill sidebar tabs with
+-- views/ pattern (full-screen canvas frame, drop shadow, pill sidebar tabs with
 -- hover/indicator, minimize chip, full-width drag hitbox).
 --
 -- COMPATIBILITY SURFACE (feature modules + core.lua depend on this):
@@ -49,6 +49,9 @@ return function(config, components)
     gui.ResetOnSpawn = false
     gui.IgnoreGuiInset = true
     gui.DisplayOrder = 1000
+    -- Sibling keeps ZIndex local to each parent, so a child label can never be
+    -- painted over by its own row/panel background. IndoVoice sets this too.
+    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     pcall(function() gui.Parent = game:GetService("CoreGui") end)
     if not gui.Parent then
         gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
@@ -57,12 +60,16 @@ return function(config, components)
     view.ScreenGui = gui
     view.Gui = gui
 
-    local canvas = Instance.new("CanvasGroup")
+    -- Full-screen plain Frame, not a CanvasGroup: a CanvasGroup renders the UI
+    -- into a downsampled texture (blurry text) and clips to its own size, so
+    -- dragging a W×H window inside one cut it off.
+    local canvas = Instance.new("Frame")
     canvas.Name = "Canvas"
-    canvas.Size = UDim2.fromOffset(W, H)
-    canvas.AnchorPoint = Vector2.new(0.5, 0.5)
-    canvas.Position = UDim2.new(0.5, 0, 0.5, 0)
+    canvas.Size = UDim2.fromScale(1, 1)
+    canvas.AnchorPoint = Vector2.new(0, 0)
+    canvas.Position = UDim2.fromScale(0, 0)
     canvas.BackgroundTransparency = 1
+    canvas.BorderSizePixel = 0
     canvas.ClipsDescendants = false
     canvas.Parent = gui
     view.Canvas = canvas
@@ -70,9 +77,15 @@ return function(config, components)
     local main = Instance.new("Frame")
     main.Name = "Main"
     main.Size = UDim2.fromOffset(W, H)
+    -- Centered by anchor so its offset is measured from screen centre; the
+    -- drag handler moves that offset and clamps it to the viewport.
+    main.AnchorPoint = Vector2.new(0.5, 0.5)
+    main.Position = UDim2.new(0.5, 0, 0.5, 0)
     main.BackgroundColor3 = theme.bg
     main.BorderSizePixel = 0
-    main.ZIndex = 2
+    -- Must stay at/below its children: with a global z-index, a higher value
+    -- here paints the window background over every label inside it.
+    main.ZIndex = 1
     main.ClipsDescendants = true
     main.Parent = canvas
     shared.corner(main, UDim.new(0, 12))
@@ -82,6 +95,12 @@ return function(config, components)
     view.Main = main
     view.MainFrame = main
     view.Shadow = shared.shadow(main)
+    if view.Shadow then
+        view.Shadow.ZIndex = 0
+        -- shadow() positions from the top-left; match main's centred anchor.
+        view.Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+        view.Shadow.Position = UDim2.new(0.5, -4, 0.5, 8)
+    end
 
     --------------------------------------------------------------------
     -- TOP BAR (title + window buttons; DragHit sits under them)
@@ -208,6 +227,9 @@ return function(config, components)
         l.TextXAlignment = opts.TextXAlignment or Enum.TextXAlignment.Left
         l.TextYAlignment = opts.TextYAlignment or Enum.TextYAlignment.Center
         l.TextWrapped = opts.Wrapped or false
+        if opts.TextTruncate then l.TextTruncate = opts.TextTruncate end
+        -- Wrapped copy needs to grow or it is clipped to a single line.
+        if opts.Wrapped then l.AutomaticSize = Enum.AutomaticSize.Y end
         l.ZIndex = opts.ZIndex or 1
         l.LayoutOrder = opts.LayoutOrder or 0
         l.Parent = opts.Parent
@@ -272,10 +294,6 @@ return function(config, components)
         scroll.ZIndex = 1
         scroll.Visible = false
         scroll.Parent = main
-        local scrollListener = scroll:GetPropertyChangedSignal("CanvasPosition")
-        scrollListener:Connect(function()
-            scroll.CanvasPosition = Vector2.new(0, 0)
-        end)
         shared.corner(scroll, UDim.new(0, 10))
         shared.stroke(scroll, theme.divider, 1, 0.5)
 
@@ -412,6 +430,8 @@ return function(config, components)
             Parent = row, Text = text or "", Position = UDim2.fromOffset(12, 0),
             Size = UDim2.new(0, width or 110, 1, 0), TextSize = 11, Color = theme.text,
             TextTruncate = Enum.TextTruncate.AtEnd,
+            -- above the row's own ZIndex so the panel can never cover the text
+            ZIndex = 4,
         })
     end
 
@@ -644,40 +664,102 @@ return function(config, components)
     end
 
     --------------------------------------------------------------------
-    -- WINDOW BEHAVIOR: DRAG + MINIMIZE
+    -- WINDOW BEHAVIOR: DRAG + MINIMIZE (IndoVoice-style free drag)
     --------------------------------------------------------------------
-    local dragConn
-    dragHit.InputBegan:Connect(function(input)
-        if input.UserInputType ~= Enum.UserInputType.MouseButton1 then
-            return
+    -- `main` lives inside the centered canvas, so its offset is measured from
+    -- screen center. Clamp the offset instead of the position: the window can
+    -- be dragged anywhere on screen but never fully off it.
+    local dragging = false
+    local dragConn = nil
+    local dragStartMouse = nil
+    local dragStartOffset = nil
+
+    local function viewportSize()
+        local camera = workspace.CurrentCamera
+        return (camera and camera.ViewportSize) or Vector2.new(1920, 1080)
+    end
+
+    local function applyWindowOffset(offsetX, offsetY)
+        local screen = viewportSize()
+        local limitX = math.max((screen.X - W) / 2 - 8, 0)
+        local limitY = math.max((screen.Y - H) / 2 - 8, 0)
+        offsetX = math.clamp(offsetX, -limitX, limitX)
+        offsetY = math.clamp(offsetY, -limitY, limitY)
+        main.Position = UDim2.new(0.5, offsetX, 0.5, offsetY)
+        if view.Shadow then
+            view.Shadow.Position = UDim2.new(0.5, offsetX - 4, 0.5, offsetY + 8)
         end
-        local startPos = main.Position
-        local startMouse = input.Position
+    end
+
+    local function isDragInput(input)
+        return input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch
+    end
+
+    local function beginDrag(input)
+        if not isDragInput(input) then return end
+        dragging = true
+        dragStartMouse = Vector2.new(input.Position.X, input.Position.Y)
+        dragStartOffset = Vector2.new(main.Position.X.Offset, main.Position.Y.Offset)
         if dragConn then dragConn:Disconnect() end
         dragConn = UserInputService.InputChanged:Connect(function(i)
-            if i.UserInputType ~= Enum.UserInputType.MouseMovement and i.UserInputType ~= Enum.UserInputType.Touch then
+            if not dragging then return end
+            if i.UserInputType ~= Enum.UserInputType.MouseMovement
+                and i.UserInputType ~= Enum.UserInputType.Touch then
                 return
             end
-            local delta = i.Position - startMouse
-            local newPos = UDim2.new(
-                startPos.X.Scale, startPos.X.Offset + delta.X,
-                startPos.Y.Scale, startPos.Y.Offset + delta.Y
-            )
-            main.Position = newPos
-            if view.Shadow then
-                view.Shadow.Position = UDim2.new(newPos.X.Scale, newPos.X.Offset - 4, newPos.Y.Scale, newPos.Y.Offset)
-            end
+            -- input.Position is a Vector3; flatten to 2D before subtracting.
+            local pointer = Vector2.new(i.Position.X, i.Position.Y)
+            local delta = pointer - dragStartMouse
+            applyWindowOffset(dragStartOffset.X + delta.X, dragStartOffset.Y + delta.Y)
         end)
-        local endConn = UserInputService.InputEnded:Connect(function(i)
-            if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-                if dragConn then
-                    dragConn:Disconnect()
-                    dragConn = nil
-                end
-                endConn:Disconnect()
-            end
-        end)
-    end)
+    end
+
+    local function endDrag(input)
+        if not isDragInput(input) then return end
+        dragging = false
+        if dragConn then
+            dragConn:Disconnect()
+            dragConn = nil
+        end
+    end
+
+    UserInputService.InputEnded:Connect(endDrag)
+    view.DisconnectDrag = function()
+        dragging = false
+        if dragConn then
+            dragConn:Disconnect()
+            dragConn = nil
+        end
+    end
+
+    -- Drag from the whole title bar, the invisible hit strip, and the bottom grip.
+    topbar.InputBegan:Connect(beginDrag)
+    dragHit.InputBegan:Connect(beginDrag)
+
+    local gripBar = Instance.new("Frame")
+    gripBar.Name = "DragBar"
+    gripBar.Size = UDim2.fromOffset(80, 4)
+    gripBar.AnchorPoint = Vector2.new(0.5, 0)
+    gripBar.Position = UDim2.new(0.5, 0, 1, -12)
+    gripBar.BackgroundColor3 = theme.accentDark
+    gripBar.BorderSizePixel = 0
+    gripBar.ZIndex = 3
+    gripBar.Parent = main
+    shared.corner(gripBar, UDim.new(1, 0))
+
+    local gripHit = Instance.new("TextButton")
+    gripHit.Name = "DragHitBottom"
+    gripHit.Size = UDim2.new(0, 160, 0, 18)
+    gripHit.AnchorPoint = Vector2.new(0.5, 0)
+    gripHit.Position = UDim2.new(0.5, 0, 1, -18)
+    gripHit.BackgroundTransparency = 1
+    gripHit.Text = ""
+    gripHit.AutoButtonColor = false
+    gripHit.BorderSizePixel = 0
+    gripHit.ZIndex = 4
+    gripHit.Parent = main
+    gripHit.InputBegan:Connect(beginDrag)
 
     -- Minimize chip (LyraHub-style): window fades out, small pill fades in.
     local minimized = Instance.new("Frame")
@@ -732,14 +814,21 @@ return function(config, components)
 
     view.Minimized = false
 
+    -- Shrink/grow the window itself (UIScale) instead of fading a CanvasGroup,
+    -- which no longer exists and which caused the blurry rendering.
+    local windowScale = Instance.new("UIScale")
+    windowScale.Scale = 1
+    windowScale.Parent = main
+
     local function setMinimized(minimized_)
         if minimized_ == view.Minimized then return end
         view.Minimized = minimized_
         if minimized_ then
-            local tween = TweenService:Create(canvas, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { GroupTransparency = 1 })
-            tween:Play()
-            tween.Completed:Once(function()
+            TweenService:Create(windowScale, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Scale = 0.94 }):Play()
+            task.delay(0.16, function()
+                if not view.Minimized then return end
                 canvas.Visible = false
+                windowScale.Scale = 1
                 minScale.Scale = 0.9
                 minimized.Visible = true
                 TweenService:Create(minScale, TweenInfo.new(0.24, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
@@ -747,8 +836,8 @@ return function(config, components)
         else
             minimized.Visible = false
             canvas.Visible = true
-            canvas.GroupTransparency = 1
-            TweenService:Create(canvas, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { GroupTransparency = 0 }):Play()
+            windowScale.Scale = 0.94
+            TweenService:Create(windowScale, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
         end
     end
 
@@ -759,6 +848,9 @@ return function(config, components)
     -- TEARDOWN
     --------------------------------------------------------------------
     view.Destroy = function()
+        if view.DisconnectDrag then
+            pcall(view.DisconnectDrag)
+        end
         pcall(function()
             if canvas and canvas.Parent then
                 canvas:Destroy()

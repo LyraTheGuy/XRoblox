@@ -1,10 +1,13 @@
 -- IndoHangout/modules/mining.lua
 -- Auto Mine + Sell Crystals. Crystals live at workspace.MapContent.Crystals.
--- Each crystal requires 3 hits; move to the nearest valid crystal, only
--- interact when physically close (no unrealistic teleports).
+-- Auto Mine tweens the character to a random crystal in range, locks onto it,
+-- and keeps swinging through ReplicatedStorage.Events.RemoteEvent.Pickaxe:
+-- FireServer("Hit") (1.5s apart, up to 6 swings) until the crystal lands in the
+-- backpack. No screen clicking involved.
 
 return function(ctx)
     local Players = game:GetService("Players")
+    local TweenService = game:GetService("TweenService")
     local THEME = ctx.config.Theme
     local gui = ctx.gui
 
@@ -22,18 +25,25 @@ return function(ctx)
 
     -- Runtime state
     local autoMineEnabled = false
+    -- Forward declaration: the mine loop counts the bag to know a crystal landed.
+    local countCrystalsInInventory
+    -- Radius used to detect crystals; every crystal inside it is a candidate.
     local maxDistance = ctx.config.Mining.MaxDistance or 12
-    -- Spec: interact only when ~within 1 stud (or touching the border).
-    local interactDistance = ctx.config.Mining.InteractDistance or 1
-    local hitsPerCrystal = 3
+    local hitsPerCrystal = ctx.config.Mining.HitsPerCrystal or 3
+    local hitDelay = ctx.config.Mining.HitDelay or 1.5
+    local standOffset = ctx.config.Mining.StandOffset or 4
     local autoSellEnabled = false
     local sellEveryX = ctx.config.Mining.SellEveryX or 10
     local sellCooldown = ctx.config.Mining.SellCooldown or 3
     local sellCategory = ctx.config.Mining.SellCategory or "Sell All"
+    local sellMode = ctx.config.Mining.SellMode or "Count" -- "Count" | "Minute"
+    local sellEveryMinutes = ctx.config.Mining.SellEveryMinutes or 1
+    local lastAutoSellAt = 0
+    local sellRateInput = nil
 
     local mineLoopThread = nil
     local autoSellThread = nil
-    local hitCounts = {} -- [crystalModel] = number of hits
+    local moveTween = nil
 
     local crystalsSellRemote = nil
     local crystalsFolder = nil
@@ -75,120 +85,430 @@ return function(ctx)
         return hrp and hrp.Position or nil
     end
 
+    -- Average of the visible parts is far more reliable than "first descendant",
+    -- which often lands on a sunken hitbox or an anchor part nowhere near the gem.
     local function getCrystalCenter(model)
         if not model then return nil end
-        local primary = model.PrimaryPart
-        if primary then
-            return primary.Position
-        end
+        if model:IsA("BasePart") then return model.Position end
+        if model.PrimaryPart then return model.PrimaryPart.Position end
+
+        local sum, count = Vector3.zero, 0
         for _, part in ipairs(model:GetDescendants()) do
-            if part:IsA("BasePart") then
-                return part.Position
+            -- The "HP" object is a health readout, not part of the gem body.
+            if part:IsA("BasePart") and part.Transparency < 1 and part.Name ~= "HP" then
+                sum = sum + part.Position
+                count += 1
             end
+        end
+        if count > 0 then
+            return sum / count
         end
         return nil
     end
 
-    local function findNearestCrystal()
+    -- Only real crystals carry an "HP" object (health/durability). The folder
+    -- also holds decorations, anchors and effects that must be ignored.
+    local function findHP(model)
+        if not model then return nil end
+        local ok, hp = pcall(function() return model:FindFirstChild("HP", true) end)
+        if ok then return hp end
+        return nil
+    end
+
+    local function hasHP(model)
+        if findHP(model) then return true end
+        local ok, value = pcall(function() return model:GetAttribute("HP") end)
+        return ok and value ~= nil
+    end
+
+    -- A crystal whose HP hit zero is depleted; leave it alone.
+    local function isDepleted(model)
+        local hp = findHP(model)
+        local value = nil
+        if hp and hp:IsA("ValueBase") then
+            local ok, v = pcall(function() return tonumber(hp.Value) end)
+            if ok then value = v end
+        elseif not hp then
+            local ok, v = pcall(function() return tonumber(model:GetAttribute("HP")) end)
+            if ok then value = v end
+        end
+        return value ~= nil and value <= 0
+    end
+
+    -- Crystals may sit directly in the folder or one Folder deep.
+    local function collectCrystals(folder, out, depth)
+        if not folder or depth > 2 then return out end
+        for _, child in ipairs(folder:GetChildren()) do
+            if child:IsA("Model") or child:IsA("BasePart") then
+                if hasHP(child) then
+                    table.insert(out, child)
+                end
+            elseif child:IsA("Folder") then
+                collectCrystals(child, out, depth + 1)
+            end
+        end
+        return out
+    end
+
+    -- Every crystal inside Max Distance, not just the closest one.
+    local function findNearbyCrystals()
         local folder = getCrystalsFolder()
-        if not folder then return nil end
         local myPos = getCharacterPosition()
-        if not myPos then return nil end
+        if not folder or not myPos then return {}, nil end
 
-        local nearest = nil
-        local nearestDist = maxDistance + 1
-
-        for _, model in ipairs(folder:GetChildren()) do
-            if model:IsA("Model") or model:IsA("BasePart") then
-                local center = getCrystalCenter(model)
-                if center then
-                    local dist = (center - myPos).Magnitude
-                    if dist <= maxDistance and dist < nearestDist then
-                        nearest = model
-                        nearestDist = dist
-                    end
+        local nearby = {}
+        local nearestDist = nil
+        for _, model in ipairs(collectCrystals(folder, {}, 1)) do
+            local center = getCrystalCenter(model)
+            if center and not isDepleted(model) then
+                local dist = (center - myPos).Magnitude
+                if not nearestDist or dist < nearestDist then
+                    nearestDist = dist
+                end
+                if dist <= maxDistance then
+                    table.insert(nearby, model)
                 end
             end
         end
-        return nearest
-    end
-
-    local function isNearCrystal(model)
-        if not model then return false end
-        local lp = Players.LocalPlayer
-        local char = lp and lp.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if not hrp then return false end
-        local center = getCrystalCenter(model)
-        if not center then return false end
-        return (center - hrp.Position).Magnitude <= interactDistance
+        return nearby, nearestDist
     end
 
     ---------------------------------------------------------------------
     -- MINING INTERACTION
     ---------------------------------------------------------------------
-    local VirtualInputManager = game:GetService("VirtualInputManager")
+    -- The game's mining remote: Pickaxe:FireServer("Hit").
+    local cachedPickaxeRemote = nil
+    local function getPickaxeRemote()
+        if cachedPickaxeRemote and cachedPickaxeRemote.Parent then
+            return cachedPickaxeRemote
+        end
+        local rs = game:GetService("ReplicatedStorage")
+        local events = rs:FindFirstChild("Events")
+        local remoteEvent = events and events:FindFirstChild("RemoteEvent")
+        if not remoteEvent then return nil end
+        cachedPickaxeRemote = remoteEvent:FindFirstChild("Pickaxe")
+        return cachedPickaxeRemote
+    end
 
-    local function hitCrystal(model)
-        if not model then return false end
-        local prompt = model:FindFirstChildOfClass("ProximityPrompt")
-        if not prompt then
-            for _, d in ipairs(model:GetDescendants()) do
-                if d:IsA("ProximityPrompt") then
-                    prompt = d
+    -- Point the camera at the crystal; the game may target whatever we look at.
+    local function faceCrystal(model)
+        local camera = workspace.CurrentCamera
+        local center = getCrystalCenter(model)
+        if not camera or not center then return end
+        pcall(function()
+            camera.CFrame = CFrame.lookAt(camera.CFrame.Position, center)
+        end)
+    end
+
+    -- One press of the pickaxe = one Pickaxe:FireServer("Hit").
+    local function fireHit()
+        local remote = getPickaxeRemote()
+        if not remote then
+            return false, "Pickaxe remote not found"
+        end
+        local ok = pcall(function() remote:FireServer("Hit") end)
+        if not ok then
+            return false, "Pickaxe:FireServer failed"
+        end
+        return true
+    end
+
+    -- A crystal is finished when the model leaves the folder or its HP hits 0.
+    local function crystalGone(model)
+        if not model or not model.Parent then return true end
+        return isDepleted(model)
+    end
+
+    -- Rough horizontal radius of the gem, so we can stand outside it instead of
+    -- tweening into its middle (being inside the crystal gets hits ignored).
+    local function crystalRadius(model)
+        if not model then return 0 end
+        local ok, size = pcall(function() return model:GetExtentsSize() end)
+        if ok and typeof(size) == "Vector3" then
+            return math.max(size.X, size.Z) / 2
+        end
+        return 0
+    end
+
+    -- Swing until the crystal lands in the backpack (the model vanishes), up to
+    -- 6 swings. A hit can be dropped (swing cooldown, camera off target), so we
+    -- re-aim and keep swinging instead of walking away after one swing.
+    local function mineCrystal(model, beforeCount)
+        local hits = 0
+        local capacity = math.max(6, hitsPerCrystal)
+
+        while autoMineEnabled and not ctx.destroyed do
+            if crystalGone(model) then
+                return true, hits
+            end
+            if beforeCount and countCrystalsInInventory() > beforeCount then
+                return true, hits
+            end
+            if hits >= capacity then
+                return false, hits
+            end
+
+            faceCrystal(model)
+            local ok, err = fireHit()
+            if not ok then
+                return false, hits, err
+            end
+
+            hits += 1
+            task.wait(hitDelay)
+        end
+
+        return false, hits
+    end
+
+    -- Where to stand: outside the gem (its radius plus a small gap), on the side
+    -- we came from, so the character never ends up inside the crystal.
+    local function standPointFor(model)
+        local center = getCrystalCenter(model)
+        local myPos = getCharacterPosition()
+        if not center or not myPos then return nil end
+        local away = Vector3.new(myPos.X - center.X, 0, myPos.Z - center.Z)
+        if away.Magnitude < 0.05 then
+            away = Vector3.new(0, 0, 1)
+        end
+        local gap = math.max(standOffset, crystalRadius(model) + 2)
+        return center + away.Unit * gap
+    end
+
+    -- Smoothly tween the character to the crystal (no teleporting).
+    local function moveToCrystal(model)
+        local lp = Players.LocalPlayer
+        local char = lp and lp.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        local target = standPointFor(model)
+        if not hrp or not target then return false end
+
+        local distance = (hrp.Position - target).Magnitude
+        if distance <= 0.5 then return true end
+
+        local center = getCrystalCenter(model)
+        local goal = CFrame.lookAt(
+            Vector3.new(target.X, hrp.Position.Y, target.Z),
+            Vector3.new(center.X, hrp.Position.Y, center.Z)
+        )
+
+        if moveTween then
+            pcall(function() moveTween:Cancel() end)
+            moveTween = nil
+        end
+
+        local duration = math.clamp(distance / 55, 0.15, 3)
+        local tween = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), { CFrame = goal })
+        moveTween = tween
+        tween:Play()
+        tween.Completed:Wait()
+        if moveTween == tween then moveTween = nil end
+
+        return autoMineEnabled and not ctx.destroyed
+    end
+
+    ---------------------------------------------------------------------
+    -- TOOL: BEST PICKAXE (mirrors fishing's auto-rod equip)
+    ---------------------------------------------------------------------
+    local function getHumanoid()
+        local lp = Players.LocalPlayer
+        local char = lp and lp.Character
+        return char and char:FindFirstChildOfClass("Humanoid") or nil
+    end
+
+    local function findPickaxes()
+        local picks = {}
+        local lp = Players.LocalPlayer
+        local containers = {}
+        local backpack = lp and lp:FindFirstChild("Backpack")
+        if backpack then table.insert(containers, backpack) end
+        if lp and lp.Character then table.insert(containers, lp.Character) end
+        for _, container in ipairs(containers) do
+            for _, child in ipairs(container:GetChildren()) do
+                if child:IsA("Tool") then
+                    local lower = child.Name:lower()
+                    if lower:find("pickaxe", 1, true) or lower:find("pick", 1, true) then
+                        table.insert(picks, child)
+                    end
+                end
+            end
+        end
+        return picks
+    end
+
+    -- Higher tier word wins first, then a number in the name, then attributes.
+    local TIER_WORDS = {
+        mythic = 7, secret = 7, divine = 6,
+        legendary = 5, exotic = 5,
+        epic = 4, rare = 3, uncommon = 2, common = 1,
+    }
+
+    local function pickaxeScore(tool)
+        local lower = tool.Name:lower()
+        local score = 0
+        for word, weight in pairs(TIER_WORDS) do
+            if lower:find(word, 1, true) then
+                score = math.max(score, weight * 1000)
+            end
+        end
+        local number = tonumber(lower:match("(%d+)"))
+        if number then score += number end
+        for _, key in ipairs({ "Level", "Power", "Tier", "Damage" }) do
+            local attr = tool:GetAttribute(key)
+            if type(attr) == "number" then
+                score += attr * 10
+            end
+        end
+        return score
+    end
+
+    local equippedPickaxe = nil
+    local selectedPickaxe = nil -- nil = auto (best in backpack)
+    local pickaxeDropdown = nil
+
+    local function equipBestPickaxe()
+        local picks = findPickaxes()
+        if #picks == 0 then return false end
+
+        local best = nil
+
+        -- Manual pick wins when it is still in the backpack.
+        if selectedPickaxe then
+            for _, tool in ipairs(picks) do
+                if tool.Name == selectedPickaxe then
+                    best = tool
                     break
                 end
             end
         end
-        if prompt then
-            pcall(function()
-                prompt:InputHoldBegin()
-                task.wait(0.15)
-                prompt:InputHoldEnd()
-            end)
+
+        if not best then
+            best = picks[1]
+            local bestScore = pickaxeScore(best)
+            for i = 2, #picks do
+                local score = pickaxeScore(picks[i])
+                if score > bestScore then
+                    best, bestScore = picks[i], score
+                end
+            end
+        end
+
+        local hum = getHumanoid()
+        if not hum then return false end
+
+        local char = Players.LocalPlayer.Character
+        if best.Parent ~= char then
+            local ok = pcall(function() hum:EquipTool(best) end)
+            if not ok then return false end
+            task.wait(0.4)
+        end
+
+        if equippedPickaxe ~= best then
+            equippedPickaxe = best
+            ctx.log("Mining: equipped " .. best.Name, THEME.success)
+        end
+        return true
+    end
+
+    local function ensurePickaxe()
+        local hum = getHumanoid()
+        if not hum then return false end
+        local char = Players.LocalPlayer.Character
+        local current = char and char:FindFirstChildOfClass("Tool")
+        if current and current.Name:lower():find("pick", 1, true) then
+            equippedPickaxe = current
             return true
         end
-        pcall(function()
-            local cameraPos = workspace.CurrentCamera and workspace.CurrentCamera.CFrame.Position or Vector3.zero
-            VirtualInputManager:SendMouseButtonEvent(cameraPos.X, cameraPos.Y, 0, true, game, 1)
-            task.wait(0.1)
-            VirtualInputManager:SendMouseButtonEvent(cameraPos.X, cameraPos.Y, 0, false, game, 1)
-        end)
-        return true
+        return equipBestPickaxe()
     end
 
     ---------------------------------------------------------------------
     -- AUTO MINE LOOP
     ---------------------------------------------------------------------
     local function mineLoop()
+        local emptyScans = 0
+        -- Locked target: one crystal at a time, until it is in the backpack.
+        local target = nil
+
         while autoMineEnabled and not ctx.destroyed do
-            local crystal = findNearestCrystal()
-            if not crystal then
-                task.wait(1)
-                continue
+            -- Mined already (model gone / HP 0)? Drop the lock.
+            if target and crystalGone(target) then
+                target = nil
             end
-            if not isNearCrystal(crystal) then
-                task.wait(0.5)
-                continue
+
+            -- Locked crystal drifted out of range? Re-pick.
+            if target then
+                local center = getCrystalCenter(target)
+                local myPos = getCharacterPosition()
+                if not center or not myPos or (center - myPos).Magnitude > (maxDistance * 1.5) then
+                    target = nil
+                end
             end
-            local hits = hitCounts[crystal] or 0
-            if hits >= hitsPerCrystal then
-                hitCounts[crystal] = nil
-                task.wait(0.3)
-                continue
+
+            if not target then
+                local nearby, nearest = findNearbyCrystals()
+                if #nearby == 0 then
+                    emptyScans += 1
+                    -- Say why nothing is happening instead of failing silently.
+                    if emptyScans == 4 then
+                        local extra = nearest
+                            and string.format(" (nearest %.1f studs away)", nearest)
+                            or ""
+                        ctx.log(
+                            string.format("Mining: no live crystals within %d studs%s", math.floor(maxDistance), extra),
+                            THEME.warn
+                        )
+                    end
+                    task.wait(0.75)
+                    continue
+                end
+                emptyScans = 0
+
+                -- Best effort: the game still accepts hits without a held tool.
+                ensurePickaxe()
+
+                -- Random pick among the crystals in range, tween over to it once,
+                -- then stay on it until it breaks.
+                target = nearby[math.random(1, #nearby)]
+                if not moveToCrystal(target) then
+                    target = nil
+                    task.wait(0.25)
+                    continue
+                end
             end
-            local ok = hitCrystal(crystal)
-            if ok then
-                hitCounts[crystal] = hits + 1
+
+            local beforeCount = countCrystalsInInventory()
+            local broke, hits, err = mineCrystal(target, beforeCount)
+            if not broke then
+                if err then
+                    ctx.log("Mining: " .. err, THEME.danger)
+                    task.wait(1)
+                else
+                    ctx.log(
+                        string.format("Mining: crystal survived %d hits, moving on", hits),
+                        THEME.warn
+                    )
+                end
+            elseif hits ~= hitsPerCrystal then
+                -- Quiet note when a swing was dropped, so the count is visible.
+                ctx.log(
+                    string.format("Mining: crystal stored after %d hit(s)", hits),
+                    THEME.dim
+                )
             end
-            task.wait(0.5)
+
+            target = nil
+            task.wait(math.random(10, 25) / 100)
         end
         mineLoopThread = nil
     end
 
     local function startMineLoop()
         if mineLoopThread then return end
-        hitCounts = {}
+        if pickaxeDropdown and pickaxeDropdown.setOptions then
+            pickaxeDropdown.setOptions(Mining.getPickaxeNames())
+        end
+        equipBestPickaxe()
         mineLoopThread = task.spawn(mineLoop)
         ctx.log("Mining: Auto Mine ON", THEME.success)
     end
@@ -196,13 +516,16 @@ return function(ctx)
     local function stopMineLoop()
         autoMineEnabled = false
         mineLoopThread = nil
-        hitCounts = {}
+        if moveTween then
+            pcall(function() moveTween:Cancel() end)
+            moveTween = nil
+        end
     end
 
     ---------------------------------------------------------------------
     -- SELLING
     ---------------------------------------------------------------------
-    local function countCrystalsInInventory()
+    countCrystalsInInventory = function()
         local count = 0
         local lp = Players.LocalPlayer
         local backpack = lp and lp:FindFirstChild("Backpack")
@@ -238,9 +561,16 @@ return function(ctx)
 
     local function autoSellLoop()
         while autoSellEnabled and not ctx.destroyed do
-            local count = countCrystalsInInventory()
-            if count >= sellEveryX then
+            local shouldSell = false
+            if sellMode == "Minute" then
+                shouldSell = (os.clock() - lastAutoSellAt) >= (sellEveryMinutes * 60)
+            else
+                shouldSell = countCrystalsInInventory() >= sellEveryX
+            end
+
+            if shouldSell then
                 sellCrystals(sellCategory)
+                lastAutoSellAt = os.clock()
                 task.wait(sellCooldown)
             else
                 task.wait(1)
@@ -251,8 +581,12 @@ return function(ctx)
 
     local function startAutoSell()
         if autoSellThread then return end
+        lastAutoSellAt = os.clock()
         autoSellThread = task.spawn(autoSellLoop)
-        ctx.log("Mining: Auto Sell ON (every " .. tostring(sellEveryX) .. ")", THEME.success)
+        local rate = sellMode == "Minute"
+            and (tostring(sellEveryMinutes) .. " min")
+            or ("count " .. tostring(sellEveryX))
+        ctx.log("Mining: Auto Sell ON (per " .. rate .. ")", THEME.success)
     end
 
     local function stopAutoSell()
@@ -277,6 +611,36 @@ return function(ctx)
         maxDistance = math.max(1, tonumber(dist) or 12)
     end
 
+    -- "(Auto = best)" clears the manual pick.
+    function Mining.setPickaxe(name)
+        if not name or name == "(Auto = best)" then
+            selectedPickaxe = nil
+            ctx.log("Mining: pickaxe auto (best in backpack)", THEME.dim)
+        else
+            selectedPickaxe = tostring(name)
+            ctx.log("Mining: pickaxe " .. selectedPickaxe, THEME.dim)
+        end
+        if autoMineEnabled then
+            equipBestPickaxe()
+        end
+    end
+
+    function Mining.getPickaxe()
+        return selectedPickaxe
+    end
+
+    function Mining.getPickaxeNames()
+        local names = { "(Auto = best)" }
+        local seen = {}
+        for _, tool in ipairs(findPickaxes()) do
+            if not seen[tool.Name] then
+                seen[tool.Name] = true
+                table.insert(names, tool.Name)
+            end
+        end
+        return names
+    end
+
     function Mining.setAutoSellEnabled(enabled)
         enabled = enabled and true or false
         autoSellEnabled = enabled
@@ -289,6 +653,36 @@ return function(ctx)
 
     function Mining.setSellEvery(count)
         sellEveryX = math.max(1, math.floor(tonumber(count) or 10))
+    end
+
+    function Mining.setSellMode(mode)
+        sellMode = (tostring(mode or ""):lower():find("minute", 1, true)) and "Minute" or "Count"
+        ctx.config.Mining.SellMode = sellMode
+        lastAutoSellAt = os.clock()
+        ctx.log("Mining: auto sell mode — per " .. sellMode, THEME.dim)
+    end
+
+    function Mining.getSellMode()
+        return sellMode
+    end
+
+    -- Count mode: how many crystals. Minute mode: how often to sell.
+    function Mining.setSellRate(value)
+        local number = tonumber(value)
+        if not number or number <= 0 then return false end
+        if sellMode == "Minute" then
+            sellEveryMinutes = math.max(0.1, number)
+            ctx.config.Mining.SellEveryMinutes = sellEveryMinutes
+        else
+            sellEveryX = math.max(1, math.floor(number))
+            ctx.config.Mining.SellEveryX = sellEveryX
+        end
+        lastAutoSellAt = os.clock()
+        return true
+    end
+
+    function Mining.getSellRate()
+        return sellMode == "Minute" and sellEveryMinutes or sellEveryX
     end
 
     function Mining.setSellCooldown(seconds)
@@ -309,10 +703,32 @@ return function(ctx)
         if type(data) ~= "table" then return end
         if data.MaxDistance then Mining.setMaxDistance(data.MaxDistance) end
         if data.SellEveryX then Mining.setSellEvery(data.SellEveryX) end
+        if data.SellMode then Mining.setSellMode(data.SellMode) end
+        if data.SellEveryMinutes then sellEveryMinutes = math.max(0.1, tonumber(data.SellEveryMinutes) or 1) end
         if data.SellCooldown then Mining.setSellCooldown(data.SellCooldown) end
         if data.SellCategory then Mining.setSellCategory(data.SellCategory) end
         if data.AutoMine ~= nil then Mining.setAutoMineEnabled(data.AutoMine) end
         if data.AutoSellCrystals ~= nil then Mining.setAutoSellEnabled(data.AutoSellCrystals) end
+    end
+
+    -- Diagnostics: prints what detection actually sees.
+    function Mining.scan()
+        local folder = getCrystalsFolder()
+        if not folder then
+            ctx.log("Mining: MapContent.Crystals not found", THEME.danger)
+            return
+        end
+        local all = collectCrystals(folder, {}, 1)
+        local nearby, nearest = findNearbyCrystals()
+        ctx.log(
+            string.format(
+                "Mining scan: %d crystals with HP, %d in range%s",
+                #all,
+                #nearby,
+                nearest and string.format(", nearest %.1f studs", nearest) or ", no positions"
+            ),
+            THEME.dim
+        )
     end
 
     function Mining.stopAll()
@@ -334,6 +750,12 @@ return function(ctx)
         c.createSlider(page.container, "Max Distance", 1, 40, maxDistance, 1, function(val)
             Mining.setMaxDistance(val)
         end)
+        pickaxeDropdown = c.createDropdown(page.container, "Pickaxe", Mining.getPickaxeNames(), 1, function(opt)
+            Mining.setPickaxe(opt)
+        end)
+        c.createButton(page.container, "Scan Crystals", function()
+            Mining.scan()
+        end)
 
         c.createSectionLabel(page.container, "Selling")
         c.createButton(page.container, "Sell Crystals Now", function()
@@ -350,9 +772,42 @@ return function(ctx)
         c.createToggle(page.container, "Auto Sell Crystals", false, function(val)
             Mining.setAutoSellEnabled(val)
         end)
-        c.createSlider(page.container, "Sell Every X Crystals", 1, 50, sellEveryX, 1, function(val)
-            Mining.setSellEvery(val)
-        end)
+        local function refreshSellRate()
+            if not sellRateInput then return end
+            if sellRateInput.text then
+                sellRateInput.text(tostring(Mining.getSellRate()))
+            end
+            local row = sellRateInput.container
+            local lbl = row and row:FindFirstChildOfClass("TextLabel")
+            if lbl then
+                lbl.Text = (Mining.getSellMode() == "Minute")
+                    and "Sell Every (min)"
+                    or "Sell Rate (count)"
+            end
+        end
+
+        c.createDropdown(page.container, "Sell Mode", { "Per Count", "Per Minute" },
+            (Mining.getSellMode() == "Minute") and 2 or 1, function(opt)
+                Mining.setSellMode(opt)
+                refreshSellRate()
+            end)
+        sellRateInput = c.createTextbox(page.container, "Sell Rate (count)", "10")
+        if sellRateInput then
+            sellRateInput.text(tostring(Mining.getSellRate()))
+            refreshSellRate()
+            local box = sellRateInput.box
+            if box then
+                box.FocusLost:Connect(function(enterPressed)
+                    if not enterPressed then return end
+                    if Mining.setSellRate(box.Text) then
+                        refreshSellRate()
+                    else
+                        box.Text = tostring(Mining.getSellRate())
+                    end
+                    box:ReleaseFocus()
+                end)
+            end
+        end
         c.createSlider(page.container, "Sell Cooldown (s)", 1, 30, sellCooldown, 1, function(val)
             Mining.setSellCooldown(val)
         end)
