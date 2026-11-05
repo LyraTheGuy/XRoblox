@@ -93,11 +93,16 @@ IndoHangout/
 
 ### Mining
 - **Auto Mine** — one cycle is: equip the **best pickaxe** in the backpack, tween
-  the character to a random crystal inside `Max Distance`, aim the camera at it,
-  then mine it with `ReplicatedStorage.Events.RemoteEvent.Pickaxe` by firing
-  `Pickaxe:FireServer("Hit")` `HitsPerCrystal` times, `HitDelay` seconds apart
-  (3 hits, 1.5s by default). There is no screen clicking — the remote is the only
-  input the game needs. Detection scans every crystal in radius (folder children
+  the character to a random crystal inside `Max Distance`, then **lock onto that
+  crystal** and keep swinging `ReplicatedStorage.Events.RemoteEvent.Pickaxe`
+  (`Pickaxe:FireServer("Hit")`) `HitDelay` seconds apart (1.5s) until the crystal
+  is in the bag — up to 6 swings, so a dropped hit is retried instead of the bot
+  walking off after one. Success is detected two ways: the model leaves the
+  folder / its `HP` hits 0, **or** the backpack count goes up. Only then does it
+  pick the next crystal. There is no screen clicking — the remote is the only
+  input the game needs. Standing distance is the crystal's own radius plus a gap
+  (minimum `StandOffset`), so the character never tweens inside the gem.
+  Detection scans every crystal in radius (folder children
   and one level of nested folders), not just the nearest one, and uses the
   average position of visible parts so hitboxes cannot skew the distance.
 - **Only real crystals are targeted** — a candidate must contain an `HP` child

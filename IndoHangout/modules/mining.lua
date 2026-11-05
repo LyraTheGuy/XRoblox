@@ -1,8 +1,9 @@
 -- IndoHangout/modules/mining.lua
 -- Auto Mine + Sell Crystals. Crystals live at workspace.MapContent.Crystals.
--- Auto Mine tweens the character to a random crystal in range, then mines it
--- through ReplicatedStorage.Events.RemoteEvent.Pickaxe:FireServer("Hit")
--- (3 hits by default, 1.5s apart). No screen clicking involved.
+-- Auto Mine tweens the character to a random crystal in range, locks onto it,
+-- and keeps swinging through ReplicatedStorage.Events.RemoteEvent.Pickaxe:
+-- FireServer("Hit") (1.5s apart, up to 6 swings) until the crystal lands in the
+-- backpack. No screen clicking involved.
 
 return function(ctx)
     local Players = game:GetService("Players")
@@ -24,6 +25,8 @@ return function(ctx)
 
     -- Runtime state
     local autoMineEnabled = false
+    -- Forward declaration: the mine loop counts the bag to know a crystal landed.
+    local countCrystalsInInventory
     -- Radius used to detect crystals; every crystal inside it is a candidate.
     local maxDistance = ctx.config.Mining.MaxDistance or 12
     local hitsPerCrystal = ctx.config.Mining.HitsPerCrystal or 3
@@ -197,30 +200,69 @@ return function(ctx)
         end)
     end
 
-    -- One hit = one Pickaxe:FireServer("Hit").
-    local function hitCrystal(times, delay)
+    -- One press of the pickaxe = one Pickaxe:FireServer("Hit").
+    local function fireHit()
         local remote = getPickaxeRemote()
         if not remote then
             return false, "Pickaxe remote not found"
         end
-
-        times = math.max(1, tonumber(times) or hitsPerCrystal)
-        delay = tonumber(delay) or hitDelay
-
-        for i = 1, times do
-            if not autoMineEnabled or ctx.destroyed then return false end
-            local ok = pcall(function() remote:FireServer("Hit") end)
-            if not ok then
-                return false, "Pickaxe:FireServer failed"
-            end
-            if i < times then
-                task.wait(delay)
-            end
+        local ok = pcall(function() remote:FireServer("Hit") end)
+        if not ok then
+            return false, "Pickaxe:FireServer failed"
         end
         return true
     end
 
-    -- Where to stand: just outside the crystal, on the side we came from.
+    -- A crystal is finished when the model leaves the folder or its HP hits 0.
+    local function crystalGone(model)
+        if not model or not model.Parent then return true end
+        return isDepleted(model)
+    end
+
+    -- Rough horizontal radius of the gem, so we can stand outside it instead of
+    -- tweening into its middle (being inside the crystal gets hits ignored).
+    local function crystalRadius(model)
+        if not model then return 0 end
+        local ok, size = pcall(function() return model:GetExtentsSize() end)
+        if ok and typeof(size) == "Vector3" then
+            return math.max(size.X, size.Z) / 2
+        end
+        return 0
+    end
+
+    -- Swing until the crystal lands in the backpack (the model vanishes), up to
+    -- 6 swings. A hit can be dropped (swing cooldown, camera off target), so we
+    -- re-aim and keep swinging instead of walking away after one swing.
+    local function mineCrystal(model, beforeCount)
+        local hits = 0
+        local capacity = math.max(6, hitsPerCrystal)
+
+        while autoMineEnabled and not ctx.destroyed do
+            if crystalGone(model) then
+                return true, hits
+            end
+            if beforeCount and countCrystalsInInventory() > beforeCount then
+                return true, hits
+            end
+            if hits >= capacity then
+                return false, hits
+            end
+
+            faceCrystal(model)
+            local ok, err = fireHit()
+            if not ok then
+                return false, hits, err
+            end
+
+            hits += 1
+            task.wait(hitDelay)
+        end
+
+        return false, hits
+    end
+
+    -- Where to stand: outside the gem (its radius plus a small gap), on the side
+    -- we came from, so the character never ends up inside the crystal.
     local function standPointFor(model)
         local center = getCrystalCenter(model)
         local myPos = getCharacterPosition()
@@ -229,7 +271,8 @@ return function(ctx)
         if away.Magnitude < 0.05 then
             away = Vector3.new(0, 0, 1)
         end
-        return center + away.Unit * standOffset
+        local gap = math.max(standOffset, crystalRadius(model) + 2)
+        return center + away.Unit * gap
     end
 
     -- Smoothly tween the character to the crystal (no teleporting).
@@ -384,43 +427,78 @@ return function(ctx)
     ---------------------------------------------------------------------
     local function mineLoop()
         local emptyScans = 0
+        -- Locked target: one crystal at a time, until it is in the backpack.
+        local target = nil
+
         while autoMineEnabled and not ctx.destroyed do
-            local nearby, nearest = findNearbyCrystals()
-            if #nearby == 0 then
-                emptyScans += 1
-                -- Say why nothing is happening instead of failing silently.
-                if emptyScans == 4 then
-                    local extra = nearest
-                        and string.format(" (nearest %.1f studs away)", nearest)
-                        or ""
+            -- Mined already (model gone / HP 0)? Drop the lock.
+            if target and crystalGone(target) then
+                target = nil
+            end
+
+            -- Locked crystal drifted out of range? Re-pick.
+            if target then
+                local center = getCrystalCenter(target)
+                local myPos = getCharacterPosition()
+                if not center or not myPos or (center - myPos).Magnitude > (maxDistance * 1.5) then
+                    target = nil
+                end
+            end
+
+            if not target then
+                local nearby, nearest = findNearbyCrystals()
+                if #nearby == 0 then
+                    emptyScans += 1
+                    -- Say why nothing is happening instead of failing silently.
+                    if emptyScans == 4 then
+                        local extra = nearest
+                            and string.format(" (nearest %.1f studs away)", nearest)
+                            or ""
+                        ctx.log(
+                            string.format("Mining: no live crystals within %d studs%s", math.floor(maxDistance), extra),
+                            THEME.warn
+                        )
+                    end
+                    task.wait(0.75)
+                    continue
+                end
+                emptyScans = 0
+
+                -- Best effort: the game still accepts hits without a held tool.
+                ensurePickaxe()
+
+                -- Random pick among the crystals in range, tween over to it once,
+                -- then stay on it until it breaks.
+                target = nearby[math.random(1, #nearby)]
+                if not moveToCrystal(target) then
+                    target = nil
+                    task.wait(0.25)
+                    continue
+                end
+            end
+
+            local beforeCount = countCrystalsInInventory()
+            local broke, hits, err = mineCrystal(target, beforeCount)
+            if not broke then
+                if err then
+                    ctx.log("Mining: " .. err, THEME.danger)
+                    task.wait(1)
+                else
                     ctx.log(
-                        string.format("Mining: no live crystals within %d studs%s", math.floor(maxDistance), extra),
+                        string.format("Mining: crystal survived %d hits, moving on", hits),
                         THEME.warn
                     )
                 end
-                task.wait(0.75)
-                continue
-            end
-            emptyScans = 0
-
-            -- Best effort: the game still accepts hits without a held tool.
-            ensurePickaxe()
-
-            -- Random pick among the crystals in range, tween over to it.
-            local crystal = nearby[math.random(1, #nearby)]
-            if not moveToCrystal(crystal) then
-                task.wait(0.25)
-                continue
+            elseif hits ~= hitsPerCrystal then
+                -- Quiet note when a swing was dropped, so the count is visible.
+                ctx.log(
+                    string.format("Mining: crystal stored after %d hit(s)", hits),
+                    THEME.dim
+                )
             end
 
-            faceCrystal(crystal)
-            task.wait(0.1)
-            local ok, err = hitCrystal(hitsPerCrystal, hitDelay)
-            if not ok and err then
-                ctx.log("Mining: " .. err, THEME.danger)
-                task.wait(1)
-            end
-            task.wait(math.random(25, 45) / 100)
+            target = nil
+            task.wait(math.random(10, 25) / 100)
         end
         mineLoopThread = nil
     end
@@ -447,7 +525,7 @@ return function(ctx)
     ---------------------------------------------------------------------
     -- SELLING
     ---------------------------------------------------------------------
-    local function countCrystalsInInventory()
+    countCrystalsInInventory = function()
         local count = 0
         local lp = Players.LocalPlayer
         local backpack = lp and lp:FindFirstChild("Backpack")
