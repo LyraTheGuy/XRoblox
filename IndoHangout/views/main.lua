@@ -128,18 +128,38 @@ return function(config, components)
     subtitle.ZIndex = 2
     subtitle.Parent = topbar
 
-    local minBtn = button({
-        Parent = main, Size = UDim2.fromOffset(28, 28), Position = UDim2.fromOffset(W - 76, 10),
-        Text = "—", TextSize = 13, Color = theme.panel2, TextColor = theme.text,
-        HoverColor = theme.accent2, CornerRadius = UDim.new(0, 8), ZIndex = 3, Glow = false,
-    })
-    local closeBtn = button({
-        Parent = main, Size = UDim2.fromOffset(28, 28), Position = UDim2.fromOffset(W - 40, 10),
-        Text = "✕", TextSize = 12, Color = Color3.fromRGB(64, 28, 34), TextColor = theme.danger,
-        HoverColor = Color3.fromRGB(96, 38, 46), CornerRadius = UDim.new(0, 8), ZIndex = 3, Glow = false,
-    })
-    view.MinBtn = minBtn.Instance
-    view.CloseBtn = closeBtn.Instance
+    local minBtn = Instance.new("TextButton")
+    minBtn.Name = "MinBtn"
+    minBtn.Size = UDim2.fromOffset(28, 28)
+    minBtn.Position = UDim2.fromOffset(W - 76, 10)
+    minBtn.BackgroundColor3 = theme.panel2
+    minBtn.Text = "—"
+    minBtn.TextColor3 = theme.text
+    minBtn.Font = Enum.Font.GothamBold
+    minBtn.TextSize = 13
+    minBtn.AutoButtonColor = false
+    minBtn.BorderSizePixel = 0
+    minBtn.ZIndex = 3
+    minBtn.Parent = main
+    shared.corner(minBtn, UDim.new(0, 8))
+
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Name = "CloseBtn"
+    closeBtn.Size = UDim2.fromOffset(28, 28)
+    closeBtn.Position = UDim2.fromOffset(W - 40, 10)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(64, 28, 34)
+    closeBtn.Text = "✕"
+    closeBtn.TextColor3 = theme.danger
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 12
+    closeBtn.AutoButtonColor = false
+    closeBtn.BorderSizePixel = 0
+    closeBtn.ZIndex = 3
+    closeBtn.Parent = main
+    shared.corner(closeBtn, UDim.new(0, 8))
+
+    view.MinBtn = minBtn
+    view.CloseBtn = closeBtn
 
     local dragHit = Instance.new("TextButton")
     dragHit.Name = "DragHit"
@@ -386,7 +406,8 @@ return function(config, components)
     local function rowLabel(row, text, width)
         return label({
             Parent = row, Text = text or "", Position = UDim2.fromOffset(12, 0),
-            Size = UDim2.new(width or 90, 16, 1, 0), TextSize = 11, Color = theme.text,
+            Size = UDim2.new(0, width or 110, 1, 0), TextSize = 11, Color = theme.text,
+            TextTruncate = Enum.TextTruncate.AtEnd,
         })
     end
 
@@ -557,18 +578,64 @@ return function(config, components)
                     LayoutOrder = nextOrder(),
                 })
             end
-            aboutLabel("IndoHangout", 18, theme.accentGlow, true)
-            aboutLabel("Version: " .. tostring(config.Build or "v1.0.0"), 11, theme.faint)
-            comps.createSectionLabel(about, "Overview")
-            aboutLabel("Modern-minimalist automation suite for fishing, mining, and player movement.", 10, theme.faint, false, true)
-            comps.createSectionLabel(about, "Credits")
-            aboutLabel("• Fishing logic reference: https://robloxscripts.com", 10, theme.faint)
-            aboutLabel("• Architecture / UI reference: XRoblox/IndoVoice · UI kit: XRoblox/LyraHub", 10, theme.faint)
-            comps.createSectionLabel(about, "Usage")
-            aboutLabel("1. Open the Fishing tab and toggle Auto Fish to start.", 10, theme.faint)
-            aboutLabel("2. Use Lock Current Spot to pin your fishing position.", 10, theme.faint)
-            aboutLabel("3. Configure profiles in Settings and save your configuration.", 10, theme.faint)
-            aboutLabel("4. Press the close button (✕) to stop all features and cleanly unload.", 10, theme.faint)
+            aboutLabel("IndoHangout", 22, theme.accentGlow, true)
+            aboutLabel("Automation tools for IndoHangout — Version " .. tostring(config.Build or "v1.0.0"), 11, theme.dim)
+            local function aboutSep()
+                local sep = Instance.new("Frame")
+                sep.Size = UDim2.new(1, 0, 0, 1)
+                sep.BackgroundColor3 = theme.divider
+                sep.BorderSizePixel = 0
+                sep.LayoutOrder = nextOrder()
+                sep.Parent = about
+            end
+            aboutSep()
+            aboutLabel("Discord: Ahzencal", 13, theme.text, true)
+            do
+                local donateRow = Instance.new("Frame")
+                donateRow.Size = UDim2.new(1, 0, 0, 30)
+                donateRow.BackgroundColor3 = theme.panel
+                donateRow.BackgroundTransparency = 0.5
+                donateRow.BorderSizePixel = 0
+                donateRow.LayoutOrder = nextOrder()
+                donateRow.Parent = about
+                shared.corner(donateRow, UDim.new(0, 8))
+                label({
+                    Parent = donateRow, Text = "Saweria: saweria.co/ahzencal",
+                    Position = UDim2.fromOffset(10, 0), Size = UDim2.new(1, -100, 1, 0),
+                    TextSize = 12, Color = theme.text, Font = Enum.Font.GothamBold,
+                })
+                local copyBtn = Instance.new("TextButton")
+                copyBtn.Name = "CopySaweriaBtn"
+                copyBtn.Size = UDim2.fromOffset(84, 22)
+                copyBtn.AnchorPoint = Vector2.new(1, 0.5)
+                copyBtn.Position = UDim2.new(1, -6, 0.5, 0)
+                copyBtn.BackgroundColor3 = theme.accent
+                copyBtn.TextColor3 = Color3.new(1, 1, 1)
+                copyBtn.Font = Enum.Font.GothamBold
+                copyBtn.TextSize = 11
+                copyBtn.Text = "Copy"
+                copyBtn.AutoButtonColor = false
+                copyBtn.BorderSizePixel = 0
+                copyBtn.Parent = donateRow
+                shared.corner(copyBtn, UDim.new(0, 6))
+                copyBtn.MouseButton1Click:Connect(function()
+                    pcall(function()
+                        if setclipboard then
+                            setclipboard("https://saweria.co/ahzencal")
+                        elseif toclipboard then
+                            toclipboard("https://saweria.co/ahzencal")
+                        end
+                    end)
+                    copyBtn.Text = "Copied!"
+                    task.delay(1.5, function()
+                        if copyBtn and copyBtn.Parent then copyBtn.Text = "Copy" end
+                    end)
+                end)
+            end
+            aboutSep()
+            aboutLabel("IndoHangout is a multi-feature automation hub. Features include auto fishing, auto mining, fish and crystal selling (with protected fish), locked-spot farming, streak protection, fly, walkspeed, noclip, session stats, and persistent JSON profiles — all in a clean, modular UI.", 11, theme.dim, false, true)
+            aboutLabel("Created By: Ahzencal", 13, theme.text, true)
+            aboutLabel("IndoHangout est. 2026", 11, theme.dim)
         end
     end
 
@@ -644,11 +711,20 @@ return function(config, components)
         Size = UDim2.fromOffset(110, 18), TextSize = 12, Font = Enum.Font.GothamBold,
     })
 
-    local expandBtn = button({
-        Parent = minimized, Size = UDim2.fromOffset(28, 28), Position = UDim2.fromOffset(162, 7),
-        Text = "▲", TextSize = 11, Color = theme.panel2, HoverColor = theme.accent2,
-        CornerRadius = UDim.new(1, 0), ZIndex = 6, Glow = false,
-    })
+    local expandBtn = Instance.new("TextButton")
+    expandBtn.Name = "ExpandBtn"
+    expandBtn.Size = UDim2.fromOffset(28, 28)
+    expandBtn.Position = UDim2.fromOffset(162, 7)
+    expandBtn.BackgroundColor3 = theme.panel2
+    expandBtn.Text = "▲"
+    expandBtn.TextColor3 = theme.text
+    expandBtn.Font = Enum.Font.GothamBold
+    expandBtn.TextSize = 11
+    expandBtn.AutoButtonColor = false
+    expandBtn.BorderSizePixel = 0
+    expandBtn.ZIndex = 6
+    expandBtn.Parent = minimized
+    shared.corner(expandBtn, UDim.new(1, 0))
 
     view.Minimized = false
 
@@ -672,8 +748,8 @@ return function(config, components)
         end
     end
 
-    minBtn.Instance.MouseButton1Click:Connect(function() setMinimized(true) end)
-    expandBtn.Instance.MouseButton1Click:Connect(function() setMinimized(false) end)
+    minBtn.MouseButton1Click:Connect(function() setMinimized(true) end)
+    expandBtn.MouseButton1Click:Connect(function() setMinimized(false) end)
 
     --------------------------------------------------------------------
     -- TEARDOWN
