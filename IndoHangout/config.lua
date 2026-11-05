@@ -3,29 +3,29 @@
 -- Must return a plain table. No logic here.
 
 -- ----------------------------------------------------------------------------
--- MODERN MINIMALIST DARK THEME
+-- THEME — identical to IndoVoice's Halloween palette (gold/orange on near-black)
 -- ----------------------------------------------------------------------------
 local THEME = {
-    bg        = Color3.fromRGB(16, 16, 19),
-    bg2       = Color3.fromRGB(20, 20, 24),
-    sidebar   = Color3.fromRGB(12, 12, 15),
-    topbar    = Color3.fromRGB(20, 20, 24),
-    panel     = Color3.fromRGB(22, 22, 27),
-    panel2    = Color3.fromRGB(28, 28, 34),
-    surface   = Color3.fromRGB(34, 34, 42),
-    accent    = Color3.fromRGB(92, 140, 255),
-    accent2   = Color3.fromRGB(126, 165, 255),
-    accentDark= Color3.fromRGB(42, 72, 145),
-    accentGlow= Color3.fromRGB(160, 190, 255),
-    text      = Color3.fromRGB(238, 238, 242),
-    dim       = Color3.fromRGB(168, 172, 184),
-    faint     = Color3.fromRGB(112, 116, 128),
-    border    = Color3.fromRGB(46, 48, 58),
-    divider   = Color3.fromRGB(46, 48, 58),  -- alias used by the views/components kit
-    glow      = Color3.fromRGB(70, 108, 220), -- subtle bloom used by the views/components kit
-    success   = Color3.fromRGB(86, 201, 120),
-    danger    = Color3.fromRGB(222, 92, 92),
-    warn      = Color3.fromRGB(232, 184, 82),
+    bg        = Color3.fromRGB(12, 12, 12),
+    bg2       = Color3.fromRGB(18, 18, 18),
+    sidebar   = Color3.fromRGB(10, 10, 10),
+    topbar    = Color3.fromRGB(16, 16, 16),
+    panel     = Color3.fromRGB(20, 20, 20),
+    panel2    = Color3.fromRGB(32, 30, 26),
+    surface   = Color3.fromRGB(32, 30, 26),
+    accent    = Color3.fromRGB(255, 165, 0),
+    accent2   = Color3.fromRGB(255, 190, 90),
+    accentDark= Color3.fromRGB(120, 74, 8),
+    accentGlow= Color3.fromRGB(255, 205, 80),
+    text      = Color3.fromRGB(255, 255, 255),
+    dim       = Color3.fromRGB(190, 190, 190),
+    faint     = Color3.fromRGB(138, 138, 138),
+    border    = Color3.fromRGB(70, 55, 25),
+    divider   = Color3.fromRGB(70, 55, 25),  -- alias used by the views/components kit
+    glow      = Color3.fromRGB(255, 190, 90), -- subtle bloom used by the views/components kit
+    success   = Color3.fromRGB(255, 205, 80),
+    danger    = Color3.fromRGB(210, 95, 55),
+    warn      = Color3.fromRGB(255, 165, 0),
 }
 
 return {
