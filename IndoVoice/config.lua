@@ -2,56 +2,60 @@
 -- Config table only (NOT a function wrapper)
 
 -- ============================================================================
--- HALLOWEEN THEME PALETTE (centralized)
+-- WINTER THEME PALETTE (centralized)
 -- ============================================================================
--- Premium Halloween look: near-black backgrounds, gold / warm-orange accents,
--- clean white text, subtle gold borders. Every UI file must read colors from
+-- Sangaskara winter look: near-black navy backgrounds, snow-white accents and
+-- Sangaskara blue highlights. Every UI file must read colors from
 -- config.Theme (never hardcode them in gui.lua / core.lua / modules).
 --
 -- The variant tables below are the single source of truth for the palette.
 -- `Theme` is the active palette the whole UI reads; `ThemeVariants` holds the
 -- alternatives the Settings theme buttons switch between.
 -- ============================================================================
-local HALLOWEEN = {
-    Background = Color3.fromRGB(12, 12, 12),   -- deep black
-    Secondary  = Color3.fromRGB(18, 18, 18),   -- near-black
-    Panel      = Color3.fromRGB(20, 20, 20),   -- dark charcoal panel
-    Surface    = Color3.fromRGB(32, 30, 26),   -- very dark warm grey
-    Sidebar    = Color3.fromRGB(10, 10, 10),
-    Topbar     = Color3.fromRGB(16, 16, 16),
-    Accent     = Color3.fromRGB(255, 165, 0),  -- warm orange
-    AccentSoft = Color3.fromRGB(255, 190, 90),
-    AccentDark = Color3.fromRGB(120, 74, 8),
-    Gold       = Color3.fromRGB(255, 205, 80),
+local WINTER_FROST = {
+    Background = Color3.fromRGB(7, 10, 16),    -- midnight black-navy
+    Secondary  = Color3.fromRGB(11, 16, 24),   -- raised near-black
+    Panel      = Color3.fromRGB(15, 21, 31),   -- deep navy panel
+    Surface    = Color3.fromRGB(24, 32, 46),   -- steel-blue surface
+    Sidebar    = Color3.fromRGB(5, 8, 13),
+    Topbar     = Color3.fromRGB(10, 15, 22),
+    Accent     = Color3.fromRGB(56, 132, 255),  -- Sangaskara blue
+    AccentSoft = Color3.fromRGB(128, 180, 255),
+    AccentDark = Color3.fromRGB(20, 48, 96),
+    Snow       = Color3.fromRGB(226, 240, 255), -- snow-white accent
+    Ice        = Color3.fromRGB(64, 176, 232),  -- success / ON state
+    Frost      = Color3.fromRGB(116, 164, 214), -- warn / waiting
+    Danger     = Color3.fromRGB(219, 84, 108),  -- errors and close
     Text       = Color3.fromRGB(255, 255, 255),
-    SubText    = Color3.fromRGB(190, 190, 190),
-    Faint      = Color3.fromRGB(138, 138, 138),
-    Border     = Color3.fromRGB(70, 55, 25),
-    Ember      = Color3.fromRGB(210, 95, 55),
-    Bone       = Color3.fromRGB(255, 225, 150),
-    Beam       = Color3.fromRGB(255, 140, 40),
+    SubText    = Color3.fromRGB(183, 197, 214),
+    Faint      = Color3.fromRGB(118, 134, 154),
+    Border     = Color3.fromRGB(36, 50, 72),
+    Bone       = Color3.fromRGB(214, 232, 255),
+    Beam       = Color3.fromRGB(140, 196, 255),
 }
 
--- Warm "Ember" variant used by the alternate theme button (still inside the
--- Halloween palette: charcoal surfaces with brighter gold accents).
-local HALLOWEEN_EMBER = {
-    Background = Color3.fromRGB(16, 14, 12),
-    Secondary  = Color3.fromRGB(22, 20, 17),
-    Panel      = Color3.fromRGB(26, 23, 19),
-    Surface    = Color3.fromRGB(38, 33, 26),
-    Sidebar    = Color3.fromRGB(14, 12, 10),
-    Topbar     = Color3.fromRGB(20, 18, 15),
-    Accent     = Color3.fromRGB(255, 180, 40),
-    AccentSoft = Color3.fromRGB(255, 200, 110),
-    AccentDark = Color3.fromRGB(140, 90, 15),
-    Gold       = Color3.fromRGB(255, 215, 100),
+-- Brighter "Snow" variant used by the alternate theme button (same winter
+-- palette: steel-blue surfaces with brighter ice accents).
+local WINTER_SNOW = {
+    Background = Color3.fromRGB(13, 18, 27),
+    Secondary  = Color3.fromRGB(18, 26, 38),
+    Panel      = Color3.fromRGB(24, 33, 48),
+    Surface    = Color3.fromRGB(34, 46, 66),
+    Sidebar    = Color3.fromRGB(9, 13, 20),
+    Topbar     = Color3.fromRGB(16, 23, 34),
+    Accent     = Color3.fromRGB(96, 166, 255),
+    AccentSoft = Color3.fromRGB(160, 206, 255),
+    AccentDark = Color3.fromRGB(30, 72, 136),
+    Snow       = Color3.fromRGB(245, 250, 255),
+    Ice        = Color3.fromRGB(110, 208, 246),
+    Frost      = Color3.fromRGB(146, 190, 230),
+    Danger     = Color3.fromRGB(228, 102, 124),
     Text       = Color3.fromRGB(255, 255, 255),
-    SubText    = Color3.fromRGB(200, 190, 170),
-    Faint      = Color3.fromRGB(150, 140, 120),
-    Border     = Color3.fromRGB(90, 68, 30),
-    Ember      = Color3.fromRGB(220, 105, 60),
-    Bone       = Color3.fromRGB(255, 230, 170),
-    Beam       = Color3.fromRGB(255, 150, 60),
+    SubText    = Color3.fromRGB(198, 212, 230),
+    Faint      = Color3.fromRGB(142, 160, 182),
+    Border     = Color3.fromRGB(54, 76, 108),
+    Bone       = Color3.fromRGB(232, 244, 255),
+    Beam       = Color3.fromRGB(178, 216, 255),
 }
 
 -- Maps a palette variant to the flat key set the UI historically reads
@@ -59,11 +63,11 @@ local HALLOWEEN_EMBER = {
 -- existing module has to change how it looks colors up.
 local function toTheme(v)
     return {
-        -- Documented Halloween aliases
+        -- Documented (capitalized) theme aliases
         Background = v.Background,
         Panel      = v.Panel,
         Accent     = v.Accent,
-        Gold       = v.Gold,
+        Gold       = v.Snow, -- snow-white accent (key name kept for compatibility)
         Text       = v.Text,
         SubText    = v.SubText,
         Border     = v.Border,
@@ -73,21 +77,23 @@ local function toTheme(v)
         accent = v.Accent,
         accent2 = v.AccentSoft,
         accentDark = v.AccentDark,
-        accentGlow = v.Gold,
+        accentGlow = v.Snow,
         glow = v.AccentSoft,
         bg = v.Background,
         bg2 = v.Secondary,
         panel = v.Panel,
         panel2 = v.Surface,
+        surface = v.Surface,
         sidebar = v.Sidebar,
         topbar = v.Topbar,
         text = v.Text,
         dim = v.SubText,
         faint = v.Faint,
         divider = v.Border,
-        success = v.Gold,
-        danger = v.Ember,
-        warn = v.Accent,
+        border = v.Border,
+        success = v.Ice,
+        danger = v.Danger,
+        warn = v.Frost,
         tp = v.Bone,
         beam = v.Beam,
     }
@@ -121,7 +127,7 @@ return {
     },
 
     -- Version marker compared by the update-checker against the live raw config
-    Build = "Spooky Version",
+    Build = "Winter Version",
 
     Clicker = {
         DefaultCPS = 20,
@@ -172,22 +178,26 @@ return {
     -- ========================================================================
     -- THEME
     -- ========================================================================
-    Theme = toTheme(HALLOWEEN),
+    Theme = toTheme(WINTER_FROST),
 
     -- Theme buttons in Settings switch the live Theme between these variants.
+    -- "Dark"/"Ember" are legacy aliases so profiles saved before the winter
+    -- makeover still restore the matching palette.
     ThemeVariants = {
-        Dark = toTheme(HALLOWEEN),
-        Ember = toTheme(HALLOWEEN_EMBER),
+        Frost = toTheme(WINTER_FROST),
+        Snow = toTheme(WINTER_SNOW),
+        Dark = toTheme(WINTER_FROST), -- legacy alias -> Frost
+        Ember = toTheme(WINTER_SNOW), -- legacy alias -> Snow
     },
 
-    -- Warm/gold swatches used by the Players tab beam + ESP colour pickers.
+    -- Snow/ice swatches used by the Players tab beam + ESP colour pickers.
     ThemePresets = {
-        Color3.fromRGB(255, 165, 0),
-        Color3.fromRGB(255, 205, 80),
-        Color3.fromRGB(255, 140, 40),
-        Color3.fromRGB(210, 95, 55),
-        Color3.fromRGB(255, 225, 150),
-        Color3.fromRGB(180, 120, 40),
+        Color3.fromRGB(255, 255, 255),
+        Color3.fromRGB(226, 240, 255),
+        Color3.fromRGB(128, 180, 255),
+        Color3.fromRGB(56, 132, 255),
+        Color3.fromRGB(64, 176, 232),
+        Color3.fromRGB(20, 48, 96),
     },
 
     AutoSell = {

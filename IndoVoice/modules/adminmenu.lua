@@ -55,7 +55,7 @@ return function(ctx)
         UseInGameName = true,          -- show the name the GAME displays overhead
         ShowName = true,
         ColorMode = "health",          -- "health" | "accent" | "static"
-        StaticColor = Color3.fromRGB(255, 205, 80),
+        StaticColor = THEME.accentGlow, -- snow-white ESP outline
         RequireLineOfSight = false,    -- raycast wall check (off = cheaper)
     }
 
@@ -71,7 +71,7 @@ return function(ctx)
     -- Beam options ------------------------------------------------------
     local BEAM_CFG = {
         Interval = 0.05,               -- seconds between beam updates (throttle)
-        Color = THEME.beam or Color3.fromRGB(255, 130, 90),
+        Color = THEME.beam or Color3.fromRGB(140, 196, 255),
         Thickness = 0.15,              -- Width0 / Width1 in studs
         Transparency = 0.15,           -- 0 = opaque, 1 = invisible
         Style = "solid",               -- "solid" | "pulse" | "rainbow"
@@ -102,12 +102,12 @@ return function(ctx)
 
     -- Colour palette used by the beam / ESP colour swatches.
     local PALETTE = (config and config.ThemePresets) or {
-        Color3.fromRGB(255, 165, 0),
-        Color3.fromRGB(255, 205, 80),
-        Color3.fromRGB(255, 140, 40),
-        Color3.fromRGB(210, 95, 55),
-        Color3.fromRGB(255, 225, 150),
-        Color3.fromRGB(180, 120, 40),
+        Color3.fromRGB(255, 255, 255),
+        Color3.fromRGB(226, 240, 255),
+        Color3.fromRGB(128, 180, 255),
+        Color3.fromRGB(56, 132, 255),
+        Color3.fromRGB(64, 176, 232),
+        Color3.fromRGB(20, 48, 96),
     }
 
     -- ==================================================================

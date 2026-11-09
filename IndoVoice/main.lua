@@ -184,12 +184,12 @@ local function showErrorGui(msg)
     frame.Size = UDim2.new(0, 400, 0, 120)
     frame.AnchorPoint = Vector2.new(0.5, 0.5)
     frame.Position = UDim2.new(0.5, 0, 0.5, 0)
-    frame.BackgroundColor3 = THEME.panel or Color3.fromRGB(20, 20, 20)
+    frame.BackgroundColor3 = THEME.panel or Color3.fromRGB(15, 21, 31)
     frame.BorderSizePixel = 0
     frame.Parent = errGui
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
     local stroke = Instance.new("UIStroke", frame)
-    stroke.Color = THEME.danger or Color3.fromRGB(210, 95, 55)
+    stroke.Color = THEME.danger or Color3.fromRGB(219, 84, 108)
     stroke.Thickness = 1.5
 
     local lbl = Instance.new("TextLabel")
@@ -197,7 +197,7 @@ local function showErrorGui(msg)
     lbl.Position = UDim2.new(0, 10, 0, 10)
     lbl.BackgroundTransparency = 1
     lbl.Text = "LyraHub Error:\n" .. tostring(msg)
-    lbl.TextColor3 = THEME.danger or Color3.fromRGB(210, 95, 55)
+    lbl.TextColor3 = THEME.danger or Color3.fromRGB(219, 84, 108)
     lbl.Font = Enum.Font.GothamBold
     lbl.TextSize = 12
     lbl.TextWrapped = true
@@ -226,13 +226,13 @@ local function showKitToast(msg)
     toast.Size = UDim2.new(0, 420, 0, 54)
     toast.AnchorPoint = Vector2.new(0.5, 0)
     toast.Position = UDim2.new(0.5, 0, 1, -64)
-    toast.BackgroundColor3 = THEME.panel2 or Color3.fromRGB(32, 30, 26)
+    toast.BackgroundColor3 = THEME.panel2 or Color3.fromRGB(24, 32, 46)
     toast.AutoButtonColor = false
     toast.BorderSizePixel = 0
     toast.Parent = toastGui
     Instance.new("UICorner", toast).CornerRadius = UDim.new(0, 10)
     local toastStroke = Instance.new("UIStroke", toast)
-    toastStroke.Color = THEME.accentGlow or Color3.fromRGB(255, 205, 80)
+    toastStroke.Color = THEME.accentGlow or Color3.fromRGB(226, 240, 255)
     toastStroke.Thickness = 1
 
     local toastIcon = Instance.new("TextLabel")
@@ -240,7 +240,7 @@ local function showKitToast(msg)
     toastIcon.Size = UDim2.new(0, 24, 1, 0)
     toastIcon.Position = UDim2.new(0, 8, 0, 0)
     toastIcon.BackgroundTransparency = 1
-    toastIcon.TextColor3 = THEME.accentGlow or Color3.fromRGB(255, 205, 80)
+    toastIcon.TextColor3 = THEME.accentGlow or Color3.fromRGB(226, 240, 255)
     toastIcon.Font = Enum.Font.GothamBold
     toastIcon.TextSize = 16
     toastIcon.Parent = toast

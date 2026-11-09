@@ -25,7 +25,7 @@ Comprehensive automation toolkit for IndoVoice on Roblox.
 - Webhook Integration — Discord notifications (customizable)
 
 **Settings**
-- Halloween Theme (Dark / Ember variants — gold on near-black)
+- Winter Theme (Frost / Snow variants — snow-white and Sangaskara blue on near-black navy)
 - Per-Rarity Auto-Sell & Webhook Filters
 - Settings Save/Load (persists across sessions)
 - **Saved Settings Profiles** — create / save / load / rename / delete named snapshots of every user setting (Auto Fish, Auto Mine, camera & player settings, keybinds, toggles, zones, targets). See below.

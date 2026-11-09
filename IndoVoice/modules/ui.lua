@@ -318,24 +318,24 @@ for _, part in ipairs(getZoneParts()) do
         end
     end)
 
-    -- Halloween theme variants (centralized in config.ThemeVariants — no
+    -- Winter theme variants (centralized in config.ThemeVariants — no
     -- hardcoded colors here).
     bind(gui.Settings.DarkThemeBtn.MouseButton1Click, function()
-        if ctx.applyThemeVariant then ctx.applyThemeVariant("Dark") end
+        if ctx.applyThemeVariant then ctx.applyThemeVariant("Frost") end
         gui.Settings.DarkThemeBtn.BackgroundColor3 = THEME.accent
         gui.Settings.DarkThemeBtn.TextColor3 = Color3.new(1, 1, 1)
         gui.Settings.LightThemeBtn.BackgroundColor3 = THEME.panel2
         gui.Settings.LightThemeBtn.TextColor3 = THEME.dim
-        log("Theme: Halloween (Dark)", THEME.dim)
+        log("Theme: Winter (Frost)", THEME.dim)
     end)
 
     bind(gui.Settings.LightThemeBtn.MouseButton1Click, function()
-        if ctx.applyThemeVariant then ctx.applyThemeVariant("Ember") end
+        if ctx.applyThemeVariant then ctx.applyThemeVariant("Snow") end
         gui.Settings.LightThemeBtn.BackgroundColor3 = THEME.accent
         gui.Settings.LightThemeBtn.TextColor3 = Color3.new(1, 1, 1)
         gui.Settings.DarkThemeBtn.BackgroundColor3 = THEME.panel2
         gui.Settings.DarkThemeBtn.TextColor3 = THEME.dim
-        log("Theme: Halloween (Ember)", THEME.dim)
+        log("Theme: Winter (Snow)", THEME.dim)
     end)
 
     for name, btn in pairs(gui.TabButtons) do

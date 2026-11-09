@@ -73,14 +73,14 @@ local function showErrorGui(msg)
     frame.Size = UDim2.new(0, 400, 0, 120)
     frame.AnchorPoint = Vector2.new(0.5, 0.5)
     frame.Position = UDim2.new(0.5, 0, 0.5, 0)
-    frame.BackgroundColor3 = THEME.panel or Color3.fromRGB(20, 20, 20)
+    frame.BackgroundColor3 = THEME.panel or Color3.fromRGB(15, 21, 31)
     frame.BorderSizePixel = 0
     frame.Parent = errGui
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 10)
     corner.Parent = frame
     local stroke = Instance.new("UIStroke")
-    stroke.Color = THEME.danger or Color3.fromRGB(222, 92, 92)
+    stroke.Color = THEME.danger or Color3.fromRGB(219, 84, 108)
     stroke.Thickness = 1.5
     stroke.Parent = frame
 
@@ -89,7 +89,7 @@ local function showErrorGui(msg)
     lbl.Position = UDim2.new(0, 10, 0, 10)
     lbl.BackgroundTransparency = 1
     lbl.Text = "IndoHangout Error:\n" .. tostring(msg)
-    lbl.TextColor3 = THEME.danger or Color3.fromRGB(222, 92, 92)
+    lbl.TextColor3 = THEME.danger or Color3.fromRGB(219, 84, 108)
     lbl.Font = Enum.Font.GothamBold
     lbl.TextSize = 12
     lbl.TextWrapped = true

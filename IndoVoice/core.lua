@@ -566,6 +566,14 @@ return function(gui, config)
         gui.Subtitle.TextColor3 = THEME.dim
         gui.MainStroke.Color = THEME.accent:Lerp(Color3.new(1, 1, 1), 0.75)
         gui.ContentStroke.Color = THEME.accent:Lerp(Color3.new(0, 0, 0), 0.45)
+        -- The panel gradient holds a ColorSequence, which the per-key variant
+        -- copy above cannot reach — repaint it so a variant switch is complete.
+        if gui.MainGradient then
+            gui.MainGradient.Color = ColorSequence.new(THEME.bg, THEME.bg2)
+        end
+        if gui.MainGlow then
+            gui.MainGlow.Color = THEME.accent
+        end
         gui.Settings.AccentPreview.BackgroundColor3 = THEME.accent
         gui.Clicker.SliderFill.BackgroundColor3 = THEME.accent
 

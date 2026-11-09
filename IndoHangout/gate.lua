@@ -66,7 +66,7 @@ return function(config, Session)
 
     local Overlay = Instance.new("Frame")
     Overlay.Size = UDim2.new(1, 0, 1, 0)
-    Overlay.BackgroundColor3 = T.bg or Color3.fromRGB(16, 16, 19)
+    Overlay.BackgroundColor3 = T.bg or Color3.fromRGB(7, 10, 16)
     Overlay.BackgroundTransparency = 0.15
     Overlay.BorderSizePixel = 0
     Overlay.Parent = GateGui
@@ -75,7 +75,7 @@ return function(config, Session)
     Card.Size = UDim2.new(0, 340, 0, 260)
     Card.AnchorPoint = Vector2.new(0.5, 0.5)
     Card.Position = UDim2.new(0.5, 0, 0.5, 0)
-    Card.BackgroundColor3 = T.panel or Color3.fromRGB(22, 22, 27)
+    Card.BackgroundColor3 = T.panel or Color3.fromRGB(15, 21, 31)
     Card.BorderSizePixel = 0
     Card.Parent = GateGui
     local CardCorner = Instance.new("UICorner")
@@ -83,7 +83,7 @@ return function(config, Session)
     CardCorner.Parent = Card
 
     local CardStroke = Instance.new("UIStroke")
-    CardStroke.Color = T.accent or Color3.fromRGB(92, 140, 255)
+    CardStroke.Color = T.accent or Color3.fromRGB(56, 132, 255)
     CardStroke.Thickness = 1.5
     CardStroke.Transparency = 0.3
     CardStroke.Parent = Card
@@ -93,7 +93,7 @@ return function(config, Session)
     Title.Position = UDim2.new(0, 0, 0, 18)
     Title.BackgroundTransparency = 1
     Title.Text = G.Title or "IndoHangout"
-    Title.TextColor3 = T.accentGlow or Color3.fromRGB(160, 190, 255)
+    Title.TextColor3 = T.accentGlow or Color3.fromRGB(226, 240, 255)
     Title.Font = Enum.Font.GothamBlack
     Title.TextSize = 24
     Title.Parent = Card
@@ -103,7 +103,7 @@ return function(config, Session)
     Subtitle.Position = UDim2.new(0, 0, 0, 52)
     Subtitle.BackgroundTransparency = 1
     Subtitle.Text = G.Subtitle or "Access Gate"
-    Subtitle.TextColor3 = T.dim or Color3.fromRGB(168, 172, 184)
+    Subtitle.TextColor3 = T.dim or Color3.fromRGB(183, 197, 214)
     Subtitle.Font = Enum.Font.GothamBold
     Subtitle.TextSize = 13
     Subtitle.Parent = Card
@@ -113,10 +113,10 @@ return function(config, Session)
     InputBox.Size = UDim2.new(0, 260, 0, 36)
     InputBox.AnchorPoint = Vector2.new(0.5, 0)
     InputBox.Position = UDim2.new(0.5, 0, 0, 84)
-    InputBox.BackgroundColor3 = T.bg2 or Color3.fromRGB(20, 20, 24)
-    InputBox.TextColor3 = T.text or Color3.fromRGB(238, 238, 242)
+    InputBox.BackgroundColor3 = T.bg2 or Color3.fromRGB(11, 16, 24)
+    InputBox.TextColor3 = T.text or Color3.fromRGB(255, 255, 255)
     InputBox.PlaceholderText = "Password"
-    InputBox.PlaceholderColor3 = T.faint or Color3.fromRGB(112, 116, 128)
+    InputBox.PlaceholderColor3 = T.faint or Color3.fromRGB(118, 134, 154)
     InputBox.Text = ""
     InputBox.Font = Enum.Font.GothamBold
     InputBox.TextSize = 14
@@ -127,7 +127,7 @@ return function(config, Session)
     InputCorner.CornerRadius = UDim.new(0, 8)
     InputCorner.Parent = InputBox
     local InputStroke = Instance.new("UIStroke")
-    InputStroke.Color = T.border or Color3.fromRGB(46, 48, 58)
+    InputStroke.Color = T.border or Color3.fromRGB(36, 50, 72)
     InputStroke.Thickness = 1
     InputStroke.Parent = InputBox
 
@@ -150,7 +150,7 @@ return function(config, Session)
     StatusLbl.Position = UDim2.new(0, 0, 0, 124)
     StatusLbl.BackgroundTransparency = 1
     StatusLbl.Text = ""
-    StatusLbl.TextColor3 = T.danger or Color3.fromRGB(222, 92, 92)
+    StatusLbl.TextColor3 = T.danger or Color3.fromRGB(219, 84, 108)
     StatusLbl.Font = Enum.Font.Gotham
     StatusLbl.TextSize = 11
     StatusLbl.Parent = Card
@@ -159,7 +159,7 @@ return function(config, Session)
     EnterBtn.Size = UDim2.new(0, 260, 0, 34)
     EnterBtn.AnchorPoint = Vector2.new(0.5, 0)
     EnterBtn.Position = UDim2.new(0.5, 0, 0, 146)
-    EnterBtn.BackgroundColor3 = T.accent or Color3.fromRGB(92, 140, 255)
+    EnterBtn.BackgroundColor3 = T.accent or Color3.fromRGB(56, 132, 255)
     EnterBtn.TextColor3 = Color3.new(1, 1, 1)
     EnterBtn.Font = Enum.Font.GothamBold
     EnterBtn.TextSize = 14
@@ -175,7 +175,7 @@ return function(config, Session)
     Footer.Position = UDim2.new(0, 0, 1, -36)
     Footer.BackgroundTransparency = 1
     Footer.Text = G.Footer or "IndoHangout"
-    Footer.TextColor3 = T.faint or Color3.fromRGB(112, 116, 128)
+    Footer.TextColor3 = T.faint or Color3.fromRGB(118, 134, 154)
     Footer.Font = Enum.Font.Gotham
     Footer.TextSize = 10
     Footer.Parent = Card
@@ -210,7 +210,7 @@ return function(config, Session)
             authenticated = true
             StatusLbl.Text = ""
             EnterBtn.Text = "Unlocked"
-            EnterBtn.BackgroundColor3 = T.success or Color3.fromRGB(86, 201, 120)
+            EnterBtn.BackgroundColor3 = T.success or Color3.fromRGB(64, 176, 232)
             task.wait(0.3)
             local fadeOut = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
             TweenService:Create(Card, fadeOut, { BackgroundTransparency = 1 }):Play()
@@ -226,7 +226,7 @@ return function(config, Session)
             GateGui:Destroy()
         else
             StatusLbl.Text = "Invalid password"
-            StatusLbl.TextColor3 = T.danger or Color3.fromRGB(222, 92, 92)
+            StatusLbl.TextColor3 = T.danger or Color3.fromRGB(219, 84, 108)
             local orig = Card.Position
             for i = 1, 3 do
                 Card.Position = orig + UDim2.new(0, 6, 0, 0)

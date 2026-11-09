@@ -92,7 +92,7 @@ return function(ctx)
 
         -- General: hotkeys + theme
         data.hideKey = keyName(ctx.HIDE_KEY)
-        data.theme = ctx.activeThemeVariant or "Dark"
+        data.theme = ctx.activeThemeVariant or "Frost"
 
         -- Auto Clicker
         data.clicker = {

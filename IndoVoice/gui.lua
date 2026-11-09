@@ -1,5 +1,5 @@
 -- LyraHub/gui.lua
--- Wide sleek GUI with Lyra violet theme, draggable from top bar + bottom line.
+-- Wide sleek GUI with the Winter (Sangaskara) theme, draggable from top bar + bottom line.
 -- Consumes the LyraHub UI kit (raw GitHub link) for primitives; the palette
 -- comes from config.Theme. Modules still drive raw widgets, so the return
 -- contract is unchanged.
@@ -11,7 +11,7 @@ return function(config, components)
 
     -- LyraHub kit primitives (corner/stroke/glow/gradient/shadow/tween)
     local shared = components and components.shared
-    -- Lyra Theme (violet/purple palette) — from config, not hardcoded
+    -- Winter theme palette — from config, not hardcoded
     local LYRA = config.Theme
 
     if _G.__LyraHub_Destroy then
@@ -149,8 +149,10 @@ return function(config, components)
     Main.ZIndex = 2
     Main.Parent = ScreenGui
     shared.corner(Main, UDim.new(0, 12))
-    shared.gradient(Main, LYRA.bg, LYRA.bg2, 90)
-    shared.glow(Main, LYRA.accent, 3, 0.9)
+    -- Kept on the gui table so core.applyTheme can repaint it when the user
+    -- switches theme variants (the gradient is a ColorSequence, not a color).
+    local MainGradient = shared.gradient(Main, LYRA.bg, LYRA.bg2, 90)
+    local MainGlow = shared.glow(Main, LYRA.accent, 3, 0.9)
     local MainStroke = shared.stroke(Main, LYRA.accentDark, 1, 0)
     -- Soft drop shadow behind the window (follows on drag, hides on minimize)
     local MainShadow = shared.shadow(Main, { ExtendX = 10, ExtendY = 10, Transparency = 0.72, OffsetY = 0 })
@@ -292,7 +294,7 @@ return function(config, components)
     Title.Parent = Sidebar
 
     local Subtitle = Instance.new("TextLabel")
-    Subtitle.Text = "Spooky Version | LyraHub UI"
+    Subtitle.Text = "Winter Version | LyraHub UI"
     Subtitle.Size = UDim2.new(1, 0, 0, 14)
     Subtitle.Position = UDim2.new(0, 0, 0, 46)
     Subtitle.BackgroundTransparency = 1
@@ -536,7 +538,7 @@ return function(config, components)
     AboutVersion.Size = UDim2.new(1, -20, 0, 20)
     AboutVersion.Position = UDim2.new(0, 10, 1, -24)
     AboutVersion.BackgroundTransparency = 1
-    AboutVersion.Text = "Spooky Version | LyraHub UI"
+    AboutVersion.Text = "Winter Version | LyraHub UI"
     AboutVersion.TextColor3 = LYRA.dim
     AboutVersion.Font = Enum.Font.Code
     AboutVersion.TextSize = 10
@@ -1838,7 +1840,7 @@ return function(config, components)
         shared.corner(accentPreview, UDim.new(0, 4))
 
         local darkThemeBtn = Instance.new("TextButton")
-        darkThemeBtn.Text = "Halloween (Dark)"
+        darkThemeBtn.Text = "Winter (Frost)"
         darkThemeBtn.Size = UDim2.new(0.48, -10, 0, 28)
         darkThemeBtn.Position = UDim2.new(0, 10, 0, 522)
         darkThemeBtn.BackgroundColor3 = LYRA.accent
@@ -1850,7 +1852,7 @@ return function(config, components)
         shared.corner(darkThemeBtn, UDim.new(0, 6))
 
         local lightThemeBtn = Instance.new("TextButton")
-        lightThemeBtn.Text = "Halloween (Ember)"
+        lightThemeBtn.Text = "Winter (Snow)"
         lightThemeBtn.Size = UDim2.new(0.48, -10, 0, 28)
         lightThemeBtn.Position = UDim2.new(0.5, 5, 0, 522)
         lightThemeBtn.BackgroundColor3 = LYRA.panel2
@@ -2105,6 +2107,8 @@ return function(config, components)
         Header = Header,
         HeaderMask = HeaderMask,
         MainStroke = MainStroke,
+        MainGradient = MainGradient,
+        MainGlow = MainGlow,
         Content = Content,
         ContentStroke = ContentStroke,
         TabsBar = TabsBar,

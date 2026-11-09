@@ -166,7 +166,9 @@ return function(config, components)
     closeBtn.Name = "CloseBtn"
     closeBtn.Size = UDim2.fromOffset(28, 28)
     closeBtn.Position = UDim2.fromOffset(W - 40, 10)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(64, 28, 34)
+    -- Palette-driven danger tint (was a hardcoded warm maroon before the
+    -- winter makeover): deep panel mixed with the theme's danger colour.
+    closeBtn.BackgroundColor3 = theme.danger:Lerp(theme.panel, 0.78)
     closeBtn.Text = "✕"
     closeBtn.TextColor3 = theme.danger
     closeBtn.Font = Enum.Font.GothamBold
