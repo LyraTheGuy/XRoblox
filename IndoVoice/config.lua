@@ -101,7 +101,7 @@ end
 
 return {
     Gate = {
-        Password = "SVRTSEFMTE9XRUVOISEh", -- base64 encoded password
+        Password = "V0lOVEVSSVNDT01JTkc=", -- base64 encoded password
         -- Password bypass: after one successful login the session is saved
         -- per place (executor filesystem / getgenv). Rejoins in the SAME
         -- place skip the gate and auto-execute. 0 = never expire.
